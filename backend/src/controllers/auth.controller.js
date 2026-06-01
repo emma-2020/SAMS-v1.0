@@ -132,4 +132,40 @@ async function me(req, res, next) {
 }
 
 
-module.exports = { signup, login, logout, refresh, me };
+// ─────────────────────────────────────────────────────────────────
+// PATCH /api/auth/me
+// Body: { first_name, last_name }
+// ─────────────────────────────────────────────────────────────────
+
+async function updateProfile(req, res, next) {
+  try {
+    const { first_name, last_name } = req.body;
+    const profile = await authService.updateProfile({
+      userId:     req.user.id,
+      academyId:  req.user.academy_id,
+      first_name,
+      last_name,
+    });
+    return res.status(200).json({ success: true, data: { profile } });
+  } catch (err) { next(err); }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// POST /api/auth/change-password
+// Body: { new_password }
+// ─────────────────────────────────────────────────────────────────
+
+async function changePassword(req, res, next) {
+  try {
+    const { new_password } = req.body;
+    if (!new_password || new_password.length < 8) {
+      throw new (require('../utils/errors').BadRequestError)(
+        'Password must be at least 8 characters.'
+      );
+    }
+    await authService.changePassword({ userId: req.user.id, newPassword: new_password });
+    return res.status(200).json({ success: true, message: 'Password updated successfully.' });
+  } catch (err) { next(err); }
+}
+
+module.exports = { signup, login, logout, refresh, me, updateProfile, changePassword };

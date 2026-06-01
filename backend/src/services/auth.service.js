@@ -219,4 +219,42 @@ async function refreshSession(refreshToken) {
   };
 }
 
-module.exports = { signup, login, logout, getMe, refreshSession };
+// ─────────────────────────────────────────────────────────────────
+// UPDATE PROFILE
+// ─────────────────────────────────────────────────────────────────
+
+async function updateProfile({ userId, academyId, first_name, last_name }) {
+  const updates = {};
+  if (first_name?.trim()) updates.first_name = sanitizeString(first_name);
+  if (last_name?.trim())  updates.last_name  = sanitizeString(last_name);
+
+  const { data, error } = await supabaseAdmin
+    .from('users')
+    .update(updates)
+    .eq('id', userId)
+    .eq('academy_id', academyId)
+    .select('id, academy_id, email, role, first_name, last_name')
+    .single();
+
+  if (error || !data) {
+    console.error('[AuthService.updateProfile]', error?.message);
+    throw new InternalError('Profile update failed.');
+  }
+  return data;
+}
+
+// ─────────────────────────────────────────────────────────────────
+// CHANGE PASSWORD
+// ─────────────────────────────────────────────────────────────────
+
+async function changePassword({ userId, newPassword }) {
+  const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+    password: newPassword,
+  });
+  if (error) {
+    console.error('[AuthService.changePassword]', error.message);
+    throw new InternalError('Password change failed. Please try again.');
+  }
+}
+
+module.exports = { signup, login, logout, getMe, refreshSession, updateProfile, changePassword };

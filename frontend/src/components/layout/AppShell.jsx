@@ -12,6 +12,7 @@ const icons = {
   message:   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
   users:     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
   mail:      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg>,
+  settings:  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
   logout:    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
   menu:      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>,
   close:     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
@@ -20,12 +21,15 @@ const icons = {
 
 // ─── Navigation config ───────────────────────────────────────────
 
+const SETTINGS_NAV = { label: 'Settings', path: '/dashboard/settings', icon: icons.settings };
+
 const NAV_CONFIG = {
   Admin: [
     { label: 'Schedule',    path: '/dashboard/admin/schedule', icon: icons.calendar  },
     { label: 'Invitations', path: '/dashboard/admin/invite',   icon: icons.mail      },
     { label: 'Roster',      path: '/dashboard/admin/roster',   icon: icons.users     },
     { label: 'Chat',        path: '/dashboard/admin/chat',     icon: icons.message   },
+    SETTINGS_NAV,
   ],
   Coach: [
     { label: 'Schedule',   path: '/dashboard/coach/schedule',   icon: icons.calendar  },
@@ -33,17 +37,20 @@ const NAV_CONFIG = {
     { label: 'Roster',     path: '/dashboard/coach/roster',     icon: icons.users     },
     { label: 'Health',     path: '/dashboard/coach/health',     icon: icons.heart     },
     { label: 'Chat',       path: '/dashboard/coach/chat',       icon: icons.message   },
+    SETTINGS_NAV,
   ],
   Player: [
     { label: 'Schedule', path: '/dashboard/player/schedule', icon: icons.calendar  },
     { label: 'Workouts', path: '/dashboard/player/workouts', icon: icons.clipboard },
     { label: 'Health',   path: '/dashboard/player/health',   icon: icons.heart     },
     { label: 'Chat',     path: '/dashboard/player/chat',     icon: icons.message   },
+    SETTINGS_NAV,
   ],
   Parent: [
     { label: 'Schedule', path: '/dashboard/parent/schedule', icon: icons.calendar },
     { label: 'Health',   path: '/dashboard/parent/health',   icon: icons.heart    },
     { label: 'Messages', path: '/dashboard/parent/chat',     icon: icons.message  },
+    SETTINGS_NAV,
   ],
 };
 

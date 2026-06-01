@@ -20,7 +20,9 @@ router.post('/login',   controller.login);
 router.post('/refresh', controller.refresh);
 
 // ── Protected ─────────────────────────────────────────────────────
-router.post('/logout', authenticate, controller.logout);
-router.get('/me',      authenticate, extractTenant, controller.me);
+router.post(  '/logout',          authenticate,              controller.logout);
+router.get(   '/me',              authenticate, extractTenant, controller.me);
+router.patch( '/me',              authenticate, extractTenant, controller.updateProfile);
+router.post(  '/change-password', authenticate,              controller.changePassword);
 
 module.exports = router;

@@ -8,6 +8,7 @@ import CoachDashboard  from '../pages/coach/index';
 import ParentDashboard from '../pages/parent/index';
 import AdminDashboard  from '../pages/admin/index';
 import ChatPage        from '../pages/chat/index';
+import SettingsPage    from '../pages/settings/index';
 import useAuthStore    from '../store/authStore';
 
 function SmartRoleRedirect() {
@@ -67,6 +68,8 @@ export default function AppRouter() {
             <Route path="/dashboard/parent/health"   element={<ParentDashboard />} />
             <Route path="/dashboard/parent/chat"     element={<ChatPage />} />
           </Route>
+          {/* Settings — all roles */}
+          <Route path="/dashboard/settings" element={<SettingsPage />} />
         </Route>
       </Route>
 
