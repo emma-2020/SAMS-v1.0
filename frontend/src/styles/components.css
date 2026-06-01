@@ -32,17 +32,18 @@
 }
 
 .btn-primary {
-  background: var(--accent);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dim) 100%);
   color: var(--text-inverted);
   border-color: var(--accent);
+  box-shadow: 0 2px 8px rgba(245,158,11,0.25);
 }
 .btn-primary:hover {
-  background: var(--accent-dim);
-  border-color: var(--accent-dim);
-  box-shadow: var(--shadow-glow);
+  background: linear-gradient(135deg, #FBBF24 0%, var(--accent) 100%);
+  border-color: var(--accent);
+  box-shadow: var(--shadow-glow), 0 4px 12px rgba(245,158,11,0.3);
   transform: translateY(-1px);
 }
-.btn-primary:active { transform: translateY(0); }
+.btn-primary:active { transform: translateY(0); box-shadow: none; }
 
 .btn-ghost {
   background: transparent;
@@ -184,6 +185,7 @@
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   padding: var(--space-6);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.25), 0 1px 3px rgba(0,0,0,0.15);
 }
 .card-elevated {
   background: var(--bg-elevated);

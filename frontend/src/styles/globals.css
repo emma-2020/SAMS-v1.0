@@ -73,9 +73,10 @@
   --radius-xl:  16px;
 
   /* Shadows */
-  --shadow-sm:  0 1px 3px rgba(0,0,0,0.4);
-  --shadow-md:  0 4px 16px rgba(0,0,0,0.5);
-  --shadow-lg:  0 12px 40px rgba(0,0,0,0.6);
+  --shadow-sm:   0 1px 3px rgba(0,0,0,0.4);
+  --shadow-md:   0 4px 16px rgba(0,0,0,0.5);
+  --shadow-lg:   0 12px 40px rgba(0,0,0,0.6);
+  --shadow-card: 0 2px 12px rgba(0,0,0,0.3), 0 1px 3px rgba(0,0,0,0.2);
   --shadow-glow: 0 0 24px rgba(245, 158, 11, 0.18);
 
   /* Transitions */
@@ -104,6 +105,9 @@ html {
 body {
   font-family: var(--font-body);
   background-color: var(--bg-base);
+  background-image:
+    radial-gradient(ellipse at 20% 50%, rgba(245,158,11,0.03) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(59,130,246,0.02) 0%, transparent 50%);
   color: var(--text-primary);
   line-height: 1.6;
   min-height: 100vh;

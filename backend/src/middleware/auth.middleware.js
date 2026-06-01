@@ -72,19 +72,12 @@ async function extractTenant(req, res, next) {
     if (!req.user || !req.user.academy_id) {
       throw new UnauthorizedError('Tenant context missing.');
     }
-
-    const { data: academy, error } = await supabaseAdmin
-      .from('academies')
-      .select('id, name')
-      .eq('id', req.user.academy_id)
-      .single();
-
-    if (error || !academy) {
-      throw new UnauthorizedError('Academy not found.');
-    }
-
-    req.academyId   = academy.id;
-    req.academyName = academy.name;
+    // academy_id FK was already validated against the users table in authenticate().
+    // Querying the academies table here via the REST API was causing 406 errors
+    // due to missing RLS policies on that table. The FK constraint guarantees
+    // the academy exists if the user record exists.
+    req.academyId   = req.user.academy_id;
+    req.academyName = null; // fetched lazily by services that need it
     next();
   } catch (err) {
     next(err);

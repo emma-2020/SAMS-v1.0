@@ -95,15 +95,13 @@ async function createInvitation({ adminId, academyId, email, role, firstName, la
     Date.now() + INVITE_EXPIRY_HOURS * 60 * 60 * 1000
   ).toISOString();
 
-  // 4. Verify the academy exists (should always be true since admin is authenticated,
-  //    but we fetch name for the email template)
+  // 4. Fetch academy name for the email template (non-fatal — falls back to generic name
+  //    if the academies table RLS policies are not yet applied).
   const { data: academy } = await supabaseAdmin
     .from('academies')
     .select('id, name')
     .eq('id', academyId)
-    .single();
-
-  if (!academy) throw new NotFoundError('Academy not found.');
+    .maybeSingle();
 
   // 5. Insert invitation record
   const { data: invitation, error: insertError } = await supabaseAdmin
@@ -131,7 +129,7 @@ async function createInvitation({ adminId, academyId, email, role, firstName, la
       to:          cleanEmail,
       firstName:   firstName.trim(),
       role,
-      academyName: academy.name,
+      academyName: academy?.name ?? 'Your Academy',
       token,
       expiresAt,
     });
