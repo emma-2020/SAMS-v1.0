@@ -55,4 +55,17 @@ async function revokeInvitation(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { createInvitation, listInvitations, revokeInvitation };
+async function listRoster(req, res, next) {
+  try {
+    const { supabaseAdmin } = require('../config/supabase');
+    const { data, error } = await supabaseAdmin
+      .from('users')
+      .select('id, first_name, last_name, email, role, is_active, created_at')
+      .eq('academy_id', req.academyId)
+      .order('created_at', { ascending: false });
+    if (error) throw new (require('../utils/errors').InternalError)('Failed to fetch roster.');
+    return res.status(200).json({ success: true, data: { members: data || [] } });
+  } catch (err) { next(err); }
+}
+
+module.exports = { createInvitation, listInvitations, revokeInvitation, listRoster };

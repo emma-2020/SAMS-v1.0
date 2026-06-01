@@ -33,24 +33,22 @@ import { Outlet } from 'react-router-dom';
 function InitialisingScreen() {
   return (
     <div style={{
-      display:        'flex',
-      flexDirection:  'column',
-      alignItems:     'center',
-      justifyContent: 'center',
-      minHeight:      '100vh',
-      background:     'var(--bg-base)',
-      gap:            '16px',
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      minHeight: '100vh', background: 'var(--sidebar-bg)', gap: 16,
     }}>
       <div style={{
-        fontFamily:    'var(--font-display)',
-        fontSize:      '1.75rem',
-        fontWeight:    800,
-        letterSpacing: '0.12em',
-        color:         'var(--text-primary)',
+        width: 48, height: 48, borderRadius: 12,
+        background: 'linear-gradient(135deg, #6366F1, #4F46E5)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        boxShadow: '0 8px 24px rgba(99,102,241,0.4)', marginBottom: 4,
       }}>
+        <span style={{ fontWeight: 900, fontSize: '1.2rem', color: 'white' }}>S</span>
+      </div>
+      <div style={{ fontWeight: 800, fontSize: '1.1rem', color: 'white', letterSpacing: '0.1em' }}>
         SAMS
       </div>
-      <div className="spinner" style={{ width: 28, height: 28 }} />
+      <div className="spinner" style={{ width: 22, height: 22, borderTopColor: '#6366F1', borderColor: 'rgba(255,255,255,0.15)' }} />
     </div>
   );
 }
