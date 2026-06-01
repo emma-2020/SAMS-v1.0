@@ -1,0 +1,8 @@
+{
+  "short_name": "SAMS",
+  "name": "Sports Academy Management System",
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#070B11",
+  "background_color": "#070B11"
+}
