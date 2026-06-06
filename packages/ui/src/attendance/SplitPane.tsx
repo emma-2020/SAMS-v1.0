@@ -108,7 +108,7 @@ export function SplitPaneAttendance({ sessions, getAttendance, onMark, isLoading
                 <Pressable
                   key={r.player_id}
                   onPress={() => cycleStatus(r)}
-                  style={({ pressed }) => ({
+                  style={({ pressed }: { pressed: boolean }) => ({
                     flexDirection: 'row',
                     alignItems: 'center',
                     paddingVertical: 12,
