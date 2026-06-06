@@ -63,9 +63,9 @@ export default function PlayerHealthPage() {
             ].map(({ key, label }) => (
               <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', width: 120, flexShrink: 0 }}>{label}</label>
-                <input type="range" min={1} max={5} value={(form as Record<string, number>)[key]}
+                <input type="range" min={1} max={5} value={(form as unknown as Record<string, number>)[key]}
                   onChange={(e) => setForm((p) => ({ ...p, [key]: Number(e.target.value) }))} style={{ flex: 1 }} />
-                <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#6366F1', width: 20, textAlign: 'right' }}>{(form as Record<string, number>)[key]}</span>
+                <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#6366F1', width: 20, textAlign: 'right' }}>{(form as unknown as Record<string, number>)[key]}</span>
               </div>
             ))}
             <textarea placeholder="Notes (optional)" value={form.notes} onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
