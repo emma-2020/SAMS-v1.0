@@ -24,8 +24,13 @@ const app = express();
 
 app.use(helmet());
 
+// In production use the configured URL only; in dev allow both local ports
+const allowedOrigins = env.NODE_ENV === 'production'
+  ? [env.FRONTEND_URL]
+  : [...new Set([env.FRONTEND_URL, 'http://localhost:3000', 'http://localhost:3001'])];
+
 app.use(cors({
-  origin:         env.FRONTEND_URL,
+  origin:         allowedOrigins,
   methods:        ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials:    true,
