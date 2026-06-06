@@ -3,16 +3,17 @@ import '../global.css';
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { SplashScreen } from 'expo-splash-screen';
+import * as SplashScreen from 'expo-splash-screen';
 import { configureApiClient, authApi } from '@sams/api';
 import { useAuthStore } from '@sams/store';
 
-SplashScreen.preventAutoHideAsync();
+// Must be called before the first render
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
   const { session, isInitialised, login, logout, refreshSession, setInitialised } = useAuthStore();
 
-  // Wire API client with native storage-backed token
+  // Wire API client with native token getter
   useEffect(() => {
     configureApiClient({
       getToken: () => useAuthStore.getState().session?.access_token ?? null,
@@ -32,9 +33,12 @@ export default function RootLayout() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Revalidate persisted session from AsyncStorage
+  // Revalidate persisted session from AsyncStorage on mount
   useEffect(() => {
-    if (isInitialised) { SplashScreen.hideAsync(); return; }
+    if (isInitialised) {
+      SplashScreen.hideAsync().catch(() => {});
+      return;
+    }
 
     const validate = async () => {
       if (session?.access_token) {
@@ -46,7 +50,7 @@ export default function RootLayout() {
         }
       }
       setInitialised();
-      await SplashScreen.hideAsync();
+      SplashScreen.hideAsync().catch(() => {});
     };
 
     validate();
