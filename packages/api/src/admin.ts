@@ -49,6 +49,7 @@ export async function sendInvitation(payload: {
   email: string;
   role: string;
   first_name?: string;
+  last_name?: string;
 }): Promise<InvitationRecord> {
   const res = (await apiClient.post('/admin/invite', payload)) as {
     success: boolean;
