@@ -1,0 +1,19 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NonInteractive -File \"c:\\Users\\benja\\SAMS-v1.0-FIXED\\SAMS-v1.0\\.claude\\hooks\\auto-commit.ps1\"",
+            "shell": "powershell",
+            "statusMessage": "Committing & pushing to GitHub...",
+            "timeout": 60,
+            "async": true
+          }
+        ]
+      }
+    ]
+  }
+}
