@@ -1,0 +1,12 @@
+export { apiClient, configureApiClient } from './client';
+export type * from './types';
+export * as authApi from './auth';
+export * as adminApi from './admin';
+export * as coachApi from './coach';
+export * as teamsApi from './teams';
+export * as chatApi from './chat';
+export * as healthApi from './health';
+export * as attendanceApi from './attendance';
+export * as scheduleApi from './schedule';
+export * as workoutApi from './workout';
+export * as notificationsApi from './notifications';
