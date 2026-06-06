@@ -3,7 +3,7 @@ import { ROLE_COLOR } from '../theme/colors';
 import type { UserProfile } from '@sams/api';
 
 interface AvatarProps {
-  user: Pick<UserProfile, 'first_name' | 'last_name' | 'email' | 'role'> | null;
+  user: (Partial<Pick<UserProfile, 'role'>> & Pick<UserProfile, 'first_name' | 'last_name' | 'email'>) | null;
   size?: number;
 }
 
