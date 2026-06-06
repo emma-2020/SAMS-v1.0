@@ -1,27 +1,29 @@
 import { View, Text } from '../primitives';
 import type { StyleProp, ViewStyle } from 'react-native';
 
+interface CardBase {
+  className?: string;
+  style?: StyleProp<ViewStyle>;
+}
+
 // ─── StatCard ─────────────────────────────────────────────────────────────────
-interface StatCardProps {
+interface StatCardProps extends CardBase {
   title: string;
   value: string | number;
   subtitle?: string;
   trend?: 'up' | 'down' | 'neutral';
   trendValue?: string;
   accentColor?: string;
-  className?: string;
-  style?: StyleProp<ViewStyle>;
 }
 
-export function StatCard({ title, value, subtitle, trend, trendValue, accentColor, style }: StatCardProps) {
+export function StatCard({ title, value, subtitle, trend, trendValue, accentColor, className, style }: StatCardProps) {
   const trendColor = trend === 'up' ? '#10B981' : trend === 'down' ? '#EF4444' : '#94A3B8';
   const trendArrow = trend === 'up' ? '↑' : trend === 'down' ? '↓' : '→';
 
   return (
     <View
-      className="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-100 dark:border-slate-700"
-      style={[{ shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 }, style as object]}
-      {...rest}
+      className={`bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-100 dark:border-slate-700${className ? ` ${className}` : ''}`}
+      style={[{ shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 }, style]}
     >
       {accentColor && (
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, borderTopLeftRadius: 16, borderTopRightRadius: 16, backgroundColor: accentColor }} />
@@ -46,19 +48,20 @@ export function StatCard({ title, value, subtitle, trend, trendValue, accentColo
   );
 }
 
-// ─── KpiCard — gradient icon variant used in admin dashboard ──────────────────
-interface KpiCardProps {
+// ─── KpiCard ──────────────────────────────────────────────────────────────────
+interface KpiCardProps extends CardBase {
   label: string;
   value: string | number;
   icon: React.ReactNode;
-  gradientColors?: [string, string];
   delta?: string;
 }
 
-export function KpiCard({ label, value, icon, delta }: KpiCardProps) {
+export function KpiCard({ label, value, icon, delta, className }: KpiCardProps) {
   return (
-    <View className="bg-white dark:bg-slate-800 rounded-2xl p-5 flex-1 border border-slate-100 dark:border-slate-700"
-      style={{ shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 }}>
+    <View
+      className={`bg-white dark:bg-slate-800 rounded-2xl p-5 flex-1 border border-slate-100 dark:border-slate-700${className ? ` ${className}` : ''}`}
+      style={{ shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 }}
+    >
       <View className="flex-row items-center justify-between mb-3">
         <View className="w-10 h-10 rounded-xl items-center justify-center bg-indigo-50 dark:bg-indigo-900/30">
           {icon}
@@ -77,23 +80,20 @@ export function KpiCard({ label, value, icon, delta }: KpiCardProps) {
   );
 }
 
-// ─── SectionCard — generic section wrapper ────────────────────────────────────
-interface SectionCardProps extends ViewProps {
+// ─── SectionCard ──────────────────────────────────────────────────────────────
+interface SectionCardProps extends CardBase {
   title?: string;
   subtitle?: string;
   accentColor?: string;
   children: React.ReactNode;
   headerRight?: React.ReactNode;
-  // NativeWind v4 className (not in core ViewProps types)
-  className?: string;
 }
 
-export function SectionCard({ title, subtitle, accentColor, children, headerRight, style, ...rest }: SectionCardProps) {
+export function SectionCard({ title, subtitle, accentColor, children, headerRight, className, style }: SectionCardProps) {
   return (
     <View
-      className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden"
-      style={[{ shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 }, style as object]}
-      {...rest}
+      className={`bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden${className ? ` ${className}` : ''}`}
+      style={[{ shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 }, style]}
     >
       {accentColor && (
         <View style={{ height: 3, backgroundColor: accentColor }} />
@@ -117,42 +117,20 @@ export function SectionCard({ title, subtitle, accentColor, children, headerRigh
 }
 
 // ─── StatusPill ───────────────────────────────────────────────────────────────
-interface StatusPillProps {
-  label: string;
-  color?: string;
-  size?: 'sm' | 'md';
-}
-
-export function StatusPill({ label, color = '#6366F1', size = 'md' }: StatusPillProps) {
+export function StatusPill({ label, color = '#6366F1', size = 'md' }: { label: string; color?: string; size?: 'sm' | 'md' }) {
   const py = size === 'sm' ? 2 : 3;
   const px = size === 'sm' ? 6 : 10;
   const fs = size === 'sm' ? 9 : 11;
-
   return (
-    <View style={{
-      paddingVertical: py, paddingHorizontal: px,
-      borderRadius: 99,
-      backgroundColor: `${color}15`,
-      borderWidth: 1,
-      borderColor: `${color}30`,
-      alignSelf: 'flex-start',
-    }}>
-      <Text style={{ fontSize: fs, fontWeight: '700', color, letterSpacing: 0.8, textTransform: 'uppercase' }}>
-        {label}
-      </Text>
+    <View style={{ paddingVertical: py, paddingHorizontal: px, borderRadius: 99, backgroundColor: `${color}15`, borderWidth: 1, borderColor: `${color}30`, alignSelf: 'flex-start' }}>
+      <Text style={{ fontSize: fs, fontWeight: '700', color, letterSpacing: 0.8, textTransform: 'uppercase' }}>{label}</Text>
     </View>
   );
 }
 
-// ─── ScoreChip — 1-5 wellness score ──────────────────────────────────────────
-function scoreColor(score: number): string {
-  if (score >= 4) return '#10B981';
-  if (score >= 3) return '#FBBF24';
-  return '#EF4444';
-}
-
+// ─── ScoreChip ────────────────────────────────────────────────────────────────
 export function ScoreChip({ score }: { score: number }) {
-  const color = scoreColor(score);
+  const color = score >= 4 ? '#10B981' : score >= 3 ? '#FBBF24' : '#EF4444';
   return (
     <View style={{ paddingVertical: 2, paddingHorizontal: 8, borderRadius: 99, backgroundColor: `${color}15`, borderWidth: 1, borderColor: `${color}30`, alignSelf: 'flex-start' }}>
       <Text style={{ fontSize: 11, fontWeight: '800', color }}>{score}/5</Text>
