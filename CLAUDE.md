@@ -4,6 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
+### Monorepo root (requires pnpm ≥9)
+```bash
+pnpm install                # install all workspace packages
+pnpm dev:next               # Next.js web app on port 3001
+pnpm dev:backend            # Express API on port 4000
+pnpm dev:all                # Next.js + backend concurrently
+pnpm build:next             # production Next.js build (validated ✓)
+pnpm dev:expo               # Expo mobile app (requires Expo Go or emulator)
+```
+
 ### Backend (run from `backend/`)
 ```bash
 npm run dev          # start with nodemon on port 4000
@@ -12,11 +22,23 @@ npm test             # jest --runInBand (all tests)
 npx jest tests/unit/auth.service.test.js   # single test file
 ```
 
-### Frontend (run from `frontend/`)
+### Legacy Frontend / CRA (run from `frontend/` — kept as reference)
 ```bash
 npm start            # CRA dev server on port 3000
 npm run build        # production build
 npm test             # react-scripts test --watchAll=false
+```
+
+### New Next.js app (run from `apps/next/`)
+```bash
+pnpm dev             # Next.js dev server on port 3001
+pnpm build           # production build
+pnpm typecheck       # TypeScript check only
+```
+
+### Expo mobile app (run from `apps/expo/`)
+```bash
+pnpm dev             # Expo development server
 ```
 
 ### Database
