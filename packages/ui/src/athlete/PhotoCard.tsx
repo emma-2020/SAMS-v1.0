@@ -10,7 +10,7 @@ import type { UserProfile } from '@sams/api';
 import { ScoreChip, StatusPill } from '../cards';
 
 interface AthletePhotoCardProps {
-  player: Pick<UserProfile, 'id' | 'first_name' | 'last_name' | 'email' | 'role'> & {
+  player: Pick<UserProfile, 'id' | 'first_name' | 'last_name' | 'email'> & { role?: UserProfile['role'] } & {
     sport?: string;
     health_score?: number;
     team_name?: string;
