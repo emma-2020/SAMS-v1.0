@@ -32,15 +32,13 @@
       "static/chunks/308-c9bc76d37800ff2d.js",
       "static/chunks/app/page-de0f582ac229715d.js"
     ],
-    "/dashboard/admin/chat/page": [
+    "/dashboard/admin/invite/page": [
       "static/chunks/webpack-0aa573cbf27f1319.js",
       "static/chunks/8157abed-7b8ce603db9f0e54.js",
       "static/chunks/531-0b94e4cc4ff2f045.js",
       "static/chunks/main-app-32f821d2c3ed2b4d.js",
       "static/chunks/517-a86b2052ecc29d4e.js",
-      "static/chunks/139-6b8f1447a67a3280.js",
-      "static/chunks/797-bb5a315e787fbf81.js",
-      "static/chunks/app/dashboard/admin/chat/page-5e087baa73febdef.js"
+      "static/chunks/app/dashboard/admin/invite/page-57c096cca4d6bac6.js"
     ],
     "/dashboard/layout": [
       "static/chunks/webpack-0aa573cbf27f1319.js",
@@ -55,22 +53,6 @@
       "static/chunks/308-c9bc76d37800ff2d.js",
       "static/chunks/app/dashboard/layout-8627ddea7a532e1d.js"
     ],
-    "/dashboard/admin/schedule/page": [
-      "static/chunks/webpack-0aa573cbf27f1319.js",
-      "static/chunks/8157abed-7b8ce603db9f0e54.js",
-      "static/chunks/531-0b94e4cc4ff2f045.js",
-      "static/chunks/main-app-32f821d2c3ed2b4d.js",
-      "static/chunks/517-a86b2052ecc29d4e.js",
-      "static/chunks/app/dashboard/admin/schedule/page-b66cc3e221077cc6.js"
-    ],
-    "/dashboard/admin/invite/page": [
-      "static/chunks/webpack-0aa573cbf27f1319.js",
-      "static/chunks/8157abed-7b8ce603db9f0e54.js",
-      "static/chunks/531-0b94e4cc4ff2f045.js",
-      "static/chunks/main-app-32f821d2c3ed2b4d.js",
-      "static/chunks/517-a86b2052ecc29d4e.js",
-      "static/chunks/app/dashboard/admin/invite/page-57c096cca4d6bac6.js"
-    ],
     "/dashboard/admin/teams/page": [
       "static/chunks/webpack-0aa573cbf27f1319.js",
       "static/chunks/8157abed-7b8ce603db9f0e54.js",
@@ -78,16 +60,6 @@
       "static/chunks/main-app-32f821d2c3ed2b4d.js",
       "static/chunks/517-a86b2052ecc29d4e.js",
       "static/chunks/app/dashboard/admin/teams/page-afa1c5adf752451f.js"
-    ],
-    "/dashboard/coach/attendance/page": [
-      "static/chunks/webpack-0aa573cbf27f1319.js",
-      "static/chunks/8157abed-7b8ce603db9f0e54.js",
-      "static/chunks/531-0b94e4cc4ff2f045.js",
-      "static/chunks/main-app-32f821d2c3ed2b4d.js",
-      "static/chunks/517-a86b2052ecc29d4e.js",
-      "static/chunks/852-27eb8137a1f05d78.js",
-      "static/chunks/222-61f3492653be40a2.js",
-      "static/chunks/app/dashboard/coach/attendance/page-2c2cb45c7181d4ba.js"
     ],
     "/dashboard/coach/chat/page": [
       "static/chunks/webpack-0aa573cbf27f1319.js",
@@ -99,7 +71,17 @@
       "static/chunks/797-bb5a315e787fbf81.js",
       "static/chunks/app/dashboard/coach/chat/page-eb7917c00de0d054.js"
     ],
-    "/dashboard/parent/chat/page": [
+    "/dashboard/coach/attendance/page": [
+      "static/chunks/webpack-0aa573cbf27f1319.js",
+      "static/chunks/8157abed-7b8ce603db9f0e54.js",
+      "static/chunks/531-0b94e4cc4ff2f045.js",
+      "static/chunks/main-app-32f821d2c3ed2b4d.js",
+      "static/chunks/517-a86b2052ecc29d4e.js",
+      "static/chunks/852-27eb8137a1f05d78.js",
+      "static/chunks/222-61f3492653be40a2.js",
+      "static/chunks/app/dashboard/coach/attendance/page-2c2cb45c7181d4ba.js"
+    ],
+    "/dashboard/admin/chat/page": [
       "static/chunks/webpack-0aa573cbf27f1319.js",
       "static/chunks/8157abed-7b8ce603db9f0e54.js",
       "static/chunks/531-0b94e4cc4ff2f045.js",
@@ -107,7 +89,15 @@
       "static/chunks/517-a86b2052ecc29d4e.js",
       "static/chunks/139-6b8f1447a67a3280.js",
       "static/chunks/797-bb5a315e787fbf81.js",
-      "static/chunks/app/dashboard/parent/chat/page-719a853cbdcf5519.js"
+      "static/chunks/app/dashboard/admin/chat/page-5e087baa73febdef.js"
+    ],
+    "/dashboard/admin/schedule/page": [
+      "static/chunks/webpack-0aa573cbf27f1319.js",
+      "static/chunks/8157abed-7b8ce603db9f0e54.js",
+      "static/chunks/531-0b94e4cc4ff2f045.js",
+      "static/chunks/main-app-32f821d2c3ed2b4d.js",
+      "static/chunks/517-a86b2052ecc29d4e.js",
+      "static/chunks/app/dashboard/admin/schedule/page-b66cc3e221077cc6.js"
     ],
     "/dashboard/admin/roster/page": [
       "static/chunks/webpack-0aa573cbf27f1319.js",
@@ -119,16 +109,6 @@
       "static/chunks/222-61f3492653be40a2.js",
       "static/chunks/app/dashboard/admin/roster/page-1311131eca5d788d.js"
     ],
-    "/dashboard/coach/players/page": [
-      "static/chunks/webpack-0aa573cbf27f1319.js",
-      "static/chunks/8157abed-7b8ce603db9f0e54.js",
-      "static/chunks/531-0b94e4cc4ff2f045.js",
-      "static/chunks/main-app-32f821d2c3ed2b4d.js",
-      "static/chunks/517-a86b2052ecc29d4e.js",
-      "static/chunks/852-27eb8137a1f05d78.js",
-      "static/chunks/222-61f3492653be40a2.js",
-      "static/chunks/app/dashboard/coach/players/page-22343463c63d0804.js"
-    ],
     "/dashboard/coach/health/page": [
       "static/chunks/webpack-0aa573cbf27f1319.js",
       "static/chunks/8157abed-7b8ce603db9f0e54.js",
@@ -139,13 +119,15 @@
       "static/chunks/222-61f3492653be40a2.js",
       "static/chunks/app/dashboard/coach/health/page-b1ed9028c89a57f4.js"
     ],
-    "/dashboard/coach/schedule/page": [
+    "/dashboard/coach/players/page": [
       "static/chunks/webpack-0aa573cbf27f1319.js",
       "static/chunks/8157abed-7b8ce603db9f0e54.js",
       "static/chunks/531-0b94e4cc4ff2f045.js",
       "static/chunks/main-app-32f821d2c3ed2b4d.js",
       "static/chunks/517-a86b2052ecc29d4e.js",
-      "static/chunks/app/dashboard/coach/schedule/page-3adaa51f1de646d6.js"
+      "static/chunks/852-27eb8137a1f05d78.js",
+      "static/chunks/222-61f3492653be40a2.js",
+      "static/chunks/app/dashboard/coach/players/page-22343463c63d0804.js"
     ],
     "/dashboard/coach/workouts/page": [
       "static/chunks/webpack-0aa573cbf27f1319.js",
@@ -156,39 +138,13 @@
       "static/chunks/394-e5fb14b7d7f8a05c.js",
       "static/chunks/app/dashboard/coach/workouts/page-add4f0da7fa4bcc2.js"
     ],
-    "/dashboard/parent/health/page": [
+    "/dashboard/coach/schedule/page": [
       "static/chunks/webpack-0aa573cbf27f1319.js",
       "static/chunks/8157abed-7b8ce603db9f0e54.js",
       "static/chunks/531-0b94e4cc4ff2f045.js",
       "static/chunks/main-app-32f821d2c3ed2b4d.js",
       "static/chunks/517-a86b2052ecc29d4e.js",
-      "static/chunks/852-27eb8137a1f05d78.js",
-      "static/chunks/222-61f3492653be40a2.js",
-      "static/chunks/app/dashboard/parent/health/page-d183705fe3dd5cda.js"
-    ],
-    "/(auth)/login/page": [
-      "static/chunks/webpack-0aa573cbf27f1319.js",
-      "static/chunks/8157abed-7b8ce603db9f0e54.js",
-      "static/chunks/531-0b94e4cc4ff2f045.js",
-      "static/chunks/main-app-32f821d2c3ed2b4d.js",
-      "static/chunks/517-a86b2052ecc29d4e.js",
-      "static/chunks/852-27eb8137a1f05d78.js",
-      "static/chunks/139-6b8f1447a67a3280.js",
-      "static/chunks/222-61f3492653be40a2.js",
-      "static/chunks/308-c9bc76d37800ff2d.js",
-      "static/chunks/app/(auth)/login/page-7ac02841e056c92c.js"
-    ],
-    "/(auth)/layout": [
-      "static/chunks/webpack-0aa573cbf27f1319.js",
-      "static/chunks/8157abed-7b8ce603db9f0e54.js",
-      "static/chunks/531-0b94e4cc4ff2f045.js",
-      "static/chunks/main-app-32f821d2c3ed2b4d.js",
-      "static/chunks/517-a86b2052ecc29d4e.js",
-      "static/chunks/852-27eb8137a1f05d78.js",
-      "static/chunks/139-6b8f1447a67a3280.js",
-      "static/chunks/222-61f3492653be40a2.js",
-      "static/chunks/308-c9bc76d37800ff2d.js",
-      "static/chunks/app/(auth)/layout-138636325bc8726c.js"
+      "static/chunks/app/dashboard/coach/schedule/page-3adaa51f1de646d6.js"
     ],
     "/dashboard/page": [
       "static/chunks/webpack-0aa573cbf27f1319.js",
@@ -202,6 +158,16 @@
       "static/chunks/308-c9bc76d37800ff2d.js",
       "static/chunks/app/dashboard/page-30577b3a017d0781.js"
     ],
+    "/dashboard/parent/chat/page": [
+      "static/chunks/webpack-0aa573cbf27f1319.js",
+      "static/chunks/8157abed-7b8ce603db9f0e54.js",
+      "static/chunks/531-0b94e4cc4ff2f045.js",
+      "static/chunks/main-app-32f821d2c3ed2b4d.js",
+      "static/chunks/517-a86b2052ecc29d4e.js",
+      "static/chunks/139-6b8f1447a67a3280.js",
+      "static/chunks/797-bb5a315e787fbf81.js",
+      "static/chunks/app/dashboard/parent/chat/page-719a853cbdcf5519.js"
+    ],
     "/dashboard/parent/schedule/page": [
       "static/chunks/webpack-0aa573cbf27f1319.js",
       "static/chunks/8157abed-7b8ce603db9f0e54.js",
@@ -209,6 +175,50 @@
       "static/chunks/main-app-32f821d2c3ed2b4d.js",
       "static/chunks/517-a86b2052ecc29d4e.js",
       "static/chunks/app/dashboard/parent/schedule/page-691c775c49a2ad27.js"
+    ],
+    "/dashboard/parent/health/page": [
+      "static/chunks/webpack-0aa573cbf27f1319.js",
+      "static/chunks/8157abed-7b8ce603db9f0e54.js",
+      "static/chunks/531-0b94e4cc4ff2f045.js",
+      "static/chunks/main-app-32f821d2c3ed2b4d.js",
+      "static/chunks/517-a86b2052ecc29d4e.js",
+      "static/chunks/852-27eb8137a1f05d78.js",
+      "static/chunks/222-61f3492653be40a2.js",
+      "static/chunks/app/dashboard/parent/health/page-d183705fe3dd5cda.js"
+    ],
+    "/dashboard/player/chat/page": [
+      "static/chunks/webpack-0aa573cbf27f1319.js",
+      "static/chunks/8157abed-7b8ce603db9f0e54.js",
+      "static/chunks/531-0b94e4cc4ff2f045.js",
+      "static/chunks/main-app-32f821d2c3ed2b4d.js",
+      "static/chunks/517-a86b2052ecc29d4e.js",
+      "static/chunks/139-6b8f1447a67a3280.js",
+      "static/chunks/797-bb5a315e787fbf81.js",
+      "static/chunks/app/dashboard/player/chat/page-527a40067f956108.js"
+    ],
+    "/(auth)/login/page": [
+      "static/chunks/webpack-0aa573cbf27f1319.js",
+      "static/chunks/8157abed-7b8ce603db9f0e54.js",
+      "static/chunks/531-0b94e4cc4ff2f045.js",
+      "static/chunks/main-app-32f821d2c3ed2b4d.js",
+      "static/chunks/517-a86b2052ecc29d4e.js",
+      "static/chunks/852-27eb8137a1f05d78.js",
+      "static/chunks/139-6b8f1447a67a3280.js",
+      "static/chunks/222-61f3492653be40a2.js",
+      "static/chunks/308-c9bc76d37800ff2d.js",
+      "static/chunks/app/(auth)/login/page-8d518296d25f926e.js"
+    ],
+    "/(auth)/layout": [
+      "static/chunks/webpack-0aa573cbf27f1319.js",
+      "static/chunks/8157abed-7b8ce603db9f0e54.js",
+      "static/chunks/531-0b94e4cc4ff2f045.js",
+      "static/chunks/main-app-32f821d2c3ed2b4d.js",
+      "static/chunks/517-a86b2052ecc29d4e.js",
+      "static/chunks/852-27eb8137a1f05d78.js",
+      "static/chunks/139-6b8f1447a67a3280.js",
+      "static/chunks/222-61f3492653be40a2.js",
+      "static/chunks/308-c9bc76d37800ff2d.js",
+      "static/chunks/app/(auth)/layout-138636325bc8726c.js"
     ],
     "/dashboard/player/health/page": [
       "static/chunks/webpack-0aa573cbf27f1319.js",
@@ -228,16 +238,6 @@
       "static/chunks/517-a86b2052ecc29d4e.js",
       "static/chunks/app/dashboard/player/schedule/page-81b0be2ce5373de6.js"
     ],
-    "/dashboard/player/chat/page": [
-      "static/chunks/webpack-0aa573cbf27f1319.js",
-      "static/chunks/8157abed-7b8ce603db9f0e54.js",
-      "static/chunks/531-0b94e4cc4ff2f045.js",
-      "static/chunks/main-app-32f821d2c3ed2b4d.js",
-      "static/chunks/517-a86b2052ecc29d4e.js",
-      "static/chunks/139-6b8f1447a67a3280.js",
-      "static/chunks/797-bb5a315e787fbf81.js",
-      "static/chunks/app/dashboard/player/chat/page-527a40067f956108.js"
-    ],
     "/dashboard/player/workouts/page": [
       "static/chunks/webpack-0aa573cbf27f1319.js",
       "static/chunks/8157abed-7b8ce603db9f0e54.js",
@@ -255,18 +255,6 @@
       "static/chunks/139-6b8f1447a67a3280.js",
       "static/chunks/app/dashboard/settings/page-e6a625d282cb41f5.js"
     ],
-    "/dashboard/coach/page": [
-      "static/chunks/webpack-0aa573cbf27f1319.js",
-      "static/chunks/8157abed-7b8ce603db9f0e54.js",
-      "static/chunks/531-0b94e4cc4ff2f045.js",
-      "static/chunks/main-app-32f821d2c3ed2b4d.js",
-      "static/chunks/517-a86b2052ecc29d4e.js",
-      "static/chunks/852-27eb8137a1f05d78.js",
-      "static/chunks/139-6b8f1447a67a3280.js",
-      "static/chunks/222-61f3492653be40a2.js",
-      "static/chunks/308-c9bc76d37800ff2d.js",
-      "static/chunks/app/dashboard/coach/page-115ba3fa49f351a2.js"
-    ],
     "/dashboard/admin/page": [
       "static/chunks/webpack-0aa573cbf27f1319.js",
       "static/chunks/8157abed-7b8ce603db9f0e54.js",
@@ -277,7 +265,7 @@
       "static/chunks/139-6b8f1447a67a3280.js",
       "static/chunks/222-61f3492653be40a2.js",
       "static/chunks/308-c9bc76d37800ff2d.js",
-      "static/chunks/app/dashboard/admin/page-40f24538bfe97fcc.js"
+      "static/chunks/app/dashboard/admin/page-72cdf39bd0172957.js"
     ],
     "/dashboard/parent/page": [
       "static/chunks/webpack-0aa573cbf27f1319.js",
@@ -289,7 +277,7 @@
       "static/chunks/139-6b8f1447a67a3280.js",
       "static/chunks/222-61f3492653be40a2.js",
       "static/chunks/308-c9bc76d37800ff2d.js",
-      "static/chunks/app/dashboard/parent/page-e5276d2d06cd4ed1.js"
+      "static/chunks/app/dashboard/parent/page-6de5090cb747b92e.js"
     ],
     "/dashboard/player/page": [
       "static/chunks/webpack-0aa573cbf27f1319.js",
@@ -301,7 +289,19 @@
       "static/chunks/139-6b8f1447a67a3280.js",
       "static/chunks/222-61f3492653be40a2.js",
       "static/chunks/308-c9bc76d37800ff2d.js",
-      "static/chunks/app/dashboard/player/page-bb395103bc1fe8b5.js"
+      "static/chunks/app/dashboard/player/page-ac2c02b775502bc2.js"
+    ],
+    "/dashboard/coach/page": [
+      "static/chunks/webpack-0aa573cbf27f1319.js",
+      "static/chunks/8157abed-7b8ce603db9f0e54.js",
+      "static/chunks/531-0b94e4cc4ff2f045.js",
+      "static/chunks/main-app-32f821d2c3ed2b4d.js",
+      "static/chunks/517-a86b2052ecc29d4e.js",
+      "static/chunks/852-27eb8137a1f05d78.js",
+      "static/chunks/139-6b8f1447a67a3280.js",
+      "static/chunks/222-61f3492653be40a2.js",
+      "static/chunks/308-c9bc76d37800ff2d.js",
+      "static/chunks/app/dashboard/coach/page-115ba3fa49f351a2.js"
     ]
   }
 }
