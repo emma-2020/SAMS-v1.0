@@ -8,6 +8,7 @@ interface StatCardProps extends ViewProps {
   trend?: 'up' | 'down' | 'neutral';
   trendValue?: string;
   accentColor?: string;
+  className?: string;
 }
 
 export function StatCard({ title, value, subtitle, trend, trendValue, accentColor, style, ...rest }: StatCardProps) {
