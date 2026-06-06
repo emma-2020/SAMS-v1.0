@@ -10,6 +10,12 @@
     <title>SAMS — Sports Academy Management System</title>
   </head>
   <body>
+    <script>
+      (function() {
+        var t = localStorage.getItem('sams_theme');
+        if (t === 'dark') document.body.setAttribute('data-theme', 'dark');
+      })();
+    </script>
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
   </body>

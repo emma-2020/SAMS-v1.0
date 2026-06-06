@@ -14,6 +14,7 @@
 
 const { supabaseAdmin }  = require('../config/supabase');
 const { NotFoundError, ForbiddenError, BadRequestError, InternalError } = require('../utils/errors');
+const notif = require('./notifications.service');
 
 // ─────────────────────────────────────────────────────────────────
 // GET EVENTS
@@ -130,6 +131,29 @@ async function createEvent({ userId, academyId, role, payload }) {
     console.error('[ScheduleService.createEvent]', error.message);
     throw new InternalError('Failed to create event. Please try again.');
   }
+
+  // Fire-and-forget: notify all players on the team about the new event
+  (async () => {
+    try {
+      const { data: rosters } = await supabaseAdmin
+        .from('rosters')
+        .select('player_id')
+        .eq('academy_id', academyId)
+        .eq('team_id', team_id);
+      const playerIds = (rosters || []).map(r => r.player_id);
+      if (playerIds.length > 0) {
+        const when = new Date(data.start_time).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+        await notif.createForMany({
+          academyId,
+          recipientIds: playerIds,
+          type:  'schedule',
+          title: `New session: ${data.title}`,
+          body:  `Scheduled for ${when}${data.location ? ` at ${data.location}` : ''}.`,
+          link:  '/dashboard/player/schedule',
+        });
+      }
+    } catch (e) { console.error('[ScheduleService] notify error:', e.message); }
+  })();
 
   return data;
 }

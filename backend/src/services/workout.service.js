@@ -18,6 +18,7 @@ const {
   BadRequestError,
   InternalError,
 } = require('../utils/errors');
+const notif = require('./notifications.service');
 
 // ─────────────────────────────────────────────────────────────────
 // GET ASSIGNMENTS (role-scoped)
@@ -180,6 +181,42 @@ async function createAssignment({ userId, academyId, role, payload }) {
     throw new InternalError('Failed to save workout exercises. Please try again.');
   }
 
+  // Fire-and-forget: notify assigned player(s) about new workout
+  (async () => {
+    try {
+      const due = assignment.due_date
+        ? ` (due ${new Date(assignment.due_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })})`
+        : '';
+      if (assignment.player_id) {
+        await notif.create({
+          academyId,
+          recipientId: assignment.player_id,
+          type:  'workout',
+          title: `New workout: ${assignment.title}`,
+          body:  `You have been assigned a new workout${due}.`,
+          link:  '/dashboard/player/workouts',
+        });
+      } else if (assignment.team_id) {
+        const { data: rosters } = await supabaseAdmin
+          .from('rosters')
+          .select('player_id')
+          .eq('academy_id', academyId)
+          .eq('team_id', assignment.team_id);
+        const playerIds = (rosters || []).map(r => r.player_id);
+        if (playerIds.length > 0) {
+          await notif.createForMany({
+            academyId,
+            recipientIds: playerIds,
+            type:  'workout',
+            title: `New workout: ${assignment.title}`,
+            body:  `Your team has a new workout assigned${due}.`,
+            link:  '/dashboard/player/workouts',
+          });
+        }
+      }
+    } catch (e) { console.error('[WorkoutService] notify error:', e.message); }
+  })();
+
   return { ...assignment, workout_exercises: savedExercises };
 }
 
@@ -223,4 +260,38 @@ async function toggleCompletion({ playerId, academyId, exerciseId, isCompleted }
   return data;
 }
 
-module.exports = { getAssignments, createAssignment, toggleCompletion };
+// ─────────────────────────────────────────────────────────────────
+// DELETE ASSIGNMENT (Coach / Admin only)
+// ─────────────────────────────────────────────────────────────────
+
+async function deleteAssignment({ userId, academyId, role, assignmentId }) {
+  // Coaches may only delete their own assignments
+  const query = supabaseAdmin
+    .from('workout_assignments')
+    .select('id, assigned_by')
+    .eq('id', assignmentId)
+    .eq('academy_id', academyId)
+    .single();
+
+  const { data: assignment, error } = await query;
+  if (error || !assignment) throw new NotFoundError('Workout assignment not found.');
+
+  if (role === 'Coach' && assignment.assigned_by !== userId) {
+    throw new ForbiddenError('You can only delete your own workout assignments.');
+  }
+
+  const { error: delError } = await supabaseAdmin
+    .from('workout_assignments')
+    .delete()
+    .eq('id', assignmentId)
+    .eq('academy_id', academyId);
+
+  if (delError) {
+    console.error('[WorkoutService.deleteAssignment]', delError.message);
+    throw new InternalError('Failed to delete assignment. Please try again.');
+  }
+
+  return { deleted: true };
+}
+
+module.exports = { getAssignments, createAssignment, toggleCompletion, deleteAssignment };

@@ -34,4 +34,10 @@ router.post(
   controller.toggleCompletion
 );
 
+router.delete(
+  '/:id',
+  requireRole('Admin', 'Coach'),
+  controller.deleteAssignment
+);
+
 module.exports = router;

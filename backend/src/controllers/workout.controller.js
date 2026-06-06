@@ -50,4 +50,16 @@ async function toggleCompletion(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { getAssignments, createAssignment, toggleCompletion };
+async function deleteAssignment(req, res, next) {
+  try {
+    const result = await workoutService.deleteAssignment({
+      userId:       req.user.id,
+      academyId:    req.academyId,
+      role:         req.user.role,
+      assignmentId: req.params.id,
+    });
+    return res.status(200).json({ success: true, data: result });
+  } catch (err) { next(err); }
+}
+
+module.exports = { getAssignments, createAssignment, toggleCompletion, deleteAssignment };

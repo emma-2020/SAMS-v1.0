@@ -39,3 +39,38 @@ export async function getMe() {
   const res = await api.get('/auth/me');
   return res.data.data.profile;
 }
+
+/**
+ * verifyInviteToken
+ * GET /api/auth/invite/:token — validates an invitation token
+ * @returns {{ email, first_name, last_name, role, academy_id, academy_name, expires_at }}
+ */
+export async function verifyInviteToken(token) {
+  const res = await api.get(`/auth/invite/${token}`);
+  return res.data.data.invite;
+}
+
+/**
+ * registerByInvitation
+ * POST /api/auth/register — creates account from invitation token
+ * @returns {{ session, profile }}
+ */
+export async function registerByInvitation({ token, password }) {
+  const res = await api.post('/auth/register', { token, password });
+  return res.data.data;
+}
+
+/**
+ * uploadAvatar
+ * POST /api/auth/avatar — uploads a profile picture, returns updated profile
+ * @param {File} file
+ * @returns {profile}
+ */
+export async function uploadAvatar(file) {
+  const form = new FormData();
+  form.append('avatar', file);
+  const res = await api.post('/auth/avatar', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return res.data.data.profile;
+}

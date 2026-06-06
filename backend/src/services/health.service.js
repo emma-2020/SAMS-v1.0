@@ -20,6 +20,7 @@
 
 const { supabaseAdmin } = require('../config/supabase');
 const { ConflictError, ForbiddenError, NotFoundError } = require('../utils/errors');
+const notif = require('./notifications.service');
 
 // ─────────────────────────────────────────────────────────────────
 // SUBMIT HEALTH LOG (Player)
@@ -80,6 +81,24 @@ async function submitHealthLog({ playerId, academyId, fatigue, soreness, sleep_q
     console.error('[HealthService.submitHealthLog] insert:', error.message);
     throw new InternalError('Failed to save health log. Please try again.');
   }
+
+  // Fire-and-forget: notify staff when a health log is flagged
+  if (data.is_flagged) {
+    const { data: player } = await supabaseAdmin
+      .from('users')
+      .select('first_name, last_name')
+      .eq('id', playerId)
+      .single();
+    const name = player ? `${player.first_name} ${player.last_name}` : 'A player';
+    notif.notifyStaff({
+      academyId,
+      type:  'health_flag',
+      title: `Health Flag — ${name}`,
+      body:  `Fatigue ${data.fatigue}/5, Soreness ${data.soreness}/5. Requires attention.`,
+      link:  '/dashboard/coach/health',
+    });
+  }
+
   return data;
 }
 

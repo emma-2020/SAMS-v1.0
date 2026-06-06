@@ -1,15 +1,15 @@
 // src/pages/admin/InvitationsPage.jsx
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import {
+  Send, Mail, CalendarDays, ChevronDown, Check, Trash2,
+  Zap, Trophy, UserCircle, CheckCircle2, Link, Copy,
+  AlertCircle, RefreshCw,
+} from 'lucide-react';
 import { useApi, useSubmit } from '../../hooks/useApi';
 import { adminApi }          from '../../services/admin.api';
-import { PageHeader, SectionCard, ErrorBanner, EmptyState, RoleBadge } from '../../components/shared/ui';
+import { EmptyState }        from '../../components/shared/ui';
 
-const IcoMail  = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg>;
-const IcoTrash = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M9 6V4h6v2"/></svg>;
-const IcoSend  = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>;
-
-const EMPTY = { email: '', role: 'Player', first_name: '', last_name: '' };
-
+// ── Shared helpers ────────────────────────────────────────────
 function inviteStatus(inv) {
   if (inv.accepted_at) return 'accepted';
   if (new Date(inv.expires_at) < new Date()) return 'expired';
@@ -20,11 +20,189 @@ function fmtDate(iso) {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+// ── Role metadata ─────────────────────────────────────────────
+const ROLES = [
+  { value: 'Player', label: 'Player', icon: Zap,        color: '#059669', bg: '#ECFDF5', border: '#A7F3D0' },
+  { value: 'Coach',  label: 'Coach',  icon: Trophy,      color: '#2563EB', bg: '#EFF6FF', border: '#BFDBFE' },
+  { value: 'Parent', label: 'Parent', icon: UserCircle,  color: '#D97706', bg: '#FFFBEB', border: '#FDE68A' },
+];
+
+// ── Status chip metadata ──────────────────────────────────────
+const STATUS = {
+  pending:  { label: 'Pending',  color: '#EA580C', bg: '#FFF7ED', border: '#FED7AA' },
+  accepted: { label: 'Accepted', color: '#059669', bg: '#ECFDF5', border: '#A7F3D0' },
+  expired:  { label: 'Expired',  color: '#94A3B8', bg: '#F8FAFC', border: '#E2E8F0' },
+};
+
+// ── Custom role select dropdown ───────────────────────────────
+function RoleSelect({ value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    function h(e) { if (!ref.current || ref.current.contains(e.target)) return; setOpen(false); }
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, []);
+
+  const selected = ROLES.find(r => r.value === value) || ROLES[0];
+  const SelIcon  = selected.icon;
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      {/* Trigger */}
+      <button
+        type="button"
+        onClick={() => setOpen(p => !p)}
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+          padding: '0 12px', height: 42,
+          background: '#FFFFFF',
+          border: `1.5px solid ${open ? '#8B5CF6' : '#E2E8F0'}`,
+          borderRadius: 10,
+          boxShadow: open
+            ? '0 0 0 3px rgba(139,92,246,0.12), 0 1px 3px rgba(15,23,42,0.05)'
+            : '0 1px 3px rgba(15,23,42,0.05)',
+          cursor: 'pointer', outline: 'none',
+          transition: 'border-color 0.15s, box-shadow 0.15s',
+        }}
+      >
+        <div style={{
+          width: 26, height: 26, borderRadius: 7,
+          background: selected.bg, border: `1px solid ${selected.border}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: selected.color, flexShrink: 0,
+        }}>
+          <SelIcon size={13} />
+        </div>
+        <span style={{ flex: 1, textAlign: 'left', fontSize: '0.875rem', fontWeight: 500, color: '#1E293B' }}>
+          {selected.label}
+        </span>
+        <ChevronDown
+          size={15}
+          style={{ color: '#94A3B8', flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.18s' }}
+        />
+      </button>
+
+      {/* Dropdown */}
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 200,
+          background: '#FFFFFF', border: '1px solid #F1F5F9',
+          borderRadius: 12, boxShadow: '0 8px 28px rgba(15,23,42,0.10), 0 2px 6px rgba(15,23,42,0.06)',
+          overflow: 'hidden', padding: '4px', animation: 'fadeIn 0.12s ease',
+        }}>
+          {ROLES.map(role => {
+            const RIcon    = role.icon;
+            const isActive = role.value === value;
+            return (
+              <button
+                key={role.value}
+                type="button"
+                onClick={() => { onChange(role.value); setOpen(false); }}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '9px 10px', borderRadius: 9,
+                  background: isActive ? `${role.color}0D` : 'transparent',
+                  border: 'none', cursor: 'pointer', outline: 'none',
+                  transition: 'background 0.12s',
+                }}
+                onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = '#F8FAFC'; }}
+                onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
+              >
+                <div style={{
+                  width: 30, height: 30, borderRadius: 8,
+                  background: role.bg, border: `1px solid ${role.border}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: role.color, flexShrink: 0,
+                }}>
+                  <RIcon size={14} />
+                </div>
+                <div style={{ flex: 1, textAlign: 'left' }}>
+                  <div style={{ fontSize: '0.875rem', fontWeight: isActive ? 600 : 500, color: '#1E293B' }}>{role.label}</div>
+                  <div style={{ fontSize: '0.7rem', color: '#94A3B8', marginTop: 1 }}>
+                    {role.value === 'Player' ? 'Athletic team member' : role.value === 'Coach' ? 'Team coach & trainer' : 'Guardian / caregiver'}
+                  </div>
+                </div>
+                {isActive && <Check size={14} style={{ color: role.color, flexShrink: 0 }} />}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Styled label + input wrappers ─────────────────────────────
+function FieldLabel({ children, required }) {
+  return (
+    <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', letterSpacing: '0.01em', marginBottom: 6, display: 'block' }}>
+      {children}
+      {required && <span style={{ color: '#EC4899', marginLeft: 3 }}>*</span>}
+    </label>
+  );
+}
+
+function FieldInput({ error, icon, ...props }) {
+  const [focused, setFocused] = useState(false);
+  return (
+    <div style={{ position: 'relative' }}>
+      {icon && (
+        <div style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: focused ? '#8B5CF6' : '#CBD5E1', transition: 'color 0.15s', pointerEvents: 'none', display: 'flex' }}>
+          {icon}
+        </div>
+      )}
+      <input
+        {...props}
+        onFocus={e => { setFocused(true); props.onFocus?.(e); }}
+        onBlur={e => { setFocused(false); props.onBlur?.(e); }}
+        style={{
+          width: '100%', height: 42, padding: icon ? '0 12px 0 38px' : '0 12px',
+          background: '#FFFFFF',
+          border: `1.5px solid ${error ? '#FECACA' : focused ? '#8B5CF6' : '#E2E8F0'}`,
+          borderRadius: 10, outline: 'none', color: '#1E293B',
+          fontSize: '0.875rem', fontFamily: 'var(--font-body)',
+          boxShadow: error
+            ? '0 0 0 3px rgba(239,68,68,0.09)'
+            : focused
+              ? '0 0 0 3px rgba(139,92,246,0.12), 0 1px 3px rgba(15,23,42,0.05)'
+              : '0 1px 3px rgba(15,23,42,0.05)',
+          transition: 'border-color 0.15s, box-shadow 0.15s',
+          ...props.style,
+        }}
+      />
+    </div>
+  );
+}
+
+// ── Avatar initials tile ──────────────────────────────────────
+function InitialsTile({ firstName = '', lastName = '', role }) {
+  const meta  = ROLES.find(r => r.value === role) || { color: '#6366F1', bg: '#EEF2FF', border: '#C7D2FE' };
+  const init  = `${firstName[0] || ''}${lastName[0] || ''}`.toUpperCase();
+  return (
+    <div style={{
+      width: 38, height: 38, borderRadius: 11, flexShrink: 0,
+      background: meta.bg, border: `1px solid ${meta.border}`,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      color: meta.color, fontSize: '0.78rem', fontWeight: 800, letterSpacing: '0.02em',
+    }}>
+      {init || '?'}
+    </div>
+  );
+}
+
+// ── Main page ─────────────────────────────────────────────────
+const EMPTY = { email: '', role: 'Player', first_name: '', last_name: '' };
+
 export default function InvitationsPage() {
-  const [form, setForm]     = useState(EMPTY);
-  const [errors, setErrors] = useState({});
-  const [filter, setFilter] = useState('pending');
-  const [sentMsg, setSentMsg] = useState('');
+  const [form,       setForm]       = useState(EMPTY);
+  const [errors,     setErrors]     = useState({});
+  const [filter,     setFilter]     = useState('pending');
+  const [sentMsg,    setSentMsg]    = useState('');
+  const [sentEmail,  setSentEmail]  = useState('');
+  const [regLink,    setRegLink]    = useState('');
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const { data: invitations, loading, error: listErr, refetch } = useApi(
     () => adminApi.listInvitations(filter),
@@ -46,14 +224,14 @@ export default function InvitationsPage() {
     setForm(p => ({ ...p, [k]: v }));
     if (errors[k]) setErrors(p => ({ ...p, [k]: '' }));
     if (sendErr) reset();
-    setSentMsg('');
+    if (sentMsg) { setSentMsg(''); setRegLink(''); }
   }
 
   function validate() {
     const e = {};
-    if (!form.email || !/\S+@\S+\.\S+/.test(form.email)) e.email = 'Valid email required.';
-    if (!form.first_name.trim()) e.first_name = 'First name required.';
-    if (!form.last_name.trim())  e.last_name  = 'Last name required.';
+    if (!form.email || !/\S+@\S+\.\S+/.test(form.email)) e.email = 'Please enter a valid email address.';
+    if (!form.first_name.trim()) e.first_name = 'First name is required.';
+    if (!form.last_name.trim())  e.last_name  = 'Last name is required.';
     return e;
   }
 
@@ -61,13 +239,22 @@ export default function InvitationsPage() {
     e.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length) { setErrors(errs); return; }
+    const captured = form.email.trim();
     const res = await sendInvite();
     if (res.ok) {
+      const data = res.data?.data || res.data || {};
+      setSentEmail(captured);
+      setSentMsg(data.email_sent ? 'email' : 'link');
+      setRegLink(data.registration_url || '');
       setForm(EMPTY);
-      setSentMsg(`Invitation sent to ${form.email}`);
       refetch();
-      setTimeout(() => setSentMsg(''), 4000);
     }
+  }
+
+  function copyRegLink() {
+    navigator.clipboard.writeText(regLink);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2200);
   }
 
   async function handleRevoke(id) {
@@ -76,171 +263,431 @@ export default function InvitationsPage() {
     refetch();
   }
 
+  // compute per-status counts across all loaded invitations
+  const allInvitations = invitations || [];
   const filterCounts = {
-    pending:  (invitations || []).filter(i => inviteStatus(i) === 'pending').length,
-    accepted: (invitations || []).filter(i => inviteStatus(i) === 'accepted').length,
-    expired:  (invitations || []).filter(i => inviteStatus(i) === 'expired').length,
+    pending:  allInvitations.filter(i => inviteStatus(i) === 'pending').length,
+    accepted: allInvitations.filter(i => inviteStatus(i) === 'accepted').length,
+    expired:  allInvitations.filter(i => inviteStatus(i) === 'expired').length,
   };
 
+  const filterLabels = { pending: 'Pending', accepted: 'Accepted', expired: 'Expired' };
+
+  // ── Render ──────────────────────────────────────────────────
   return (
     <div style={{ animation: 'fadeIn 0.3s ease' }}>
-      <PageHeader
-        title="Member Invitations"
-        subtitle="Invite coaches, players, and parents to your academy"
-      />
 
-      <div style={{ display: 'grid', gridTemplateColumns: '380px 1fr', gap: 20, alignItems: 'start' }}>
+      {/* Page header */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28, gap: 16 }}>
+        <div>
+          <h1 style={{ fontSize: '1.55rem', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.025em', lineHeight: 1.2, margin: 0 }}>
+            Member Invitations
+          </h1>
+          <p style={{ color: '#94A3B8', fontSize: '0.875rem', marginTop: 6, margin: '6px 0 0' }}>
+            Invite coaches, players, and parents to join your academy
+          </p>
+        </div>
+      </div>
 
-        {/* Send invitation form */}
-        <SectionCard title="Send New Invitation" subtitle="Invite a new member via email">
-          {sentMsg && (
-            <div className="alert alert-success" style={{ marginBottom: 16 }}>
-              <IcoSend />
-              <span>{sentMsg}</span>
+      {/* Two-column grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: '400px 1fr', gap: 22, alignItems: 'start' }}>
+
+        {/* ── LEFT: Send Invitation card ── */}
+        <div style={{
+          background: '#FFFFFF',
+          border: '1px solid #F1F5F9',
+          borderRadius: 20,
+          boxShadow: '0 4px 24px rgba(15,23,42,0.06), 0 1px 4px rgba(15,23,42,0.03)',
+          overflow: 'hidden',
+        }}>
+          {/* Card header with gradient accent */}
+          <div style={{ height: 3, background: 'linear-gradient(90deg, #EC4899, #8B5CF6)' }} />
+          <div style={{ padding: '22px 24px 0' }}>
+            <div style={{ fontWeight: 700, fontSize: '1rem', color: '#0F172A', letterSpacing: '-0.01em' }}>Send New Invitation</div>
+            <div style={{ fontSize: '0.78rem', color: '#94A3B8', marginTop: 3, marginBottom: 22 }}>Invite a new member via email link</div>
+          </div>
+
+          <div style={{ padding: '0 24px 24px' }}>
+
+            {/* Success banner */}
+            {sentMsg && (
+              <div style={{ marginBottom: 18 }}>
+                <div style={{
+                  background: '#F0FDF4', border: '1px solid #A7F3D0',
+                  borderRadius: 12, padding: '12px 14px',
+                  display: 'flex', alignItems: 'flex-start', gap: 10,
+                }}>
+                  <CheckCircle2 size={15} style={{ color: '#059669', flexShrink: 0, marginTop: 1 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '0.83rem', fontWeight: 600, color: '#065F46' }}>
+                      {sentMsg === 'email' ? `Invitation sent to ${sentEmail}` : `Invitation created for ${sentEmail}`}
+                    </div>
+                    {sentMsg === 'link' && (
+                      <div style={{ fontSize: '0.72rem', color: '#059669', marginTop: 2 }}>
+                        Copy the link below to share manually
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {regLink && (
+                  <div style={{
+                    marginTop: 8, background: '#F8FAFC',
+                    border: '1px solid #F1F5F9', borderRadius: 10, padding: '10px 14px',
+                  }}>
+                    <div style={{ fontSize: '0.63rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#CBD5E1', marginBottom: 7, display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <Link size={10} /> Registration Link
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ flex: 1, fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: '#64748B', wordBreak: 'break-all', lineHeight: 1.5 }}>
+                        {regLink}
+                      </span>
+                      <button
+                        onClick={copyRegLink}
+                        style={{
+                          flexShrink: 0, display: 'flex', alignItems: 'center', gap: 5,
+                          background: linkCopied ? '#ECFDF5' : '#FFFFFF',
+                          border: `1px solid ${linkCopied ? '#A7F3D0' : '#E2E8F0'}`,
+                          borderRadius: 8, padding: '5px 10px',
+                          cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700,
+                          color: linkCopied ? '#059669' : '#64748B',
+                          transition: 'all 0.2s',
+                        }}
+                      >
+                        {linkCopied ? <><Check size={11} /> Copied</> : <><Copy size={11} /> Copy</>}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Error banner */}
+            {sendErr && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10, marginBottom: 16 }}>
+                <AlertCircle size={14} style={{ color: '#EF4444', flexShrink: 0 }} />
+                <span style={{ fontSize: '0.83rem', color: '#B91C1C' }}>{sendErr}</span>
+              </div>
+            )}
+
+            {/* Form */}
+            <form onSubmit={handleSend} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+              {/* Name row */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <FieldLabel required>First Name</FieldLabel>
+                  <FieldInput
+                    value={form.first_name}
+                    placeholder="Jordan"
+                    error={errors.first_name}
+                    onChange={e => setField('first_name', e.target.value)}
+                  />
+                  {errors.first_name && (
+                    <p style={{ fontSize: '0.72rem', color: '#EF4444', marginTop: 5, margin: '5px 0 0' }}>{errors.first_name}</p>
+                  )}
+                </div>
+                <div>
+                  <FieldLabel required>Last Name</FieldLabel>
+                  <FieldInput
+                    value={form.last_name}
+                    placeholder="Ellis"
+                    error={errors.last_name}
+                    onChange={e => setField('last_name', e.target.value)}
+                  />
+                  {errors.last_name && (
+                    <p style={{ fontSize: '0.72rem', color: '#EF4444', marginTop: 5, margin: '5px 0 0' }}>{errors.last_name}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Role */}
+              <div>
+                <FieldLabel required>Role</FieldLabel>
+                <RoleSelect value={form.role} onChange={v => setField('role', v)} />
+              </div>
+
+              {/* Email */}
+              <div>
+                <FieldLabel required>Email Address</FieldLabel>
+                <FieldInput
+                  type="email"
+                  value={form.email}
+                  placeholder="member@example.com"
+                  error={errors.email}
+                  icon={<Mail size={15} />}
+                  onChange={e => setField('email', e.target.value)}
+                />
+                {errors.email && (
+                  <p style={{ fontSize: '0.72rem', color: '#EF4444', marginTop: 5, margin: '5px 0 0' }}>{errors.email}</p>
+                )}
+              </div>
+
+              {/* Submit */}
+              <button
+                type="submit"
+                disabled={sending}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  width: '100%', height: 44, marginTop: 4,
+                  background: sending ? '#E2E8F0' : 'linear-gradient(135deg, #EC4899 0%, #8B5CF6 100%)',
+                  border: 'none', borderRadius: 11,
+                  color: sending ? '#94A3B8' : '#fff',
+                  fontWeight: 700, fontSize: '0.9rem', cursor: sending ? 'not-allowed' : 'pointer',
+                  boxShadow: sending ? 'none' : '0 4px 14px rgba(168,85,247,0.35)',
+                  transition: 'all 0.2s',
+                  letterSpacing: '0.01em',
+                }}
+                onMouseEnter={e => { if (!sending) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(168,85,247,0.45)'; } }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = sending ? 'none' : '0 4px 14px rgba(168,85,247,0.35)'; }}
+              >
+                {sending ? (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span className="spinner" style={{ width: 14, height: 14, borderTopColor: '#94A3B8' }} />
+                    Sending…
+                  </span>
+                ) : (
+                  <><Send size={15} /> Send Invitation</>
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
+
+        {/* ── RIGHT: Invitation history ── */}
+        <div style={{
+          background: '#FFFFFF',
+          border: '1px solid #F1F5F9',
+          borderRadius: 20,
+          boxShadow: '0 4px 24px rgba(15,23,42,0.06), 0 1px 4px rgba(15,23,42,0.03)',
+          overflow: 'hidden',
+        }}>
+          {/* Card header */}
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '20px 22px 16px',
+            borderBottom: '1px solid #F8FAFC',
+          }}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '1rem', color: '#0F172A', letterSpacing: '-0.01em' }}>Invitation History</div>
+              <div style={{ fontSize: '0.78rem', color: '#94A3B8', marginTop: 3 }}>Track all sent invitations</div>
+            </div>
+
+            {/* Pill tab filter */}
+            <div style={{ display: 'flex', gap: 3, background: '#F1F5F9', borderRadius: 10, padding: 3 }}>
+              {['pending', 'accepted', 'expired'].map(s => {
+                const isActive = filter === s;
+                const meta     = STATUS[s];
+                const count    = filterCounts[s];
+                return (
+                  <button
+                    key={s}
+                    onClick={() => setFilter(s)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      padding: '6px 13px', borderRadius: 8,
+                      background: isActive ? '#FFFFFF' : 'transparent',
+                      border: 'none', cursor: 'pointer', outline: 'none',
+                      boxShadow: isActive ? '0 1px 4px rgba(15,23,42,0.10)' : 'none',
+                      fontSize: '0.8rem', fontWeight: isActive ? 600 : 500,
+                      color: isActive ? '#1E293B' : '#94A3B8',
+                      transition: 'all 0.18s',
+                      whiteSpace: 'nowrap',
+                    }}
+                    onMouseEnter={e => { if (!isActive) e.currentTarget.style.color = '#475569'; }}
+                    onMouseLeave={e => { if (!isActive) e.currentTarget.style.color = '#94A3B8'; }}
+                  >
+                    {filterLabels[s]}
+                    {count > 0 && (
+                      <span style={{
+                        padding: '1px 7px', borderRadius: 99, fontSize: '0.62rem', fontWeight: 800,
+                        background: isActive ? meta.bg : '#E2E8F0',
+                        color: isActive ? meta.color : '#94A3B8',
+                        border: `1px solid ${isActive ? meta.border : '#E2E8F0'}`,
+                        transition: 'all 0.18s',
+                      }}>
+                        {count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* List content */}
+          {listErr && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', background: '#FEF2F2', borderBottom: '1px solid #FECACA' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <AlertCircle size={14} style={{ color: '#EF4444' }} />
+                <span style={{ fontSize: '0.83rem', color: '#B91C1C' }}>{listErr}</span>
+              </div>
+              <button
+                onClick={refetch}
+                style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: '1px solid #FECACA', borderRadius: 7, padding: '3px 10px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600, color: '#EF4444' }}
+              >
+                <RefreshCw size={11} /> Retry
+              </button>
             </div>
           )}
-          {sendErr && <ErrorBanner message={sendErr} style={{ marginBottom: 16 }} />}
 
-          <form onSubmit={handleSend} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div className="field">
-                <label className="field-label">First Name</label>
-                <input className={`field-input${errors.first_name ? ' error' : ''}`}
-                  value={form.first_name} placeholder="Jordan"
-                  onChange={e => setField('first_name', e.target.value)} />
-                {errors.first_name && <span className="field-error">{errors.first_name}</span>}
-              </div>
-              <div className="field">
-                <label className="field-label">Last Name</label>
-                <input className={`field-input${errors.last_name ? ' error' : ''}`}
-                  value={form.last_name} placeholder="Ellis"
-                  onChange={e => setField('last_name', e.target.value)} />
-                {errors.last_name && <span className="field-error">{errors.last_name}</span>}
-              </div>
-            </div>
-
-            <div className="field">
-              <label className="field-label">Role</label>
-              <select className="field-select" value={form.role}
-                onChange={e => setField('role', e.target.value)}>
-                <option value="Player">Player</option>
-                <option value="Coach">Coach</option>
-                <option value="Parent">Parent</option>
-              </select>
-            </div>
-
-            <div className="field">
-              <label className="field-label">Email Address</label>
-              <div className="input-wrapper">
-                <span className="input-icon"><IcoMail /></span>
-                <input type="email" className={`field-input${errors.email ? ' error' : ''}`}
-                  value={form.email} placeholder="member@example.com"
-                  onChange={e => setField('email', e.target.value)} />
-              </div>
-              {errors.email && <span className="field-error">{errors.email}</span>}
-            </div>
-
-            <button type="submit"
-              className={`btn btn-primary btn-full${sending ? ' btn-loading' : ''}`}
-              disabled={sending} style={{ marginTop: 4 }}>
-              {!sending && <><IcoSend /> Send Invitation</>}
-            </button>
-          </form>
-        </SectionCard>
-
-        {/* Invitation list */}
-        <SectionCard
-          title="Invitation History"
-          subtitle="Track all sent invitations"
-          noPad
-          action={
-            <div style={{ display: 'flex', gap: 6 }}>
-              {['pending','accepted','expired'].map(s => (
-                <button key={s} onClick={() => setFilter(s)} className={`btn btn-sm ${filter === s ? 'btn-primary' : 'btn-secondary'}`}
-                  style={{ textTransform: 'capitalize' }}>
-                  {s} {filterCounts[s] > 0 && (
-                    <span style={{
-                      marginLeft: 4, background: filter === s ? 'rgba(255,255,255,0.2)' : 'var(--bg-hover)',
-                      borderRadius: 99, padding: '1px 6px', fontSize: '0.7rem',
-                    }}>
-                      {filterCounts[s]}
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
-          }
-        >
-          {listErr && <ErrorBanner message={listErr} onRetry={refetch} style={{ margin: 16 }} />}
           {loading ? (
-            <div style={{ padding: 20 }}>
-              {[1,2,3].map(i => (
-                <div key={i} className="skeleton" style={{ height: 52, borderRadius: 8, marginBottom: 8 }} />
+            <div style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {[1, 2, 3].map(i => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div className="skeleton" style={{ width: 38, height: 38, borderRadius: 11, flexShrink: 0 }} />
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <div className="skeleton" style={{ width: '45%', height: 12 }} />
+                    <div className="skeleton" style={{ width: '65%', height: 10 }} />
+                  </div>
+                  <div className="skeleton" style={{ width: 56, height: 22, borderRadius: 99 }} />
+                  <div className="skeleton" style={{ width: 64, height: 22, borderRadius: 99 }} />
+                </div>
               ))}
             </div>
-          ) : !invitations?.length ? (
+          ) : !allInvitations.length ? (
             <EmptyState
-              icon={<IcoMail />}
-              title={`No ${filter} invitations`}
-              subtitle={filter === 'pending' ? 'Send an invitation using the form on the left.' : `No ${filter} invitations found.`}
+              icon={<Mail size={22} />}
+              title={`No ${filterLabels[filter].toLowerCase()} invitations`}
+              subtitle={
+                filter === 'pending'
+                  ? 'Use the form on the left to send your first invitation.'
+                  : `No ${filterLabels[filter].toLowerCase()} invitations found.`
+              }
             />
           ) : (
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Member</th>
-                  <th>Role</th>
-                  <th>Status</th>
-                  <th>Expires</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {invitations.map(inv => {
-                  const st = inviteStatus(inv);
-                  const stColor = st === 'accepted' ? '#059669' : st === 'expired' ? '#94A3B8' : '#D97706';
-                  const stBg    = st === 'accepted' ? '#ECFDF5' : st === 'expired' ? '#F8FAFC' : '#FFFBEB';
-                  return (
-                    <tr key={inv.id}>
-                      <td>
-                        <div style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)' }}>
-                          {inv.first_name} {inv.last_name}
-                        </div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                          {inv.email}
-                        </div>
-                      </td>
-                      <td><RoleBadge role={inv.role} /></td>
-                      <td>
-                        <span style={{
-                          padding: '3px 10px', borderRadius: 99, fontSize: '0.75rem',
-                          fontWeight: 600, background: stBg, color: stColor,
-                          border: `1px solid ${stColor}30`, textTransform: 'capitalize',
-                        }}>{st}</span>
-                      </td>
-                      <td style={{ color: 'var(--text-muted)', fontSize: '0.78rem', fontFamily: 'var(--font-mono)' }}>
-                        {fmtDate(inv.expires_at)}
-                      </td>
-                      <td>
-                        {st === 'pending' && (
-                          <button
-                            onClick={() => handleRevoke(inv.id)}
-                            disabled={revoking}
-                            className="btn btn-ghost btn-sm btn-icon"
-                            title="Revoke"
-                            style={{ color: 'var(--danger)' }}
-                          >
-                            <IcoTrash />
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr>
+                    {['Member', 'Role', 'Status', 'Expires', ''].map((h, i) => (
+                      <th
+                        key={i}
+                        style={{
+                          padding: '10px 16px',
+                          textAlign: 'left', background: '#FAFAFA',
+                          fontSize: '0.68rem', fontWeight: 700,
+                          color: '#CBD5E1', letterSpacing: '0.08em', textTransform: 'uppercase',
+                          borderBottom: '1px solid #F1F5F9',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {allInvitations.map((inv, idx) => {
+                    const st   = inviteStatus(inv);
+                    const stMeta = STATUS[st];
+                    const roleMeta = ROLES.find(r => r.value === inv.role);
+                    const lastRow  = idx === allInvitations.length - 1;
+
+                    return (
+                      <tr
+                        key={inv.id}
+                        style={{ borderBottom: lastRow ? 'none' : '1px solid #F8FAFC', transition: 'background 0.15s' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = '#FAFAFE'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                      >
+
+                        {/* Member */}
+                        <td style={{ padding: '14px 16px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <InitialsTile firstName={inv.first_name} lastName={inv.last_name} role={inv.role} />
+                            <div>
+                              <div style={{ fontWeight: 700, fontSize: '0.875rem', color: '#1E293B', lineHeight: 1.3 }}>
+                                {inv.first_name} {inv.last_name}
+                              </div>
+                              <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginTop: 2, fontFamily: 'var(--font-mono)', letterSpacing: '0.01em' }}>
+                                {inv.email}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Role badge */}
+                        <td style={{ padding: '14px 16px', whiteSpace: 'nowrap' }}>
+                          {roleMeta ? (
+                            <span style={{
+                              display: 'inline-flex', alignItems: 'center', gap: 5,
+                              padding: '4px 10px', borderRadius: 99,
+                              background: roleMeta.bg, border: `1px solid ${roleMeta.border}`,
+                              fontSize: '0.72rem', fontWeight: 600, color: roleMeta.color,
+                            }}>
+                              <roleMeta.icon size={11} />
+                              {inv.role}
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: '0.78rem', color: '#94A3B8' }}>{inv.role}</span>
+                          )}
+                        </td>
+
+                        {/* Status badge */}
+                        <td style={{ padding: '14px 16px', whiteSpace: 'nowrap' }}>
+                          <span style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 5,
+                            padding: '4px 10px', borderRadius: 99,
+                            background: stMeta.bg, border: `1px solid ${stMeta.border}`,
+                            fontSize: '0.72rem', fontWeight: 600, color: stMeta.color,
+                          }}>
+                            <span style={{ width: 5, height: 5, borderRadius: '50%', background: stMeta.color, flexShrink: 0 }} />
+                            {stMeta.label}
+                          </span>
+                        </td>
+
+                        {/* Expiry with calendar icon */}
+                        <td style={{ padding: '14px 16px', whiteSpace: 'nowrap' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                            <CalendarDays size={12} style={{ color: '#CBD5E1', flexShrink: 0 }} />
+                            <span style={{ fontSize: '0.78rem', color: '#94A3B8', fontFamily: 'var(--font-mono)' }}>
+                              {fmtDate(inv.expires_at)}
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* Hover-reveal delete */}
+                        <td style={{ padding: '14px 16px', textAlign: 'right' }}>
+                          {st === 'pending' && (
+                            <button
+                              onClick={() => handleRevoke(inv.id)}
+                              disabled={revoking}
+                              title="Revoke invitation"
+                              style={{
+                                width: 32, height: 32, borderRadius: 9,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                background: 'transparent',
+                                border: '1px solid transparent',
+                                color: '#CBD5E1', cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                outline: 'none',
+                              }}
+                              onMouseEnter={e => {
+                                e.currentTarget.style.background = '#FEF2F2';
+                                e.currentTarget.style.borderColor = '#FECACA';
+                                e.currentTarget.style.color = '#EF4444';
+                                e.currentTarget.style.transform = 'scale(1.08)';
+                              }}
+                              onMouseLeave={e => {
+                                e.currentTarget.style.background = 'transparent';
+                                e.currentTarget.style.borderColor = 'transparent';
+                                e.currentTarget.style.color = '#CBD5E1';
+                                e.currentTarget.style.transform = 'scale(1)';
+                              }}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
-        </SectionCard>
+        </div>
       </div>
     </div>
   );

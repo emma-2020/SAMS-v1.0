@@ -11,6 +11,9 @@ export const adminApi = {
   revokeInvitation: (id) =>
     api.delete(`/admin/invite/${id}`).then((r) => r.data.data.invitation),
 
+  getRoster: () =>
+    api.get('/admin/roster').then((r) => r.data.data.members || r.data.data.roster || []),
+
   // Venue blocks — uses schedule events for V1.0 resource view
   getAllEvents: (params = {}) =>
     api.get('/schedule', { params }).then((r) => r.data.data.events),

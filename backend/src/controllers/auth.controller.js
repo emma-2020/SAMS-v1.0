@@ -16,7 +16,7 @@
  *   GET  /api/auth/me
  */
 
-const authService  = require('../services/auth.service');
+const authService         = require('../services/auth.service');
 const { BadRequestError } = require('../utils/errors');
 
 
@@ -168,4 +168,55 @@ async function changePassword(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { signup, login, logout, refresh, me, updateProfile, changePassword };
+// ─────────────────────────────────────────────────────────────────
+// GET /api/auth/invite/:token
+// Public — returns invitation preview so the frontend can pre-fill.
+// ─────────────────────────────────────────────────────────────────
+
+async function verifyInviteToken(req, res, next) {
+  try {
+    const details = await authService.verifyInviteToken(req.params.token);
+    return res.status(200).json({ success: true, data: { invite: details } });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// POST /api/auth/register
+// Public — body: { token, password }
+// ─────────────────────────────────────────────────────────────────
+
+async function register(req, res, next) {
+  try {
+    const { token, password } = req.body;
+    if (!token)    throw new BadRequestError('Invitation token is required.');
+    if (!password) throw new BadRequestError('Password is required.');
+
+    const result = await authService.registerByInvitation({ token, password });
+    return res.status(201).json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// POST /api/auth/avatar
+// multipart/form-data: field "avatar" (image file)
+// ─────────────────────────────────────────────────────────────────
+
+async function uploadAvatar(req, res, next) {
+  try {
+    if (!req.file) throw new BadRequestError('No image file provided.');
+    const profile = await authService.uploadAvatar({
+      userId:       req.user.id,
+      academyId:    req.user.academy_id,
+      fileBuffer:   req.file.buffer,
+      mimetype:     req.file.mimetype,
+      originalname: req.file.originalname,
+    });
+    return res.status(200).json({ success: true, data: { profile } });
+  } catch (err) { next(err); }
+}
+
+module.exports = { signup, login, logout, refresh, me, updateProfile, changePassword, verifyInviteToken, register, uploadAvatar };

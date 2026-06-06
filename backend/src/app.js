@@ -14,7 +14,10 @@ const attendanceRoutes = require('./routes/attendance.routes');
 const healthRoutes     = require('./routes/health.routes');
 const chatRoutes       = require('./routes/chat.routes');
 const adminRoutes      = require('./routes/admin.routes');
-const workoutRoutes    = require('./routes/workout.routes');
+const teamsRoutes             = require('./routes/teams.routes');
+const workoutRoutes           = require('./routes/workout.routes');
+const coachRoutes             = require('./routes/coach.routes');
+const notificationsRoutes     = require('./routes/notifications.routes');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
 
 const app = express();
@@ -57,7 +60,10 @@ app.use('/api/attendance', apiLimiter,  attendanceRoutes);
 app.use('/api/health',     apiLimiter,  healthRoutes);
 app.use('/api/chat',       apiLimiter,  chatRoutes);
 app.use('/api/admin',      apiLimiter,  adminRoutes);
-app.use('/api/workouts',   apiLimiter,  workoutRoutes);
+app.use('/api/teams',         apiLimiter,  teamsRoutes);
+app.use('/api/workouts',      apiLimiter,  workoutRoutes);
+app.use('/api/coach',         apiLimiter,  coachRoutes);
+app.use('/api/notifications', apiLimiter,  notificationsRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

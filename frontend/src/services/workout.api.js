@@ -11,4 +11,7 @@ export const workoutApi = {
   toggleCompletion: (exerciseId, isCompleted) =>
     api.post('/workouts/complete', { exercise_id: exerciseId, is_completed: isCompleted })
       .then((r) => r.data.data.completion),
+
+  deleteAssignment: (id) =>
+    api.delete(`/workouts/${id}`).then(r => r.data),
 };

@@ -16,6 +16,7 @@
 
 const { supabaseAdmin } = require('../config/supabase');
 const {
+  BadRequestError,
   ConflictError,
   UnauthorizedError,
   InternalError,
@@ -26,6 +27,7 @@ const {
   validateLoginPayload,
   sanitizeString,
 } = require('../utils/validators');
+const notif = require('./notifications.service');
 
 // ─────────────────────────────────────────────────────────────────
 // SIGNUP
@@ -100,7 +102,7 @@ async function signup({ email, password, role, first_name, last_name, academy_id
       first_name:    sanitizeString(first_name),
       last_name:     sanitizeString(last_name),
     })
-    .select('id, academy_id, email, role, first_name, last_name, created_at')
+    .select('id, academy_id, email, role, first_name, last_name, avatar_url, created_at')
     .single();
 
   if (profileError) {
@@ -134,7 +136,7 @@ async function login({ email, password, academy_id }) {
 
   const { data: profile, error: profileError } = await supabaseAdmin
     .from('users')
-    .select('id, academy_id, email, role, first_name, last_name, created_at, is_active')
+    .select('id, academy_id, email, role, first_name, last_name, avatar_url, created_at, is_active')
     .eq('id', authData.user.id)
     .eq('academy_id', academy_id)            // tenant guard
     .single();
@@ -181,7 +183,7 @@ async function logout(accessToken) {
 async function getMe(userId, academyId) {
   const { data: profile, error } = await supabaseAdmin
     .from('users')
-    .select('id, academy_id, email, role, first_name, last_name, created_at')
+    .select('id, academy_id, email, role, first_name, last_name, avatar_url, created_at')
     .eq('id', userId)
     .eq('academy_id', academyId)
     .single();
@@ -233,7 +235,7 @@ async function updateProfile({ userId, academyId, first_name, last_name }) {
     .update(updates)
     .eq('id', userId)
     .eq('academy_id', academyId)
-    .select('id, academy_id, email, role, first_name, last_name')
+    .select('id, academy_id, email, role, first_name, last_name, avatar_url')
     .single();
 
   if (error || !data) {
@@ -257,4 +259,187 @@ async function changePassword({ userId, newPassword }) {
   }
 }
 
-module.exports = { signup, login, logout, getMe, refreshSession, updateProfile, changePassword };
+// ─────────────────────────────────────────────────────────────────
+// VERIFY INVITE TOKEN  (public — no auth required)
+// Returns the invitation details so the frontend can pre-fill the form.
+// ─────────────────────────────────────────────────────────────────
+
+async function verifyInviteToken(token) {
+  if (!token || typeof token !== 'string' || token.length !== 64) {
+    throw new NotFoundError('Invalid invitation link.');
+  }
+
+  const { data: invite, error } = await supabaseAdmin
+    .from('invitations')
+    .select(`
+      id, email, role, first_name, last_name, expires_at, accepted_at,
+      academies ( id, name )
+    `)
+    .eq('token', token)
+    .maybeSingle();
+
+  if (error || !invite) {
+    throw new NotFoundError('Invitation not found.');
+  }
+  if (invite.accepted_at) {
+    throw new ConflictError('This invitation has already been accepted.');
+  }
+  if (new Date(invite.expires_at) < new Date()) {
+    throw new UnauthorizedError('This invitation has expired. Please ask your admin to resend it.');
+  }
+
+  return {
+    email:       invite.email,
+    first_name:  invite.first_name,
+    last_name:   invite.last_name,
+    role:        invite.role,
+    academy_id:  invite.academies?.id,
+    academy_name: invite.academies?.name,
+    expires_at:  invite.expires_at,
+  };
+}
+
+
+// ─────────────────────────────────────────────────────────────────
+// REGISTER BY INVITATION
+// Validates the token, creates the user, marks invitation accepted,
+// then signs them in and returns a live session.
+// ─────────────────────────────────────────────────────────────────
+
+async function registerByInvitation({ token, password }) {
+  if (!password || password.length < 8) {
+    throw new BadRequestError('Password must be at least 8 characters.');
+  }
+
+  // Re-validate the token (guards against race conditions)
+  const inviteDetails = await verifyInviteToken(token);
+  const { email, first_name, last_name, role, academy_id } = inviteDetails;
+
+  // Check global email uniqueness (same guard as signup)
+  const { data: existingUser } = await supabaseAdmin
+    .from('users')
+    .select('id')
+    .eq('email', email)
+    .maybeSingle();
+
+  if (existingUser) {
+    throw new ConflictError('An account with this email already exists. Please log in.');
+  }
+
+  // Create Supabase Auth user
+  const { data: authData, error: createError } = await supabaseAdmin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+    user_metadata: { academy_id, role, first_name, last_name },
+  });
+
+  if (createError) {
+    console.error('[AuthService.registerByInvitation] createUser failed:', createError.message);
+    throw new InternalError('Account creation failed. Please try again.');
+  }
+
+  const authUserId = authData.user.id;
+
+  // Insert application profile
+  const { data: profile, error: profileError } = await supabaseAdmin
+    .from('users')
+    .insert({
+      id:            authUserId,
+      academy_id,
+      email,
+      password_hash: 'managed_by_supabase_auth',
+      role,
+      first_name:    sanitizeString(first_name),
+      last_name:     sanitizeString(last_name),
+    })
+    .select('id, academy_id, email, role, first_name, last_name, avatar_url, created_at')
+    .single();
+
+  if (profileError) {
+    await supabaseAdmin.auth.admin.deleteUser(authUserId);
+    console.error('[AuthService.registerByInvitation] profile insert failed:', profileError.message);
+    throw new InternalError('Account setup failed. Please try again.');
+  }
+
+  // Mark invitation as accepted
+  await supabaseAdmin
+    .from('invitations')
+    .update({ accepted_at: new Date().toISOString() })
+    .eq('token', token);
+
+  // Notify admins that the invitation was accepted
+  notif.notifyStaff({
+    academyId:  academy_id,
+    type:       'invite',
+    title:      `${first_name} ${last_name} joined as ${role}`,
+    body:       `${email} accepted their invitation and created an account.`,
+    link:       '/dashboard/admin/roster',
+  });
+
+  // Sign them in immediately so they get a live session
+  const { data: sessionData, error: sessionError } =
+    await supabaseAdmin.auth.signInWithPassword({ email, password });
+
+  if (sessionError || !sessionData.session) {
+    // Account created but auto-login failed — they can log in manually
+    return { profile, session: null };
+  }
+
+  return {
+    session: {
+      access_token:  sessionData.session.access_token,
+      refresh_token: sessionData.session.refresh_token,
+      expires_in:    sessionData.session.expires_in,
+      token_type:    'Bearer',
+    },
+    profile,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────
+// UPLOAD AVATAR
+// Uploads image buffer to Supabase Storage and saves the public URL.
+// ─────────────────────────────────────────────────────────────────
+
+async function uploadAvatar({ userId, academyId, fileBuffer, mimetype, originalname }) {
+  const ext      = originalname.split('.').pop().toLowerCase() || 'jpg';
+  const fileName = `${userId}.${ext}`;
+
+  const { error: uploadError } = await supabaseAdmin
+    .storage
+    .from('avatars')
+    .upload(fileName, fileBuffer, {
+      contentType:  mimetype,
+      upsert:       true,
+    });
+
+  if (uploadError) {
+    console.error('[AuthService.uploadAvatar] storage upload failed:', uploadError.message);
+    throw new InternalError('Avatar upload failed. Please try again.');
+  }
+
+  const { data: { publicUrl } } = supabaseAdmin
+    .storage
+    .from('avatars')
+    .getPublicUrl(fileName);
+
+  const urlWithCacheBust = `${publicUrl}?t=${Date.now()}`;
+
+  const { data: profile, error: updateError } = await supabaseAdmin
+    .from('users')
+    .update({ avatar_url: urlWithCacheBust })
+    .eq('id', userId)
+    .eq('academy_id', academyId)
+    .select('id, academy_id, email, role, first_name, last_name, avatar_url')
+    .single();
+
+  if (updateError || !profile) {
+    console.error('[AuthService.uploadAvatar] profile update failed:', updateError?.message);
+    throw new InternalError('Failed to save avatar URL.');
+  }
+
+  return profile;
+}
+
+module.exports = { signup, login, logout, getMe, refreshSession, updateProfile, changePassword, verifyInviteToken, registerByInvitation, uploadAvatar };

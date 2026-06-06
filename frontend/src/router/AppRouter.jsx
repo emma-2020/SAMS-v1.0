@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute, RoleRoute, PublicOnlyRoute } from './guards';
 import AppShell          from '../components/layout/AppShell';
 import LoginPage         from '../pages/auth/LoginPage';
+import RegisterPage      from '../pages/auth/RegisterPage';
 import SettingsPage      from '../pages/settings/index';
 import useAuthStore      from '../store/authStore';
 
@@ -14,15 +15,26 @@ import AdminRoster       from '../pages/admin/RosterPage';
 
 // Coach pages
 import CoachDashboard    from '../pages/coach/index';
+import CoachPlayersPage  from '../pages/coach/PlayersPage';
+import CoachSchedulePage from '../pages/coach/SchedulePage';
+import CoachAttendance   from '../pages/coach/AttendancePage';
+import CoachHealthPage   from '../pages/coach/HealthPage';
+import CoachWorkouts     from '../pages/coach/WorkoutsPage';
 
 // Player pages
 import PlayerDashboard   from '../pages/player/index';
+import PlayerHealthPage  from '../pages/player/HealthPage';
+import PlayerWorkouts    from '../pages/player/WorkoutsPage';
+import PlayerSchedule    from '../pages/player/SchedulePage';
 
 // Parent pages
 import ParentDashboard   from '../pages/parent/index';
 
 // Shared pages (role-specific content handled inside)
 import ChatPage          from '../pages/chat/index';
+
+// Admin sub-pages
+import AdminTeams        from '../pages/admin/TeamsPage';
 
 function SmartRoleRedirect() {
   const role = useAuthStore(s => s.user?.role);
@@ -41,8 +53,11 @@ export default function AppRouter() {
       <Route path="/" element={<SmartRoleRedirect />} />
 
       <Route element={<PublicOnlyRoute />}>
-        <Route path="/login" element={<LoginPage />} />
+        <Route path="/login"    element={<LoginPage />} />
       </Route>
+
+      {/* /register is public and NOT behind PublicOnlyRoute — invited users must access it */}
+      <Route path="/register" element={<RegisterPage />} />
 
       <Route element={<ProtectedRoute />}>
         <Route element={<AppShell />}>
@@ -54,30 +69,32 @@ export default function AppRouter() {
             <Route path="/dashboard/admin/schedule"  element={<AdminSchedule />} />
             <Route path="/dashboard/admin/invite"    element={<AdminInvitations />} />
             <Route path="/dashboard/admin/roster"    element={<AdminRoster />} />
+            <Route path="/dashboard/admin/teams"     element={<AdminTeams />} />
             <Route path="/dashboard/admin/chat"      element={<ChatPage />} />
           </Route>
 
           {/* ── Coach ──────────────────────────────────────────── */}
-          <Route element={<RoleRoute allowed={['Coach']} />}>
+          <Route element={<RoleRoute allowed={['Coach', 'Admin']} />}>
             <Route path="/dashboard/coach"            element={<CoachDashboard />} />
-            <Route path="/dashboard/coach/schedule"   element={<CoachDashboard />} />
-            <Route path="/dashboard/coach/attendance" element={<CoachDashboard />} />
-            <Route path="/dashboard/coach/roster"     element={<CoachDashboard />} />
-            <Route path="/dashboard/coach/health"     element={<CoachDashboard />} />
+            <Route path="/dashboard/coach/players"    element={<CoachPlayersPage />} />
+            <Route path="/dashboard/coach/schedule"   element={<CoachSchedulePage />} />
+            <Route path="/dashboard/coach/attendance" element={<CoachAttendance />} />
+            <Route path="/dashboard/coach/health"     element={<CoachHealthPage />} />
+            <Route path="/dashboard/coach/workouts"   element={<CoachWorkouts />} />
             <Route path="/dashboard/coach/chat"       element={<ChatPage />} />
           </Route>
 
           {/* ── Player ─────────────────────────────────────────── */}
-          <Route element={<RoleRoute allowed={['Player']} />}>
+          <Route element={<RoleRoute allowed={['Player', 'Admin']} />}>
             <Route path="/dashboard/player"          element={<PlayerDashboard />} />
-            <Route path="/dashboard/player/schedule" element={<PlayerDashboard />} />
-            <Route path="/dashboard/player/workouts" element={<PlayerDashboard />} />
-            <Route path="/dashboard/player/health"   element={<PlayerDashboard />} />
+            <Route path="/dashboard/player/schedule" element={<PlayerSchedule />} />
+            <Route path="/dashboard/player/workouts" element={<PlayerWorkouts />} />
+            <Route path="/dashboard/player/health"   element={<PlayerHealthPage />} />
             <Route path="/dashboard/player/chat"     element={<ChatPage />} />
           </Route>
 
           {/* ── Parent ─────────────────────────────────────────── */}
-          <Route element={<RoleRoute allowed={['Parent']} />}>
+          <Route element={<RoleRoute allowed={['Parent', 'Admin']} />}>
             <Route path="/dashboard/parent"          element={<ParentDashboard />} />
             <Route path="/dashboard/parent/schedule" element={<ParentDashboard />} />
             <Route path="/dashboard/parent/health"   element={<ParentDashboard />} />
