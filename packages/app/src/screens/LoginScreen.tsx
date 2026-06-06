@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * Cross-platform Login screen.
  * Uses React Native primitives + NativeWind. The brand panel is hidden on mobile
