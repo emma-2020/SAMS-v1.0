@@ -1,5 +1,5 @@
 /** Shared design token palette — identical values used in tailwind.config.js */
-export const ROLE_COLOR = {
+export const ROLE_COLOR: Record<string, string> = {
   Admin:  '#7C3AED',
   Coach:  '#2563EB',
   Player: '#059669',
