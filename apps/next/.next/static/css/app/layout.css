@@ -971,6 +971,9 @@ video {
 .capitalize {
   text-transform: capitalize;
 }
+.italic {
+  font-style: italic;
+}
 .leading-relaxed {
   line-height: 1.625;
 }
