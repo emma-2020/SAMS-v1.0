@@ -1,9 +1,9 @@
 import { View, Text } from '../primitives';
-import type { StyleProp, ViewStyle } from 'react-native';
 
 interface CardBase {
   className?: string;
-  style?: StyleProp<ViewStyle>;
+  // Using object shorthand to avoid react-native type import (resolves to react-native-web on Next.js)
+  style?: object | object[];
 }
 
 // ─── StatCard ─────────────────────────────────────────────────────────────────
