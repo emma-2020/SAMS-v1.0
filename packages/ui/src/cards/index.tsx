@@ -81,6 +81,8 @@ interface SectionCardProps extends ViewProps {
   accentColor?: string;
   children: React.ReactNode;
   headerRight?: React.ReactNode;
+  // NativeWind v4 className (not in core ViewProps types)
+  className?: string;
 }
 
 export function SectionCard({ title, subtitle, accentColor, children, headerRight, style, ...rest }: SectionCardProps) {
