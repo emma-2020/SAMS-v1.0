@@ -7,26 +7,20 @@ const workspaceRoot = path.resolve(projectRoot, '../..');
 
 const config = getDefaultConfig(projectRoot);
 
-// ── Monorepo: let Metro reach the entire workspace ────────────────────────────
+// ── Monorepo: reach the entire workspace ──────────────────────────────────────
 config.watchFolders = [workspaceRoot];
 
-// Resolve @sams/* packages from both the app's node_modules AND the root
+// Resolution order: project node_modules → workspace root node_modules
 config.resolver.nodeModulesPaths = [
   path.resolve(projectRoot, 'node_modules'),
   path.resolve(workspaceRoot, 'node_modules'),
 ];
 
-// Enable symlink resolution for pnpm junction links (Windows) and Unix symlinks
+// Resolve pnpm junction links (Windows) and Unix symlinks inside workspace pkgs
 config.resolver.unstable_enableSymlinks = true;
 
-// Honour the "exports" field in package.json (needed for @sams/* workspace pkgs)
+// Honour the "exports" field in @sams/* package.json entries
 config.resolver.unstable_enablePackageExports = true;
-
-// Platform-specific extensions — .native.* resolves before generic on Expo
-config.resolver.sourceExts = [
-  'native.tsx', 'native.ts', 'native.jsx', 'native.js',
-  ...config.resolver.sourceExts,
-];
 
 // ── NativeWind v4 ─────────────────────────────────────────────────────────────
 module.exports = withNativeWind(config, { input: './global.css' });
