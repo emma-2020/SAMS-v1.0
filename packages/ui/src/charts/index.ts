@@ -1,3 +1,5 @@
-// Platform-specific chart resolution.
-// Bundler picks index.web.tsx on Next.js and index.native.tsx on Expo.
-export * from './index.web';
+// Generic fallback: re-exports the native stubs.
+// Metro resolves index.native.tsx first on iOS/Android;
+// Next.js webpack resolves index.web.tsx first on web.
+// This file is only reached by non-platform-aware tooling (e.g., tsc).
+export * from './index.native';
