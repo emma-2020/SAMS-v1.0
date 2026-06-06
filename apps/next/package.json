@@ -10,10 +10,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@sams/api": "*",
-    "@sams/app": "*",
-    "@sams/store": "*",
-    "@sams/ui": "*",
+    "@sams/api": "workspace:*",
+    "@sams/app": "workspace:*",
+    "@sams/store": "workspace:*",
+    "@sams/ui": "workspace:*",
     "axios": "^1.7.2",
     "framer-motion": "^12.40.0",
     "lucide-react": "^1.17.0",
