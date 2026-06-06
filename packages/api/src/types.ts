@@ -117,7 +117,10 @@ export interface InvitationRecord {
   id: string;
   email: string;
   role: string;
+  first_name?: string;
+  last_name?: string;
   status: 'pending' | 'accepted' | 'expired' | 'revoked';
   created_at: string;
   expires_at: string;
+  accepted_at?: string | null;
 }
