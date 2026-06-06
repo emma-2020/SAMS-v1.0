@@ -1,5 +1,6 @@
 export { apiClient, configureApiClient } from './client';
 export type * from './types';
+export type { AttendanceSession, AttendanceRecord } from './attendance';
 export * as authApi from './auth';
 export * as adminApi from './admin';
 export * as coachApi from './coach';
