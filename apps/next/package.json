@@ -1,0 +1,42 @@
+{
+  "name": "@sams/next",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3001",
+    "build": "next build",
+    "start": "next start -p 3001",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@sams/api": "*",
+    "@sams/app": "*",
+    "@sams/store": "*",
+    "@sams/ui": "*",
+    "axios": "^1.7.2",
+    "framer-motion": "^12.40.0",
+    "lucide-react": "^1.17.0",
+    "nativewind": "^4.0.36",
+    "next": "14.2.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-native": "0.74.5",
+    "react-native-css-interop": "^0.1.19",
+    "react-native-web": "~0.19.12",
+    "recharts": "^3.8.1",
+    "solito": "^4.2.0",
+    "zustand": "^4.5.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.5",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.19",
+    "typescript": "^5.3.0"
+  }
+}
