@@ -165,7 +165,7 @@ export function LoginScreen() {
                 label="Academy ID"
                 placeholder="Your academy UUID"
                 value={form.academy_id}
-                onChangeText={(v) => update('academy_id', v)}
+                onChangeText={(v: string) => update('academy_id', v)}
                 error={errors.academy_id}
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -174,7 +174,7 @@ export function LoginScreen() {
                 label="Email Address"
                 placeholder="you@academy.com"
                 value={form.email}
-                onChangeText={(v) => update('email', v)}
+                onChangeText={(v: string) => update('email', v)}
                 error={errors.email}
                 keyboardType="email-address"
                 autoCapitalize="none"
