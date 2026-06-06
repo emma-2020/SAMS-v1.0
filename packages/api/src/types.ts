@@ -50,6 +50,7 @@ export interface Team {
   is_active: boolean;
   coach_id?: string;
   coach?: TeamMember;
+  users?: TeamMember;
   member_count?: number;
 }
 
