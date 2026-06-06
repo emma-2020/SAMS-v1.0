@@ -27,7 +27,7 @@ export function MiniAreaChart({ data, color = '#6366F1', height = 48 }: MiniArea
             <stop offset="95%" stopColor={color} stopOpacity={0} />
           </linearGradient>
         </defs>
-        <RC_Tooltip formatter={(v: number) => [v]} />
+        <RC_Tooltip formatter={(v) => [v]} />
         <RC_Area type="monotone" dataKey="v" stroke={color} strokeWidth={2}
           fill={`url(#mini-${color.replace('#', '')})`} dot={false} />
       </RC_AreaChart>
