@@ -8,9 +8,9 @@
     "./screens/*": "./src/screens/*.tsx"
   },
   "dependencies": {
-    "@sams/api": "*",
-    "@sams/store": "*",
-    "@sams/ui": "*",
+    "@sams/api": "workspace:*",
+    "@sams/store": "workspace:*",
+    "@sams/ui": "workspace:*",
     "solito": "^4.2.0"
   },
   "peerDependencies": {
