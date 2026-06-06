@@ -1,0 +1,22 @@
+{
+  "name": "@sams/ui",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "peerDependencies": {
+    "react": "^18.3.1",
+    "react-native": "*",
+    "nativewind": "^4.0.36"
+  },
+  "peerDependenciesMeta": {
+    "react-native": { "optional": true }
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0",
+    "nativewind": "^4.0.36",
+    "react-native-css-interop": "^0.1.19"
+  }
+}
