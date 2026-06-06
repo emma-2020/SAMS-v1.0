@@ -26,5 +26,5 @@ export { SplitPaneAttendance } from './attendance/SplitPane';
 export { Link, TextLink, useRouter, useParams } from './navigation/Link';
 
 // Theme tokens
-export { ROLE_COLOR, ROLE_GRADIENT, ACCENT, DANGER, SUCCESS } from './theme/colors';
+export { ROLE_COLOR, ROLE_GRADIENT, ACCENT, DANGER, SUCCESS, NAVY_DARK, ACTIVE_NAV_START, ACTIVE_NAV_END } from './theme/colors';
 export { sharedTheme } from './theme/tailwind';
