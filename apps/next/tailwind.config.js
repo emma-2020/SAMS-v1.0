@@ -18,8 +18,8 @@ module.exports = {
     './app/**/*.{ts,tsx,js,jsx}',
     './components/**/*.{ts,tsx,js,jsx}',
     './lib/**/*.{ts,tsx,js,jsx}',
-    '../../packages/ui/src/**/*.{ts,tsx}',
-    '../../packages/app/src/**/*.{ts,tsx}',
+    '../../packages/ui/src/**/*.{js,jsx,ts,tsx}',
+    '../../packages/app/src/**/*.{js,jsx,ts,tsx}',
   ],
   theme: {
     extend: {
