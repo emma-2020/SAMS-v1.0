@@ -28,7 +28,7 @@ export function AthletePhotoCard({ player, onPress, compact = false }: AthletePh
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => ({
+      style={({ pressed }: { pressed: boolean }) => ({
         opacity: pressed ? 0.88 : 1,
         borderRadius: 20,
         overflow: 'hidden',
