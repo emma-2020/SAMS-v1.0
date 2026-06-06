@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * Admin dashboard screen — cross-platform.
  * Spacious layout on md+ (web desktop), stacked layout on mobile.
