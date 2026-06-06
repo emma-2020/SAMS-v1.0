@@ -69,7 +69,7 @@ export function Button({ children, variant = 'primary', loading = false, fullWid
   return (
     <Pressable
       disabled={disabled || loading}
-      style={({ pressed }) => ({
+      style={({ pressed }: { pressed: boolean }) => ({
         height,
         paddingHorizontal: px,
         borderRadius: 12,
