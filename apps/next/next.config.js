@@ -1,5 +1,4 @@
 /** @type {import('next').NextConfig} */
-const { withNativeWind } = require('nativewind/next');
 
 const nextConfig = {
   // Transpile workspace packages and react-native-web
@@ -21,7 +20,7 @@ const nextConfig = {
       ...(config.resolve.alias || {}),
       'react-native$': 'react-native-web',
     };
-    // Allow platform-specific extensions: .web.tsx before .tsx
+    // Resolve platform-specific extensions: .web.tsx wins before .tsx on Next.js
     config.resolve.extensions = [
       '.web.tsx', '.web.ts', '.web.jsx', '.web.js',
       ...config.resolve.extensions,
@@ -30,4 +29,4 @@ const nextConfig = {
   },
 };
 
-module.exports = withNativeWind(nextConfig, { input: './app/global.css' });
+module.exports = nextConfig;
