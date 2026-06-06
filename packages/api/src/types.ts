@@ -13,6 +13,8 @@ export interface UserProfile {
   first_name: string;
   last_name: string;
   avatar_url?: string | null;
+  is_active?: boolean;
+  created_at?: string;
 }
 
 export interface ApiResponse<T = unknown> {
