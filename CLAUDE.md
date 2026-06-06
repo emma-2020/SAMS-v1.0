@@ -94,5 +94,47 @@ All backend responses follow:
 ```
 All thrown errors must extend `AppError` from `utils/errors.js` (`BadRequestError`, `UnauthorizedError`, `ForbiddenError`, `NotFoundError`, `ConflictError`, `InternalError`). The global `errorHandler` middleware reads `err.statusCode`.
 
+## Monorepo Architecture (added Jun 2026)
+
+### Directory layout
+```
+SAMS-v1.0/
+├── apps/
+│   ├── next/          # Next.js 14 App Router — web replacement for CRA frontend
+│   └── expo/          # Expo SDK 51 — iOS/Android mobile app
+├── packages/
+│   ├── api/           # @sams/api  — cross-platform Axios client (all API calls)
+│   ├── store/         # @sams/store — cross-platform Zustand auth store
+│   ├── ui/            # @sams/ui   — React Native + NativeWind shared components
+│   └── app/           # @sams/app  — shared screen components + nav config
+├── backend/           # Express API server (UNTOUCHED)
+├── database/          # Supabase migrations (UNTOUCHED)
+└── frontend/          # Legacy CRA app (kept as reference, not deleted)
+```
+
+### Cross-platform primitives
+- All shared components in `packages/ui/` and `packages/app/` use `<View>`, `<Text>`, `<ScrollView>`, `<Pressable>` from `react-native` — compiled to HTML on web via `react-native-web`, native UIView/UILabel on iOS/Android.
+- Styling uses NativeWind v4 `className` props (Tailwind CSS at build time).
+- Platform-split files: `.web.tsx` is resolved first on Next.js; `.native.tsx` first on Expo. Used for charts (recharts on web, native fallbacks on mobile).
+
+### Next.js web app (`apps/next/`)
+- Uses App Router with route groups: `(auth)` for public routes, `dashboard/[role]/...` for protected routes.
+- `lib/auth/provider.tsx` — client-side auth guard + API client wiring.
+- `lib/theme/provider.tsx` — dark mode + density system (mirrors existing CSS variable approach).
+- `components/shell/AppShell.tsx` — sidebar layout, notification panel, role switcher.
+- Next.js config aliases `react-native` → `react-native-web` via webpack; TypeScript types come from actual `react-native` package (do NOT add `react-native` to TS `paths` — breaks type resolution).
+- All shared screens imported from `@sams/app` must have `'use client'` at the top.
+
+### Expo mobile app (`apps/expo/`)
+- Uses Expo Router v3 (file-based, like Next.js App Router).
+- `(auth)/login.tsx` → login screen; `(tabs)/` → bottom tab navigation.
+- Auth storage: `@react-native-async-storage/async-storage` (resolved automatically by `@sams/store`).
+- Metro config: `withNativeWind` wrapper + `watchFolders` pointing to workspace root for monorepo resolution.
+
+### Zustand auth store (`packages/store/`)
+- **Critical**: No property getters. Read `session.access_token` directly from `getState().session`.
+- Storage auto-selects: `localStorage` on web, `AsyncStorage` on native.
+- API client configured via `configureApiClient()` — must be called once on app mount (done in `AuthProvider` and Expo `_layout.tsx`).
+
 ## V1.0 Scope Constraint
 Stripe, file uploads, PDF generation, video tools, Apple Health sync, and AI scheduling are explicitly out of scope. Do not introduce these.
