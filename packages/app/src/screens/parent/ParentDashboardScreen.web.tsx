@@ -123,7 +123,7 @@ export function ParentDashboardScreen() {
                 <button
                   key={a.path}
                   onClick={() => router.push(a.path)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--border-subtle)', background: 'none', border: 'none', borderBottom: '1px solid var(--border-subtle)', cursor: 'pointer', width: '100%', textAlign: 'left', transition: 'opacity 0.15s' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderTop: 'none', borderLeft: 'none', borderRight: 'none', borderBottom: '1px solid var(--border-subtle)', background: 'none', cursor: 'pointer', width: '100%', textAlign: 'left', transition: 'opacity 0.15s' }}
                   onMouseEnter={e => { e.currentTarget.style.opacity = '0.7'; }}
                   onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}
                 >
