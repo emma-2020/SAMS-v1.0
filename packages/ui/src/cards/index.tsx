@@ -1,7 +1,8 @@
-import { View, Text, type ViewProps } from '../primitives';
+import { View, Text } from '../primitives';
+import type { StyleProp, ViewStyle } from 'react-native';
 
 // ─── StatCard ─────────────────────────────────────────────────────────────────
-interface StatCardProps extends ViewProps {
+interface StatCardProps {
   title: string;
   value: string | number;
   subtitle?: string;
@@ -9,9 +10,10 @@ interface StatCardProps extends ViewProps {
   trendValue?: string;
   accentColor?: string;
   className?: string;
+  style?: StyleProp<ViewStyle>;
 }
 
-export function StatCard({ title, value, subtitle, trend, trendValue, accentColor, style, ...rest }: StatCardProps) {
+export function StatCard({ title, value, subtitle, trend, trendValue, accentColor, style }: StatCardProps) {
   const trendColor = trend === 'up' ? '#10B981' : trend === 'down' ? '#EF4444' : '#94A3B8';
   const trendArrow = trend === 'up' ? '↑' : trend === 'down' ? '↓' : '→';
 
