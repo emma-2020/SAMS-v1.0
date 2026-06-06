@@ -90,7 +90,7 @@ export function AthletePhotoCard({ player, onPress, compact = false }: AthletePh
 
 // ─── PS5-style grid wrapper ───────────────────────────────────────────────────
 interface AthleteGridProps {
-  players: AthletePhotoCardProps['player'][];
+  players: (Pick<UserProfile, 'id' | 'first_name' | 'last_name' | 'email'> & { role?: UserProfile['role']; sport?: string; health_score?: number; team_name?: string })[];
   onPlayerPress?: (id: string) => void;
   columns?: 2 | 3 | 4;
 }
