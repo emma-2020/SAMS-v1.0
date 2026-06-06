@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect, useState } from 'react';
 import { View, Text, ScrollView } from '@sams/ui';
 import { SectionCard } from '@sams/ui';
