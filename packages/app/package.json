@@ -1,0 +1,27 @@
+{
+  "name": "@sams/app",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./screens/*": "./src/screens/*.tsx"
+  },
+  "dependencies": {
+    "@sams/api": "*",
+    "@sams/store": "*",
+    "@sams/ui": "*",
+    "solito": "^4.2.0"
+  },
+  "peerDependencies": {
+    "react": "^18.3.1",
+    "react-native": "*",
+    "nativewind": "^4.0.36"
+  },
+  "peerDependenciesMeta": {
+    "react-native": { "optional": true }
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0"
+  }
+}
