@@ -6,6 +6,7 @@ interface StyledInputProps extends Omit<TextInputProps, 'style'> {
   label?: string;
   error?: string;
   icon?: React.ReactNode;
+  onChangeText?: (text: string) => void;
 }
 
 export function StyledInput({ label, error, icon, ...props }: StyledInputProps) {
