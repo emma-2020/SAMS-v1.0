@@ -184,7 +184,7 @@ export function LoginScreen() {
                 label="Password"
                 placeholder="••••••••"
                 value={form.password}
-                onChangeText={(v) => update('password', v)}
+                onChangeText={(v: string) => update('password', v)}
                 error={errors.password}
                 secureTextEntry={!showPw}
               />
