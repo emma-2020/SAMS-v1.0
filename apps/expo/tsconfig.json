@@ -4,11 +4,27 @@
     "strict": true,
     "skipLibCheck": true,
     "paths": {
-      "@/*": ["./*"],
-      "@sams/ui": ["../../packages/ui/src/index.ts"],
-      "@sams/app": ["../../packages/app/src/index.ts"],
-      "@sams/store": ["../../packages/store/src/index.ts"],
-      "@sams/api": ["../../packages/api/src/index.ts"]
+      "@/*": [
+        "./*"
+      ],
+      "@sams/ui": [
+        "../../packages/ui/src/index.ts"
+      ],
+      "@sams/app": [
+        "../../packages/app/src/index.ts"
+      ],
+      "@sams/store": [
+        "../../packages/store/src/index.ts"
+      ],
+      "@sams/api": [
+        "../../packages/api/src/index.ts"
+      ]
     }
-  }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
+  ]
 }
