@@ -24,7 +24,7 @@ export async function getMessages(teamId: string): Promise<ChatMessage[]> {
     sender_id:  m.sender_id,
     body:       m.message_text,
     created_at: m.created_at,
-    sender:     m.users ?? undefined,
+    sender:     m.users ? { ...m.users, email: '' } : undefined,
   }));
 }
 
