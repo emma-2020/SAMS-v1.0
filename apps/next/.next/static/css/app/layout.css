@@ -1298,4 +1298,7 @@ body {
   }
   .md\:px-6 {
     padding-left: 1.5rem;
-    p
+    padding-right: 1.5rem;
+  }
+}
+
