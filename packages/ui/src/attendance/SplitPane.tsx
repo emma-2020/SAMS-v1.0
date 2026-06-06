@@ -4,7 +4,7 @@
  */
 import { useState } from 'react';
 import { View, Text, Pressable, ScrollView } from '../primitives';
-import type { AttendanceSession, AttendanceRecord } from '@sams/api/src/attendance';
+import type { AttendanceSession, AttendanceRecord } from '@sams/api';
 
 type Status = 'present' | 'absent' | 'late';
 
