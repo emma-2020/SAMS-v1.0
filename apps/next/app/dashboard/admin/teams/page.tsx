@@ -74,7 +74,7 @@ function MemberAvatar({ name, size = 28 }: { name: string; size?: number }) {
 function SelectField({ value, onChange, disabled, children }: { value: string; onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void; disabled?: boolean; children: React.ReactNode }) {
   return (
     <div style={{ position: 'relative' }}>
-      <select value={value} onChange={onChange} disabled={disabled} style={{ width: '100%', appearance: 'none', padding: '10px 38px 10px 14px', fontSize: '0.875rem', fontWeight: 500, color: value ? 'var(--text-primary)' : 'var(--text-muted)', background: 'var(--bg-surface)', border: '1.5px solid #E2E8F0', borderRadius: 12, cursor: 'pointer', outline: 'none' }}
+      <select value={value} onChange={onChange} disabled={disabled} style={{ width: '100%', appearance: 'none', WebkitAppearance: 'none', padding: '10px 38px 10px 14px', fontSize: '0.875rem', fontFamily: 'var(--font-body)', fontWeight: 500, color: value ? 'var(--text-primary)' : 'var(--text-muted)', background: 'var(--bg-surface)', border: '1.5px solid #E2E8F0', borderRadius: 12, cursor: 'pointer', outline: 'none', transition: 'border-color 0.15s, box-shadow 0.15s', boxShadow: 'none' }}
         onFocus={e => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.12)'; }}
         onBlur={e => { e.target.style.borderColor = '#E2E8F0'; e.target.style.boxShadow = 'none'; }}>
         {children}
@@ -89,7 +89,7 @@ function SelectField({ value, onChange, disabled, children }: { value: string; o
 function InputField({ placeholder, value, onChange, error }: { placeholder: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; error?: string }) {
   return (
     <input placeholder={placeholder} value={value} onChange={onChange}
-      style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)', background: 'var(--bg-surface)', border: `1.5px solid ${error ? 'var(--danger)' : '#E2E8F0'}`, borderRadius: 12, outline: 'none' }}
+      style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', fontSize: '0.875rem', fontFamily: 'var(--font-body)', fontWeight: 500, color: 'var(--text-primary)', background: 'var(--bg-surface)', border: `1.5px solid ${error ? 'var(--danger)' : '#E2E8F0'}`, borderRadius: 12, outline: 'none', transition: 'border-color 0.15s, box-shadow 0.15s', boxShadow: error ? '0 0 0 3px rgba(239,68,68,0.10)' : 'none' }}
       onFocus={e => { if (!error) { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.12)'; } }}
       onBlur={e => { if (!error) { e.target.style.borderColor = '#E2E8F0'; e.target.style.boxShadow = 'none'; } }} />
   );
@@ -192,7 +192,7 @@ function TeamCard({ team, members, onDeactivate, onAddPlayer, allPlayers }: {
                   <MemberAvatar name={`${p.first_name} ${p.last_name}`} size={28} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 600, fontSize: '0.82rem', color: 'var(--text-primary)' }}>{p.first_name} {p.last_name}</div>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>{p.email}</div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>{p.email}</div>
                   </div>
                   <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '2px 7px', borderRadius: 99, background: '#F0FDF4', color: '#15803D', border: '1px solid #86EFAC', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
                     Player
@@ -302,18 +302,20 @@ export default function TeamsPage() {
   return (
     <div style={{ animation: 'fadeIn 0.3s ease' }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 28 }}>
-        <div style={{ flex: 1 }}>
-          <h1 style={{ fontSize: '1.55rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.025em', lineHeight: 1.2, margin: 0 }}>
-            Teams
-          </h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: 6 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28, gap: 16 }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <h1 style={{ fontSize: '1.55rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.025em', lineHeight: 1.2, margin: 0 }}>
+              Teams
+            </h1>
+            <span style={{ background: 'var(--accent-subtle)', color: 'var(--accent)', border: '1px solid var(--accent-light)', borderRadius: 99, fontSize: '0.72rem', fontWeight: 700, padding: '2px 10px', letterSpacing: '0.04em' }}>
+              {teams.length} team{teams.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: 4, margin: '4px 0 0' }}>
             Create and manage teams — each team gets a chat channel automatically.
           </p>
         </div>
-        <span style={{ background: 'var(--bg-elevated)', color: 'var(--accent)', border: '1px solid var(--border-default)', borderRadius: 99, fontSize: '0.72rem', fontWeight: 700, padding: '2px 10px', letterSpacing: '0.04em' }}>
-          {teams.length} team{teams.length !== 1 ? 's' : ''}
-        </span>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '360px 1fr', gap: 28, alignItems: 'start' }}>

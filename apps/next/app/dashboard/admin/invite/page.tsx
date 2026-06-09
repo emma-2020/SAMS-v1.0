@@ -278,7 +278,7 @@ export default function InvitationsPage() {
                       <Link size={10} /> Registration Link
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ flex: 1, fontFamily: 'monospace', fontSize: '0.7rem', color: '#64748B', wordBreak: 'break-all' as const, lineHeight: 1.5 }}>{regLink}</span>
+                      <span style={{ flex: 1, fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: '#64748B', wordBreak: 'break-all' as const, lineHeight: 1.5 }}>{regLink}</span>
                       <button onClick={copyRegLink} style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 5, background: linkCopied ? '#ECFDF5' : '#FFFFFF', border: `1px solid ${linkCopied ? '#A7F3D0' : '#E2E8F0'}`, borderRadius: 8, padding: '5px 10px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700, color: linkCopied ? '#059669' : '#64748B' }}>
                         {linkCopied ? <><Check size={11} /> Copied</> : <><Copy size={11} /> Copy</>}
                       </button>
@@ -447,7 +447,7 @@ export default function InvitationsPage() {
                               <div style={{ fontWeight: 700, fontSize: '0.875rem', color: '#1E293B', lineHeight: 1.3 }}>
                                 {inv.first_name && inv.last_name ? `${inv.first_name} ${inv.last_name}` : inv.email}
                               </div>
-                              <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginTop: 2, fontFamily: 'monospace' }}>
+                              <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginTop: 2, fontFamily: 'var(--font-mono)' }}>
                                 {inv.email}
                               </div>
                             </div>
@@ -474,7 +474,7 @@ export default function InvitationsPage() {
                         <td style={{ padding: '14px 16px', whiteSpace: 'nowrap' as const }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                             <CalendarDays size={12} style={{ color: '#CBD5E1', flexShrink: 0 }} />
-                            <span style={{ fontSize: '0.78rem', color: '#94A3B8', fontFamily: 'monospace' }}>{fmtDate(inv.expires_at)}</span>
+                            <span style={{ fontSize: '0.78rem', color: '#94A3B8', fontFamily: 'var(--font-mono)' }}>{fmtDate(inv.expires_at)}</span>
                           </div>
                         </td>
 

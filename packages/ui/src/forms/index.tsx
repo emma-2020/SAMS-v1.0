@@ -51,6 +51,8 @@ interface ButtonProps extends Omit<PressableProps, 'style' | 'children'> {
   loading?: boolean;
   fullWidth?: boolean;
   size?: 'sm' | 'md' | 'lg';
+  disabled?: boolean;
+  onPress?: () => void;
 }
 
 const VARIANT_STYLES: Record<ButtonVariant, { bg: string; text: string; border?: string }> = {

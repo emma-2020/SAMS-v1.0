@@ -190,7 +190,7 @@ function MessageBubble({ msg, isSelf, showHeader, isLast }: { msg: OptMsg; isSel
                 {role}
               </span>
             )}
-            <span style={{ fontSize: '0.65rem', color: '#94A3B8', fontFamily: 'monospace', letterSpacing: '0.02em' }}>{ts}</span>
+            <span style={{ fontSize: '0.65rem', color: '#94A3B8', fontFamily: 'var(--font-mono)', letterSpacing: '0.02em' }}>{ts}</span>
           </div>
         )}
 
@@ -199,7 +199,7 @@ function MessageBubble({ msg, isSelf, showHeader, isLast }: { msg: OptMsg; isSel
         </div>
 
         {!showHeader && isLast && (
-          <span style={{ fontSize: '0.6rem', color: '#94A3B8', fontFamily: 'monospace', letterSpacing: '0.02em', marginTop: 1 }}>{ts}</span>
+          <span style={{ fontSize: '0.6rem', color: '#94A3B8', fontFamily: 'var(--font-mono)', letterSpacing: '0.02em', marginTop: 1 }}>{ts}</span>
         )}
       </div>
     </div>
@@ -246,7 +246,7 @@ function InputBar({ onSend, disabled }: { onSend: (text: string) => void; disabl
           style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: '#1E293B', fontFamily: 'inherit', fontSize: '0.9rem', lineHeight: 1.5, resize: 'none', minHeight: 24, maxHeight: 120, paddingTop: 5, paddingBottom: 5 }} />
 
         {text.length > MAX_CHARS * 0.8 && (
-          <span style={{ fontSize: '0.68rem', fontFamily: 'monospace', alignSelf: 'flex-end', paddingBottom: 9, flexShrink: 0, color: text.length > MAX_CHARS ? 'var(--danger)' : '#94A3B8' }}>
+          <span style={{ fontSize: '0.68rem', fontFamily: 'var(--font-mono)', alignSelf: 'flex-end', paddingBottom: 9, flexShrink: 0, color: text.length > MAX_CHARS ? 'var(--danger)' : '#94A3B8' }}>
             {MAX_CHARS - text.length}
           </span>
         )}
@@ -258,7 +258,7 @@ function InputBar({ onSend, disabled }: { onSend: (text: string) => void; disabl
           <IcoSend active={canSend} />
         </button>
       </div>
-      <div style={{ fontSize: '0.62rem', color: '#94A3B8', fontFamily: 'monospace', marginTop: 7, textAlign: 'center', letterSpacing: '0.04em' }}>
+      <div style={{ fontSize: '0.62rem', color: '#94A3B8', fontFamily: 'var(--font-mono)', marginTop: 7, textAlign: 'center', letterSpacing: '0.04em' }}>
         Enter ↵ to send · Shift+Enter for new line
       </div>
     </div>
@@ -467,7 +467,7 @@ export default function ChatPage() {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
             <span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: '#10B981', boxShadow: '0 0 0 3px rgba(16,185,129,0.20)' }} />
-            <span style={{ fontSize: '0.72rem', color: '#94A3B8', fontFamily: 'monospace', letterSpacing: '0.04em' }}>
+            <span style={{ fontSize: '0.72rem', color: '#94A3B8', fontFamily: 'var(--font-mono)', letterSpacing: '0.04em' }}>
               Live · {POLL_MS / 1000}s sync
             </span>
           </div>

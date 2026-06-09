@@ -10,7 +10,7 @@ function resolveBaseUrl(): string {
 }
 
 type TokenGetter = () => string | null;
-type UnauthorizedHandler = () => void;
+type UnauthorizedHandler = (expiredToken?: string) => void;
 type RefreshHandler = () => Promise<string | null>;
 
 let _getToken: TokenGetter = () => null;
@@ -42,12 +42,20 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   return config;
 });
 
-// Single-attempt refresh queue on 401 — mirrors the existing CRA pattern
+// Single-attempt refresh queue on 401 — mirrors the existing CRA pattern.
+// Only retry requests that actually sent a Bearer token; login/register/refresh
+// endpoints return 401 for legitimate reasons (wrong password, expired refresh
+// token) and must never trigger the refresh-and-retry path, otherwise
+// _onUnauthorized() fires a spurious router.replace('/login') that remounts
+// the login page and silently wipes the error state before the user can see it.
 apiClient.interceptors.response.use(
   (res) => res.data,
   async (err) => {
     const original = err.config;
-    if (err.response?.status === 401 && !original._retry) {
+    const authHeader = (original?.headers?.Authorization as string | undefined) ?? '';
+    const hadBearerToken = authHeader.startsWith('Bearer ');
+    const expiredToken = hadBearerToken ? authHeader.slice(7) : '';
+    if (err.response?.status === 401 && !original._retry && hadBearerToken) {
       if (_isRefreshing) {
         return new Promise((resolve, reject) => {
           _queue.push({ resolve, reject });
@@ -67,12 +75,13 @@ apiClient.interceptors.response.use(
           return apiClient(original);
         }
       } catch (_) {
-        _queue.forEach((p) => p.reject(new Error('Refresh failed')));
-        _queue = [];
+        // Refresh threw — fall through to drain queue and unauthorize
       } finally {
         _isRefreshing = false;
       }
-      _onUnauthorized();
+      _queue.forEach((p) => p.reject(new Error('Session expired')));
+      _queue = [];
+      _onUnauthorized(expiredToken);
     }
     const message = err.response?.data?.error ?? err.message ?? 'Request failed';
     throw new Error(message);

@@ -49,7 +49,7 @@ export default function SettingsTab() {
 
       {/* Logout */}
       <Pressable onPress={handleLogout}
-        style={({ pressed }) => ({
+        style={({ pressed }: { pressed: boolean }) => ({
           backgroundColor: pressed ? '#FEF2F2' : '#FFFFFF',
           borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#FECACA',
           flexDirection: 'row', alignItems: 'center', gap: 12,

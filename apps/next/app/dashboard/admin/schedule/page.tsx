@@ -146,7 +146,11 @@ export default function AdminSchedulePage() {
 
       {/* Add block form */}
       {showForm && (
-        <div className="card" style={{ padding: '22px 24px', marginBottom: 20 }}>
+        <div style={{
+          background: 'var(--bg-surface)', border: '1px solid var(--border-default)',
+          borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)',
+          padding: '22px 24px', marginBottom: 20,
+        }}>
           <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)', marginBottom: 16 }}>
             Reserve Venue Time
           </div>
@@ -154,7 +158,7 @@ export default function AdminSchedulePage() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
               <div className="field">
                 <label className="field-label">Venue</label>
-                <select className="field-input" style={{ paddingLeft: 14, height: 42, cursor: 'pointer' }}
+                <select className="field-input" style={{ height: 42, cursor: 'pointer' }}
                   value={newBlock.venue} onChange={e => setNewBlock(p => ({ ...p, venue: e.target.value }))}>
                   <option value="">Select venue...</option>
                   {VENUES.map(v => <option key={v} value={v}>{v}</option>)}
@@ -197,7 +201,11 @@ export default function AdminSchedulePage() {
       )}
 
       {/* Calendar grid */}
-      <div className="card" style={{ overflow: 'hidden' }}>
+      <div style={{
+        background: 'var(--bg-surface)', border: '1px solid var(--border-default)',
+        borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)',
+        overflow: 'hidden',
+      }}>
         <div style={{ overflowX: 'auto' }}>
           <div style={{ minWidth: 720 }}>
             {/* Day headers */}
@@ -238,7 +246,7 @@ export default function AdminSchedulePage() {
                   minHeight: 44, borderBottom: '1px solid var(--border-subtle)',
                 }}>
                   <div style={{
-                    fontFamily: 'monospace', fontSize: '0.68rem', color: 'var(--text-muted)',
+                    fontFamily: 'var(--font-mono)', fontSize: '0.68rem', color: 'var(--text-muted)',
                     padding: '4px 10px 0 0', textAlign: 'right', flexShrink: 0,
                   }}>
                     {String(h).padStart(2, '0')}:00

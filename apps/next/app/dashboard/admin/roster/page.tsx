@@ -28,7 +28,12 @@ function Avatar({ name, role, size = 34 }: { name: string; role: string; size?: 
   const meta = ROLE_META[role] ?? { color: '#6366F1', bg: '#EEF2FF', border: '#C7D2FE' };
   const init = name.trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
   return (
-    <div style={{ width: size, height: size, borderRadius: '50%', flexShrink: 0, background: meta.bg, border: `2px solid ${meta.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: meta.color, fontSize: Math.round(size * 0.32), fontWeight: 800 }}>
+    <div style={{
+      width: size, height: size, borderRadius: '50%', flexShrink: 0,
+      background: meta.bg, border: `2px solid ${meta.border}`,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      color: meta.color, fontSize: Math.round(size * 0.32), fontWeight: 800,
+    }}>
       {init || '?'}
     </div>
   );
@@ -37,7 +42,11 @@ function Avatar({ name, role, size = 34 }: { name: string; role: string; size?: 
 function RoleBadge({ role }: { role: string }) {
   const meta = ROLE_META[role] ?? { color: '#6366F1', bg: '#EEF2FF', border: '#C7D2FE' };
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 10px', borderRadius: 99, background: meta.bg, border: `1px solid ${meta.border}`, fontSize: '0.72rem', fontWeight: 700, color: meta.color, letterSpacing: '0.02em' }}>
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', padding: '3px 10px',
+      borderRadius: 99, background: meta.bg, border: `1px solid ${meta.border}`,
+      fontSize: '0.72rem', fontWeight: 700, color: meta.color, letterSpacing: '0.02em',
+    }}>
       {role}
     </span>
   );
@@ -46,7 +55,14 @@ function RoleBadge({ role }: { role: string }) {
 function StatusPill({ status }: { status: string }) {
   const isActive = status === 'Active';
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 99, background: isActive ? '#ECFDF5' : '#F8FAFC', border: `1px solid ${isActive ? '#A7F3D0' : '#E2E8F0'}`, fontSize: '0.72rem', fontWeight: 700, color: isActive ? '#059669' : '#94A3B8' }}>
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 5,
+      padding: '3px 10px', borderRadius: 99,
+      background: isActive ? '#ECFDF5' : '#F8FAFC',
+      border: `1px solid ${isActive ? '#A7F3D0' : '#E2E8F0'}`,
+      fontSize: '0.72rem', fontWeight: 700,
+      color: isActive ? '#059669' : '#94A3B8',
+    }}>
       <span style={{ width: 5, height: 5, borderRadius: '50%', background: isActive ? '#059669' : '#94A3B8', flexShrink: 0 }} />
       {status}
     </span>
@@ -54,11 +70,11 @@ function StatusPill({ status }: { status: string }) {
 }
 
 export default function RosterPage() {
-  const [members, setMembers] = useState<UserProfile[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState('');
-  const [search, setSearch]   = useState('');
-  const [roleFilter, setRole] = useState('All');
+  const [members,   setMembers]   = useState<UserProfile[]>([]);
+  const [loading,   setLoading]   = useState(true);
+  const [error,     setError]     = useState('');
+  const [search,    setSearch]    = useState('');
+  const [roleFilter, setRole]     = useState('All');
 
   async function load() {
     setLoading(true);
@@ -71,8 +87,8 @@ export default function RosterPage() {
   useEffect(() => { load(); }, []);
 
   const filtered = members.filter(m => {
-    const matchRole = roleFilter === 'All' || m.role === roleFilter;
-    const q = search.toLowerCase();
+    const matchRole   = roleFilter === 'All' || m.role === roleFilter;
+    const q           = search.toLowerCase();
     const matchSearch = !q ||
       `${m.first_name} ${m.last_name}`.toLowerCase().includes(q) ||
       m.email.toLowerCase().includes(q);
@@ -86,21 +102,31 @@ export default function RosterPage() {
 
   return (
     <div style={{ animation: 'fadeIn 0.3s ease' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+
+      {/* Page header */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28, gap: 16 }}>
         <div>
           <h1 style={{ fontSize: '1.55rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.025em', lineHeight: 1.2, margin: 0 }}>
             Roster
           </h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: 6 }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: 4, margin: '4px 0 0' }}>
             {members.length} member{members.length !== 1 ? 's' : ''} in your academy
           </p>
         </div>
       </div>
 
-      <div className="card" style={{ overflow: 'hidden' }}>
-        {/* Toolbar */}
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '12px 20px', borderBottom: '1px solid var(--border-subtle)', flexWrap: 'wrap' }}>
+      {/* Card — no outer padding, edge-to-edge content */}
+      <div style={{
+        background: 'var(--bg-surface)', border: '1px solid var(--border-default)',
+        borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)',
+        overflow: 'hidden',
+      }}>
+
+        {/* Toolbar — right-aligned, matching SectionCard action pattern */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
+          padding: '12px 20px', borderBottom: '1px solid var(--border-subtle)', flexWrap: 'wrap', gap: 8,
+        }}>
           <div className="search-input" style={{ width: 240 }}>
             <span style={{ color: 'var(--text-muted)', display: 'flex' }}><IcoSearch /></span>
             <input placeholder="Search members..." value={search} onChange={e => setSearch(e.target.value)} />
@@ -111,7 +137,11 @@ export default function RosterPage() {
                 className={`btn btn-sm ${roleFilter === r ? 'btn-primary' : 'btn-secondary'}`}>
                 {r}
                 {counts[r] > 0 && (
-                  <span style={{ marginLeft: 4, fontSize: '0.68rem', background: roleFilter === r ? 'rgba(255,255,255,0.22)' : 'var(--bg-elevated)', borderRadius: 99, padding: '1px 6px' }}>
+                  <span style={{
+                    marginLeft: 4, fontSize: '0.7rem',
+                    background: roleFilter === r ? 'rgba(255,255,255,0.2)' : 'var(--bg-overlay)',
+                    borderRadius: 99, padding: '1px 6px',
+                  }}>
                     {counts[r]}
                   </span>
                 )}
@@ -136,14 +166,16 @@ export default function RosterPage() {
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div style={{ padding: '48px 24px', textAlign: 'center' }}>
-            <div style={{ fontSize: '2rem', marginBottom: 12 }}>👥</div>
-            <div style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--text-secondary)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '56px 24px', gap: 12, textAlign: 'center' }}>
+            <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--accent-subtle)', border: '1px solid var(--accent-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', marginBottom: 4, fontSize: 22 }}>
+              👥
+            </div>
+            <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)' }}>
               {search ? 'No members match your search' : 'No members yet'}
             </div>
-            <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: 6 }}>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', maxWidth: 300, margin: 0 }}>
               {search ? 'Try a different search term or filter.' : 'Invite members from the Invitations page.'}
-            </div>
+            </p>
           </div>
         ) : (
           <table className="table">
@@ -168,9 +200,13 @@ export default function RosterPage() {
                     </div>
                   </td>
                   <td><RoleBadge role={m.role} /></td>
-                  <td style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{m.email}</td>
-                  <td><StatusPill status={(m as UserProfile & { is_active?: boolean }).is_active !== false ? 'Active' : 'Inactive'} /></td>
-                  <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                  <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                    {m.email}
+                  </td>
+                  <td>
+                    <StatusPill status={(m as UserProfile & { is_active?: boolean }).is_active !== false ? 'Active' : 'Inactive'} />
+                  </td>
+                  <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
                     {fmtDate((m as UserProfile & { created_at?: string }).created_at)}
                   </td>
                 </tr>

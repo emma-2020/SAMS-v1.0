@@ -17,28 +17,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
 
-  // Wire API client once
-  useEffect(() => {
-    configureApiClient({
-      getToken: () => useAuthStore.getState().session?.access_token ?? null,
-      refresh: async () => {
-        const rt = useAuthStore.getState().session?.refresh_token;
-        if (!rt) return null;
-        try {
-          const newSession = await authApi.refreshSession(rt);
-          refreshSession(newSession);
-          return newSession.access_token;
-        } catch {
-          return null;
-        }
-      },
-      onUnauthorized: () => {
-        logout();
-        router.replace('/login');
-      },
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Wire API client synchronously on every render so it survives Fast Refresh
+  // in development and is always ready before child effects fire API calls.
+  configureApiClient({
+    getToken: () => useAuthStore.getState().session?.access_token ?? null,
+    refresh: async () => {
+      const rt = useAuthStore.getState().session?.refresh_token;
+      if (!rt) return null;
+      try {
+        const newSession = await authApi.refreshSession(rt);
+        useAuthStore.getState().refreshSession(newSession);
+        return newSession.access_token;
+      } catch {
+        return null;
+      }
+    },
+    onUnauthorized: (expiredToken?: string) => {
+      // Guard against a race condition: AuthProvider.validate() fires GET /api/auth/me
+      // with a stale cached token on app mount. If the user logs in with fresh credentials
+      // before that background 401 resolves, the new session must not be wiped.
+      // Only act if the token that expired is still the current active token.
+      const currentToken = useAuthStore.getState().session?.access_token;
+      if (expiredToken && currentToken && currentToken !== expiredToken) return;
+      useAuthStore.getState().logout();
+      router.replace('/login');
+    },
+  });
 
   // Revalidate persisted session on mount
   useEffect(() => {
@@ -99,16 +103,21 @@ export function ProtectedGuard({ children }: { children: React.ReactNode }) {
 
 /**
  * Redirects authenticated users away from /login and /register.
+ * Renders the form immediately so users are never blocked by the session check.
+ * If an existing session is valid, the redirect fires once isInitialised flips.
  */
 export function PublicOnlyGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isInitialised, user } = useAuthStore();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isInitialised || !isAuthenticated || !user) return;
+    if (!isInitialised) return;
+    if (!isAuthenticated || !user) return;
     router.replace(ROLE_DASHBOARD[user.role] ?? '/dashboard');
   }, [isInitialised, isAuthenticated, user, router]);
 
-  if (isAuthenticated) return null;
+  // Hide the form only when we know for certain the user is already signed in.
+  if (isInitialised && isAuthenticated) return null;
+
   return <>{children}</>;
 }
