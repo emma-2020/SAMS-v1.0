@@ -4,213 +4,391 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { healthApi, scheduleApi, workoutApi } from '@sams/api';
 import { useAuthStore } from '@sams/store';
-import { ROLE_COLOR } from '@sams/ui';
 import type { HealthEntry, ScheduleEvent, WorkoutPlan } from '@sams/api';
+
+function daysUntil(iso: string) {
+  const d = Math.ceil((new Date(iso).getTime() - Date.now()) / 86400000);
+  if (d < 0)   return { text: 'Past',     color: '#94A3B8' };
+  if (d === 0) return { text: 'Today',    color: '#10B981' };
+  if (d === 1) return { text: 'Tomorrow', color: '#6366F1' };
+  return { text: `In ${d}d`, color: '#F59E0B' };
+}
+function fmtTime(iso: string) {
+  return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+}
+function fmtShort(iso: string) {
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
 
 export function PlayerDashboardScreen() {
   const user   = useAuthStore(s => s.user);
   const router = useRouter();
-  const [latestHealth, setLatestHealth] = useState<HealthEntry | null>(null);
-  const [events,       setEvents]       = useState<ScheduleEvent[]>([]);
-  const [workouts,     setWorkouts]     = useState<WorkoutPlan[]>([]);
-  const [loading,      setLoading]      = useState(true);
+  const today  = new Date();
+
+  const [events,     setEvents]     = useState<ScheduleEvent[]>([]);
+  const [healthLogs, setHealthLogs] = useState<HealthEntry[]>([]);
+  const [workouts,   setWorkouts]   = useState<WorkoutPlan[]>([]);
+  const [loading,    setLoading]    = useState(true);
 
   useEffect(() => {
-    Promise.all([healthApi.getMyHealth(), scheduleApi.getEvents(), workoutApi.getWorkouts()])
-      .then(([h, e, w]) => {
-        setLatestHealth(h[0] ?? null);
-        setEvents(e.slice(0, 4));
-        setWorkouts(w.slice(0, 3));
+    Promise.all([
+      scheduleApi.getEvents(),
+      healthApi.getMyHealth(),
+      workoutApi.getWorkouts(),
+    ])
+      .then(([evts, hl, wk]) => {
+        setEvents(evts ?? []);
+        setHealthLogs(hl ?? []);
+        setWorkouts(wk ?? []);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
-  const healthScore = latestHealth?.overall_score ?? 0;
-  const healthColor = healthScore >= 70 ? '#10B981' : healthScore >= 40 ? '#F59E0B' : '#EF4444';
+  const upcoming      = events.slice(0, 4);
+  const todayEvents   = events.filter(ev => new Date(ev.start_time).toDateString() === today.toDateString());
+  const latestLog     = healthLogs[0] ?? null;
+  const todayLogged   = latestLog
+    ? new Date(latestLog.submitted_at).toDateString() === today.toDateString()
+    : false;
 
-  const greeting = (() => {
-    const h = new Date().getHours();
-    if (h < 12) return 'Good morning';
-    if (h < 17) return 'Good afternoon';
-    return 'Good evening';
-  })();
+  const totalExercises = workouts.flatMap(w => w.exercises ?? []).length;
 
-  const kpis = [
-    { label: 'Upcoming Sessions', value: loading ? '…' : events.length,   icon: '📅', color: ROLE_COLOR.Player },
-    { label: 'Wellness Score',    value: loading ? '…' : healthScore,      icon: '💚', color: healthColor       },
-    { label: 'Active Workouts',   value: loading ? '…' : workouts.length,  icon: '🏋️', color: '#D97706'         },
-  ];
+  const fitnessScore = latestLog ? latestLog.overall_score : null;
+  const fitnessLabel = fitnessScore === null ? 'Log Today'
+    : fitnessScore >= 70 ? 'Fully Fit'
+    : fitnessScore >= 45 ? 'Moderate'
+    : 'Needs Rest';
+  const fitnessColor = fitnessScore === null ? '#6366F1'
+    : fitnessScore >= 70 ? '#10B981'
+    : fitnessScore >= 45 ? '#F59E0B'
+    : '#EF4444';
 
-  const quickActions = [
-    { label: 'Health Dashboard', icon: '💊', path: '/dashboard/player/health',   desc: 'View & log wellness'        },
-    { label: 'My Workouts',      icon: '🏋️', path: '/dashboard/player/workouts', desc: 'Training assignments'        },
-    { label: 'Full Schedule',    icon: '📅', path: '/dashboard/player/schedule', desc: 'All sessions & matches'      },
-    { label: 'Team Chat',        icon: '💬', path: '/dashboard/player/chat',     desc: 'Message teammates & coach'   },
+  const greetingHour  = today.getHours();
+  const greetingWord  = greetingHour < 12 ? 'Good morning' : greetingHour < 17 ? 'Good afternoon' : 'Good evening';
+  const greetingEmoji = greetingHour < 12 ? '🌅' : greetingHour < 17 ? '☀️' : '🌙';
+
+  const statsRow = [
+    {
+      label: 'Sessions This Month',
+      value: loading ? '…' : events.length || '—',
+      color: '#6366F1', icon: '📅',
+      action: () => router.push('/dashboard/player/schedule'),
+    },
+    {
+      label: "Today's Sessions",
+      value: loading ? '…' : todayEvents.length,
+      color: '#3B82F6', icon: '⚽',
+      sub: todayEvents[0]?.title || 'None today',
+    },
+    {
+      label: 'Workouts Progress',
+      value: loading ? '…' : totalExercises ? `0/${totalExercises}` : '—',
+      color: '#D97706', icon: '🏋️',
+      action: () => router.push('/dashboard/player/workouts'),
+    },
+    {
+      label: 'Wellness Status',
+      value: loading ? '…' : fitnessLabel,
+      color: fitnessColor, icon: '💚',
+      action: () => router.push('/dashboard/player/health'),
+    },
   ];
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 40 }}>
+    <div style={{ animation: 'fadeIn 0.3s ease' }}>
 
-      {/* Hero banner */}
+      {/* ── Hero banner ─────────────────────────────────────────────── */}
       <div style={{
-        marginBottom: 24, borderRadius: 24, overflow: 'hidden', minHeight: 140,
-        background: 'linear-gradient(135deg,#047857 0%,#059669 55%,#34D399 100%)',
+        background: 'linear-gradient(135deg, #0D1B3E 0%, #1a2d5a 50%, #0f2244 100%)',
+        borderRadius: 18, padding: '28px 32px 24px',
+        marginBottom: 24, position: 'relative', overflow: 'hidden',
       }}>
-        <div style={{ padding: '28px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
-            <p style={{ color: '#A7F3D0', fontSize: '0.85rem', fontWeight: 600, marginBottom: 4 }}>{greeting},</p>
-            <p style={{ color: 'white', fontSize: '1.5rem', fontWeight: 900, letterSpacing: -0.5, margin: 0 }}>
-              {user?.first_name} {user?.last_name}
+        {/* decorative orbs */}
+        <div style={{ position: 'absolute', right: -50, top: -50, width: 220, height: 220, borderRadius: '50%', background: 'rgba(99,102,241,0.06)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', right: 60, bottom: -80, width: 180, height: 180, borderRadius: '50%', background: 'rgba(16,185,129,0.04)', pointerEvents: 'none' }} />
+
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 20 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', marginBottom: 6 }}>
+              {today.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+            </div>
+            <h1 style={{ fontWeight: 900, fontSize: '1.6rem', color: 'white', margin: '0 0 4px' }}>
+              {greetingWord}, {user?.first_name}! {greetingEmoji}
+            </h1>
+            <p style={{ color: 'rgba(255,255,255,0.45)', margin: '0 0 18px', fontSize: '0.875rem' }}>
+              {todayEvents.length > 0
+                ? `You have ${todayEvents.length} session${todayEvents.length > 1 ? 's' : ''} today.`
+                : upcoming.length > 0
+                  ? `Next session: ${upcoming[0]?.title} on ${fmtShort(upcoming[0]?.start_time)}`
+                  : 'No sessions scheduled. Stay active!'}
             </p>
-            <p style={{ color: '#A7F3D0', fontSize: '0.85rem', marginTop: 4 }}>Player Hub · Sports Academy</p>
+            {!todayLogged && (
+              <button
+                onClick={() => router.push('/dashboard/player/health')}
+                style={{
+                  padding: '10px 20px', borderRadius: 10,
+                  background: 'rgba(99,102,241,0.2)', border: '1px solid rgba(99,102,241,0.4)',
+                  color: '#A5B4FC', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: 8,
+                }}
+              >
+                <span>💊</span> Log today&apos;s wellness check-in
+              </button>
+            )}
           </div>
-          <div style={{ width: 64, height: 64, borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.75rem' }}>
-            ⚽
+
+          {/* circular fitness ring */}
+          <div style={{
+            flexShrink: 0, textAlign: 'center',
+            padding: 16, borderRadius: 14,
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,255,255,0.08)',
+          }}>
+            <svg viewBox="0 0 80 80" width="80" height="80">
+              <circle cx="40" cy="40" r="32" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="7" />
+              {fitnessScore !== null && (
+                <circle
+                  cx="40" cy="40" r="32" fill="none"
+                  stroke={fitnessColor} strokeWidth="7"
+                  strokeDasharray={`${(fitnessScore / 100) * 201} 201`}
+                  strokeLinecap="round"
+                  transform="rotate(-90 40 40)"
+                />
+              )}
+              <text x="40" y="36" textAnchor="middle" fontSize="13" fontWeight="900" fill="white">
+                {fitnessScore !== null ? fitnessScore : '—'}
+              </text>
+              {fitnessScore !== null && (
+                <text x="40" y="49" textAnchor="middle" fontSize="7" fill="rgba(255,255,255,0.4)">%</text>
+              )}
+            </svg>
+            <div style={{ fontSize: '0.68rem', fontWeight: 800, color: fitnessColor, marginTop: 4, letterSpacing: '0.04em' }}>
+              {fitnessLabel}
+            </div>
           </div>
         </div>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-
-        {/* KPI row */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12 }}>
-          {kpis.map(kpi => (
-            <div key={kpi.label} className="card" style={{ padding: 20 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: `${kpi.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem' }}>
-                  {kpi.icon}
-                </div>
-              </div>
-              <p style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: -0.5, margin: 0 }}>
-                {kpi.value}
-              </p>
-              <p style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginTop: 4 }}>
-                {kpi.label}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        {/* Upcoming sessions + Quick actions */}
-        <div style={{ display: 'flex', gap: 16 }}>
-
-          {/* Upcoming sessions */}
-          <div className="card" style={{ flex: 1, padding: 0, overflow: 'hidden' }}>
-            <div style={{ padding: '18px 20px 12px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div>
-                <p style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.9rem', margin: 0 }}>Upcoming Sessions</p>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>Your next training & matches</p>
-              </div>
-              <button
-                onClick={() => router.push('/dashboard/player/schedule')}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700, color: ROLE_COLOR.Player }}
-              >
-                Full schedule →
-              </button>
-            </div>
-            <div style={{ padding: '0 20px' }}>
-              {events.length === 0
-                ? <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', padding: '16px 0' }}>No upcoming sessions.</p>
-                : events.map(e => (
-                  <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--border-subtle)' }}>
-                    <div style={{ width: 4, height: 40, borderRadius: 2, background: ROLE_COLOR.Player, flexShrink: 0 }} />
-                    <div style={{ flex: 1 }}>
-                      <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{e.title}</p>
-                      <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>
-                        {new Date(e.start_time).toLocaleDateString()} · {e.type}
-                      </p>
-                    </div>
-                  </div>
-                ))
+      {/* ── Stats row ───────────────────────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14, marginBottom: 24 }}>
+        {statsRow.map(({ label, value, color, icon, sub, action }: any) => (
+          <div
+            key={label}
+            onClick={action}
+            style={{
+              background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)',
+              borderRadius: 14, padding: '18px 20px',
+              boxShadow: 'var(--shadow-sm)', cursor: action ? 'pointer' : 'default',
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={e => {
+              if (action) {
+                (e.currentTarget as HTMLDivElement).style.borderColor = color;
+                (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-1px)';
               }
+            }}
+            onMouseLeave={e => {
+              if (action) {
+                (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--border-subtle)';
+                (e.currentTarget as HTMLDivElement).style.transform = 'none';
+              }
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <div style={{
+                width: 36, height: 36, borderRadius: 10,
+                background: `${color}15`, border: `1px solid ${color}30`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem',
+              }}>
+                {icon}
+              </div>
+              {action && <span style={{ fontSize: '0.7rem', color, fontWeight: 700 }}>View →</span>}
             </div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 900, color, lineHeight: 1 }}>{value}</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4 }}>{sub || label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Main 2-column grid ──────────────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 20 }}>
+
+        {/* Upcoming sessions */}
+        <div style={{
+          background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)',
+          borderRadius: 14, overflow: 'hidden', boxShadow: 'var(--shadow-sm)',
+        }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '16px 20px', borderBottom: '1px solid var(--border-subtle)',
+            background: 'linear-gradient(180deg, var(--bg-elevated), var(--bg-surface))',
+          }}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>Upcoming Sessions</div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 1 }}>Your next training &amp; matches</div>
+            </div>
+            <button
+              onClick={() => router.push('/dashboard/player/schedule')}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700, color: '#6366F1' }}
+            >
+              Full schedule →
+            </button>
           </div>
 
-          {/* Quick actions */}
-          <div className="card" style={{ width: 288, padding: 0, overflow: 'hidden' }}>
-            <div style={{ padding: '18px 20px 12px', borderBottom: '1px solid var(--border-subtle)' }}>
-              <p style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.9rem', margin: 0 }}>Quick Actions</p>
+          {upcoming.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '32px 24px' }}>
+              <div style={{ fontSize: '2rem', marginBottom: 8 }}>📅</div>
+              <div style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>No upcoming sessions</div>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '4px 0 0' }}>
+                Your coach will schedule sessions for your team.
+              </p>
             </div>
-            <div style={{ padding: '8px 16px' }}>
-              {quickActions.map(a => (
-                <button
-                  key={a.path}
-                  onClick={() => router.push(a.path)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: 'none', borderLeft: 'none', borderRight: 'none', borderBottom: '1px solid var(--border-subtle)', background: 'none', cursor: 'pointer', width: '100%', textAlign: 'left', transition: 'opacity 0.15s' }}
-                  onMouseEnter={e => { e.currentTarget.style.opacity = '0.7'; }}
-                  onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}
-                >
-                  <span style={{ fontSize: '1.1rem' }}>{a.icon}</span>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)', margin: 0 }}>{a.label}</p>
-                    <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 1 }}>{a.desc}</p>
+          ) : (
+            <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {upcoming.map(ev => {
+                const lbl    = daysUntil(ev.start_time);
+                const isGame = ev.type === 'match';
+                const color  = isGame ? '#EF4444' : '#6366F1';
+                return (
+                  <div key={ev.id} style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '12px 14px',
+                    background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)',
+                    borderRadius: 12, borderLeft: `3px solid ${color}`,
+                  }}>
+                    <div style={{
+                      width: 40, height: 40, borderRadius: 9, flexShrink: 0,
+                      background: `${color}12`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem',
+                    }}>
+                      {isGame ? '⚽' : '🏃'}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {ev.title}
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 1 }}>
+                        {fmtShort(ev.start_time)} · {fmtTime(ev.start_time)}
+                        {ev.location ? ` · ${ev.location}` : ''}
+                      </div>
+                    </div>
+                    <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
+                      <span style={{
+                        padding: '2px 8px', borderRadius: 99, fontSize: '0.68rem', fontWeight: 700,
+                        background: `${lbl.color}15`, color: lbl.color,
+                      }}>
+                        {lbl.text}
+                      </span>
+                      <span style={{
+                        fontSize: '0.65rem', fontWeight: 700, padding: '1px 6px', borderRadius: 99,
+                        background: `${color}12`, color, textTransform: 'uppercase', letterSpacing: '0.06em',
+                      }}>
+                        {ev.type}
+                      </span>
+                    </div>
                   </div>
-                  <span style={{ color: 'var(--text-muted)', fontSize: '1rem' }}>›</span>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Right sidebar */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+          {/* Quick Actions */}
+          <div style={{
+            background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)',
+            borderRadius: 14, overflow: 'hidden', boxShadow: 'var(--shadow-sm)',
+          }}>
+            <div style={{
+              padding: '14px 18px', borderBottom: '1px solid var(--border-subtle)',
+              background: 'linear-gradient(180deg, var(--bg-elevated), var(--bg-surface))',
+              fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)',
+            }}>
+              Quick Actions
+            </div>
+            <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {([
+                { label: 'Health Dashboard', path: '/dashboard/player/health',   color: '#10B981', icon: '💊', desc: 'View & log wellness'      },
+                { label: 'My Workouts',      path: '/dashboard/player/workouts', color: '#D97706', icon: '🏋️', desc: 'Training assignments'      },
+                { label: 'Full Schedule',    path: '/dashboard/player/schedule', color: '#6366F1', icon: '📅', desc: 'All sessions & matches'     },
+                { label: 'Team Chat',        path: '/dashboard/player/chat',     color: '#2563EB', icon: '💬', desc: 'Message teammates & coach'  },
+              ] as const).map(({ label, path, color, icon, desc }) => (
+                <button
+                  key={path}
+                  onClick={() => router.push(path)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '10px 12px', width: '100%', textAlign: 'left',
+                    background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)',
+                    borderRadius: 10, cursor: 'pointer', transition: 'all 0.15s',
+                  }}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLButtonElement).style.borderColor = color;
+                    (e.currentTarget as HTMLButtonElement).style.background = `${color}06`;
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border-subtle)';
+                    (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-elevated)';
+                  }}
+                >
+                  <div style={{
+                    width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+                    background: `${color}12`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem',
+                  }}>
+                    {icon}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.82rem', color: 'var(--text-primary)' }}>{label}</div>
+                    <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: 1 }}>{desc}</div>
+                  </div>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2">
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
                 </button>
               ))}
             </div>
           </div>
-        </div>
 
-        {/* Wellness snapshot + Active workouts */}
-        {(latestHealth || workouts.length > 0) && (
-          <div style={{ display: 'flex', gap: 16 }}>
-
-            {/* Wellness snapshot */}
-            {latestHealth && (
-              <div className="card" style={{ flex: 1, padding: 0, overflow: 'hidden' }}>
-                <div style={{ padding: '18px 20px 12px', borderBottom: '1px solid var(--border-subtle)' }}>
-                  <p style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.9rem', margin: 0 }}>Today's Wellness</p>
-                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>latest check-in</p>
-                </div>
-                <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {[
-                    { label: 'Energy',   value: latestHealth.energy,         color: ROLE_COLOR.Player, max: 5 },
-                    { label: 'Sleep',    value: latestHealth.sleep,           color: '#6366F1',         max: 5 },
-                    { label: 'Soreness', value: latestHealth.muscle_soreness, color: '#F97316',         max: 5 },
-                    { label: 'Stress',   value: latestHealth.stress,          color: '#EF4444',         max: 5 },
-                  ].map(m => (
-                    <div key={m.label}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                        <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{m.label}</span>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{m.value}/{m.max}</span>
-                      </div>
-                      <div style={{ height: 8, borderRadius: 99, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
-                        <div style={{ width: `${(m.value / m.max) * 100}%`, height: '100%', borderRadius: 99, backgroundColor: m.color, transition: 'width 0.6s ease' }} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
+          {/* Last Wellness Log */}
+          {latestLog && (
+            <div style={{
+              background: `linear-gradient(135deg, ${fitnessColor}10, var(--bg-surface))`,
+              border: `1px solid ${fitnessColor}25`,
+              borderRadius: 14, padding: '16px 18px',
+            }}>
+              <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-primary)', marginBottom: 10 }}>
+                Last Wellness Log
               </div>
-            )}
-
-            {/* Active workouts */}
-            {workouts.length > 0 && (
-              <div className="card" style={{ flex: 1, padding: 0, overflow: 'hidden' }}>
-                <div style={{ padding: '18px 20px 12px', borderBottom: '1px solid var(--border-subtle)' }}>
-                  <p style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.9rem', margin: 0 }}>Active Training Plans</p>
-                </div>
-                {workouts.map(w => (
-                  <div key={w.id} style={{ display: 'flex', alignItems: 'center', padding: '14px 20px', borderBottom: '1px solid var(--border-subtle)' }}>
-                    <div style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: `${ROLE_COLOR.Player}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 12, fontSize: '1.25rem' }}>
-                      🏋️
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <p style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{w.title}</p>
-                      <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>
-                        {w.duration_minutes} min · {w.difficulty}
-                      </p>
-                    </div>
-                    <span style={{ fontSize: '0.78rem', fontWeight: 700, color: ROLE_COLOR.Player }}>
-                      {w.exercises.length} exercises
-                    </span>
+              {([
+                { label: 'Fatigue',  value: latestLog.stress,          max: 5, color: '#EF4444' },
+                { label: 'Soreness', value: latestLog.muscle_soreness, max: 5, color: '#F59E0B' },
+                { label: 'Sleep',    value: latestLog.sleep,           max: 5, color: '#6366F1' },
+              ] as const).map(({ label, value, max, color }) => (
+                <div key={label} style={{ marginBottom: 8 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{label}</span>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color }}>{value}/{max}</span>
                   </div>
-                ))}
+                  <div style={{ height: 5, borderRadius: 99, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', borderRadius: 99, width: `${(value / max) * 100}%`, background: color }} />
+                  </div>
+                </div>
+              ))}
+              <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: 4 }}>
+                {new Date(latestLog.submitted_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                {' '}·{' '}
+                <button
+                  onClick={() => router.push('/dashboard/player/health')}
+                  style={{ color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 'inherit', fontWeight: 700, padding: 0 }}
+                >
+                  View health →
+                </button>
               </div>
-            )}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
