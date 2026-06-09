@@ -4,213 +4,176 @@ import { useApi, useSubmit } from '../../hooks/useApi';
 import { healthApi }         from '../../services/health.api';
 import useAuthStore          from '../../store/authStore';
 
-// ─── Colour helpers ───────────────────────────────────────────────
-const STATUS_COLOR = {
-  Low:      '#10B981',
-  Good:     '#10B981',
-  Normal:   '#10B981',
-  Medium:   '#F59E0B',
-  Moderate: '#F59E0B',
-  Needs:    '#F59E0B',
-  High:     '#EF4444',
-  Poor:     '#EF4444',
-  Critical: '#EF4444',
+// ─── CSS keyframes injected once ────────────────────────────────────────────
+const CSS = `
+  @keyframes injuryPulse {
+    0%   { box-shadow: 0 0 0 0    rgba(239,68,68,0.55); }
+    70%  { box-shadow: 0 0 0 18px rgba(239,68,68,0); }
+    100% { box-shadow: 0 0 0 0    rgba(239,68,68,0); }
+  }
+  @keyframes warnPulse {
+    0%   { box-shadow: 0 0 0 0    rgba(245,158,11,0.45); }
+    70%  { box-shadow: 0 0 0 14px rgba(245,158,11,0); }
+    100% { box-shadow: 0 0 0 0    rgba(245,158,11,0); }
+  }
+  @keyframes tabSlideIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+`;
+
+// ─── Design tokens ────────────────────────────────────────────────────────────
+const card = {
+  background: 'var(--bg-surface)',
+  border: '1px solid var(--border-subtle)',
+  borderRadius: 16,
+  overflow: 'hidden',
+  boxShadow: 'var(--shadow-sm)',
 };
+const cardHdr = {
+  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+  padding: '14px 20px',
+  background: 'linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%)',
+  borderBottom: '1px solid var(--border-subtle)',
+};
+const cardT = { fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' };
+const cardS = { fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 2 };
+
 function scoreColor(pct) {
   if (pct >= 70) return '#10B981';
   if (pct >= 40) return '#F59E0B';
   return '#EF4444';
 }
+function hexToRgb(hex) {
+  return [parseInt(hex.slice(1,3),16), parseInt(hex.slice(3,5),16), parseInt(hex.slice(5,7),16)].join(',');
+}
 
-// ─── Circular Gauge ───────────────────────────────────────────────
-function CircularGauge({ pct, color, label, status, note, size = 110 }) {
-  const r  = size * 0.38;
-  const sw = size * 0.09;
-  const C  = 2 * Math.PI * r;
-  const p  = Math.max(0, Math.min(pct, 100));
+// ─── Neon meter row ───────────────────────────────────────────────────────────
+function NeonMeter({ pct, color, label, sub }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-      <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} style={{ overflow: 'visible' }}>
-        <circle cx={size/2} cy={size/2} r={r}
-          fill="none" stroke="var(--border-default)" strokeWidth={sw} />
-        <circle cx={size/2} cy={size/2} r={r}
-          fill="none" stroke={color} strokeWidth={sw}
-          strokeDasharray={`${(p/100)*C} ${C}`}
-          strokeLinecap="round"
-          transform={`rotate(-90 ${size/2} ${size/2})`}
-          style={{ transition: 'stroke-dasharray 1.2s ease' }}
-        />
-        <text x={size/2} y={size/2 - 2} textAnchor="middle"
-          fontSize={size*0.19} fontWeight="800" fill="var(--text-primary)">
-          {p}
-        </text>
-        <text x={size/2} y={size/2 + size*0.16} textAnchor="middle"
-          fontSize={size*0.1} fill="var(--text-muted)">
-          %
-        </text>
-      </svg>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ fontWeight: 700, fontSize: '0.82rem', color: 'var(--text-primary)' }}>{label}</div>
-        {status && (
-          <span style={{
-            display: 'inline-block', marginTop: 3,
-            padding: '1px 8px', borderRadius: 99, fontSize: '0.68rem', fontWeight: 700,
-            background: `${color}18`, color,
-          }}>
-            {status}
-          </span>
-        )}
-        {note && <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: 2 }}>{note}</div>}
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:7 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:7 }}>
+          <div style={{ width:7, height:7, borderRadius:'50%', background:color, boxShadow:`0 0 6px ${color}` }} />
+          <span style={{ fontSize:'0.82rem', fontWeight:600, color:'var(--text-secondary)' }}>{label}</span>
+          <span style={{ fontSize:'0.68rem', color:'var(--text-muted)' }}>{sub}</span>
+        </div>
+        <span style={{ fontSize:'0.82rem', fontWeight:800, color, padding:'1px 9px', borderRadius:99, background:`${color}14`, border:`1px solid ${color}28` }}>{pct}%</span>
+      </div>
+      <div style={{ height:4, borderRadius:99, background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.03)', overflow:'hidden' }}>
+        <div style={{ height:'100%', borderRadius:99, width:`${pct}%`, background:`linear-gradient(90deg,${color}cc,${color})`, boxShadow:`0 0 8px ${color}55`, transition:'width 1.4s cubic-bezier(0.4,0,0.2,1)' }} />
       </div>
     </div>
   );
 }
 
-// ─── Heart Rate Sparkline ─────────────────────────────────────────
-function heartRatePath(fatigue = 3) {
-  const base = 58 + fatigue * 6;
-  return Array.from({ length: 36 }, (_, i) => {
-    const wave  = Math.sin(i * 0.55) * 12 + Math.cos(i * 1.1) * 6;
-    const spike = (i % 9 === 4) ? 22 : (i % 9 === 5) ? -8 : 0;
-    return Math.max(48, Math.min(118, Math.round(base + wave + spike)));
-  });
-}
-
-function HeartRateSparkline({ data, color = '#EF4444', width = 280, height = 56 }) {
-  if (!data || data.length < 2) return null;
-  const min = Math.min(...data);
-  const max = Math.max(...data);
-  const rng = max - min || 10;
-  const pts = data.map((v, i) => ({
-    x: (i / (data.length - 1)) * width,
-    y: 4 + ((max - v) / rng) * (height - 8),
+// ─── Sparkline trend line ─────────────────────────────────────────────────────
+function TrendLine({ values, color, label, badge }) {
+  if (!values || values.length < 2) return (
+    <div style={{ marginBottom:16 }}>
+      <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+          <div style={{ width:5, height:5, borderRadius:'50%', background:color }} />
+          <span style={{ fontSize:'0.78rem', fontWeight:600, color:'var(--text-secondary)' }}>{label}</span>
+        </div>
+        <span style={{ fontSize:'0.72rem', fontWeight:700, color }}>—</span>
+      </div>
+      <div style={{ height:28, background:'var(--bg-elevated)', borderRadius:6 }} />
+    </div>
+  );
+  const W=400, H=32;
+  const pts = values.map((v,i) => ({
+    x: (i/(values.length-1))*W,
+    y: 4 + ((5-v)/4)*(H-8),
   }));
-  const linePath  = pts.map((p, i) => `${i ? 'L' : 'M'}${p.x},${p.y}`).join(' ');
-  const fillPath  = `${linePath} L${width},${height} L0,${height} Z`;
-  const uid = `hrg-${Math.floor(Math.random()*9999)}`;
+  const line = pts.map((p,i) => `${i?'L':'M'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+  const fill = `${line} L${W},${H} L0,${H} Z`;
+  const uid  = `tl-${label.replace(/\W/g,'')}`;
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} width="100%" height={height} preserveAspectRatio="none">
-      <defs>
-        <linearGradient id={uid} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.22"/>
-          <stop offset="100%" stopColor={color} stopOpacity="0"/>
-        </linearGradient>
-      </defs>
-      <path d={fillPath} fill={`url(#${uid})`}/>
-      <path d={linePath} fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
+    <div style={{ marginBottom:16 }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:5 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+          <div style={{ width:6, height:6, borderRadius:'50%', background:color, boxShadow:`0 0 5px ${color}` }} />
+          <span style={{ fontSize:'0.78rem', fontWeight:600, color:'var(--text-secondary)' }}>{label}</span>
+        </div>
+        <span style={{ fontSize:'0.75rem', fontWeight:800, color, padding:'1px 8px', borderRadius:99, background:`${color}14` }}>{badge}</span>
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} preserveAspectRatio="none" style={{ display:'block' }}>
+        <defs>
+          <linearGradient id={uid} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.22"/>
+            <stop offset="100%" stopColor={color} stopOpacity="0"/>
+          </linearGradient>
+        </defs>
+        <path d={fill} fill={`url(#${uid})`}/>
+        <path d={line} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        {pts.map((p,i) => (
+          <circle key={i} cx={p.x} cy={p.y} r={i===pts.length-1 ? 4 : 2.5} fill={color} opacity={i===pts.length-1 ? 1 : 0.7}
+            style={i===pts.length-1 ? { filter:`drop-shadow(0 0 3px ${color})` } : {}}/>
+        ))}
+      </svg>
+    </div>
   );
 }
 
-// ─── Sleep Bar Chart ──────────────────────────────────────────────
-const SLEEP_LABELS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-function SleepBars({ highlight = 4 }) {
-  const sleepHrs = [6.4, 7.1, 6.9, 7.4, 7.6, 7.2, 7.8, 7.3, 6.8, 7.0, 7.5, 7.2];
-  const maxH = 8.5;
-  const barW = 18, gap = 8, barArea = 200;
+// ─── Injury risk widget ───────────────────────────────────────────────────────
+function InjuryRiskWidget({ risk }) {
+  const color = risk==='High' ? '#EF4444' : risk==='Medium' ? '#F59E0B' : risk==='Low' ? '#10B981' : '#94A3B8';
+  const icon  = risk==='High' ? '⚠️' : risk==='Medium' ? '⚡' : risk==='Low' ? '🛡️' : '❓';
+  const pulse = risk==='High' ? 'injuryPulse 2s infinite' : risk==='Medium' ? 'warnPulse 2.5s infinite' : 'none';
   return (
-    <svg viewBox={`0 0 ${barArea} 80`} width="100%" height={80} preserveAspectRatio="none">
-      {sleepHrs.map((h, i) => {
-        const barH  = (h / maxH) * 60;
-        const x     = i * (barW + gap);
-        const active = i === highlight;
-        return (
-          <g key={i}>
-            <rect x={x} y={80 - barH - 16} width={barW} height={barH}
-              rx={4} fill={active ? '#6366F1' : 'var(--border-default)'}
-            />
-            {active && (
-              <text x={x + barW/2} y={80 - barH - 20} textAnchor="middle"
-                fontSize="9" fontWeight="700" fill="#6366F1">
-                {h}h
-              </text>
-            )}
-            <text x={x + barW/2} y={76} textAnchor="middle"
-              fontSize="7.5" fill="var(--text-muted)">
-              {SLEEP_LABELS[i].slice(0,1)}
-            </text>
-          </g>
-        );
-      })}
-    </svg>
+    <div style={{ ...card, padding:'18px 14px', textAlign:'center', flex:1 }}>
+      <div style={{ width:64, height:64, borderRadius:'50%', margin:'0 auto 10px', background:`radial-gradient(circle,${color}18,transparent 72%)`, border:`2px solid ${color}35`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1.5rem', animation:pulse }}>
+        {icon}
+      </div>
+      <div style={{ fontWeight:700, fontSize:'0.82rem', color:'var(--text-primary)', marginBottom:5 }}>Injury Risk</div>
+      <span style={{ display:'inline-block', padding:'3px 12px', borderRadius:99, fontSize:'0.72rem', fontWeight:800, background:`${color}16`, color, border:`1px solid ${color}32` }}>
+        {risk==='Unknown' ? 'No Data' : risk}
+      </span>
+      <div style={{ fontSize:'0.6rem', color:'var(--text-muted)', marginTop:5, textTransform:'uppercase', letterSpacing:'0.08em' }}>AI Prediction</div>
+    </div>
   );
 }
 
-// ─── Mini Calendar ────────────────────────────────────────────────
-function MiniCalendar({ logs = [] }) {
-  const now       = new Date();
-  const year      = now.getFullYear();
-  const month     = now.getMonth();
-  const firstDay  = new Date(year, month, 1).getDay();
-  const daysCount = new Date(year, month + 1, 0).getDate();
-  const today     = now.getDate();
-  const DAYS      = ['Su','Mo','Tu','We','Th','Fr','Sa'];
-  const MONTHS    = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+// ─── Glassmorphism AI rec card ────────────────────────────────────────────────
+function AICard({ type, color, icon, text }) {
+  return (
+    <div style={{ display:'flex', alignItems:'flex-start', gap:11, padding:'12px 14px', borderRadius:12, background:`rgba(${hexToRgb(color)},0.06)`, backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)', border:`1px solid rgba(${hexToRgb(color)},0.2)` }}>
+      <div style={{ width:32, height:32, borderRadius:8, flexShrink:0, background:`${color}16`, border:`1px solid ${color}28`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.9rem' }}>{icon}</div>
+      <div style={{ flex:1, paddingTop:2 }}>
+        <span style={{ display:'inline-block', marginBottom:4, padding:'1px 7px', borderRadius:99, fontSize:'0.58rem', fontWeight:800, background:`${color}18`, color, textTransform:'uppercase', letterSpacing:'0.1em' }}>{type}</span>
+        <div style={{ fontSize:'0.78rem', color:'var(--text-secondary)', lineHeight:1.55 }}>{text}</div>
+      </div>
+    </div>
+  );
+}
 
-  const loggedDays = new Set(logs.map(l => {
-    const d = new Date(l.logged_at);
-    return d.getMonth() === month && d.getFullYear() === year ? d.getDate() : null;
-  }).filter(Boolean));
-
-  const cells = Array.from({ length: firstDay }, () => null)
-    .concat(Array.from({ length: daysCount }, (_, i) => i + 1));
-
+// ─── Mini calendar ────────────────────────────────────────────────────────────
+function MiniCal({ logs }) {
+  const now=new Date(), y=now.getFullYear(), mo=now.getMonth();
+  const firstDay=new Date(y,mo,1).getDay(), daysCount=new Date(y,mo+1,0).getDate(), today=now.getDate();
+  const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const DAYS=['Su','Mo','Tu','We','Th','Fr','Sa'];
+  const logged=new Set((logs||[]).map(l=>{const d=new Date(l.logged_at); return d.getMonth()===mo&&d.getFullYear()===y ? d.getDate() : null;}).filter(Boolean));
+  const cells=[...Array(firstDay).fill(null),...Array.from({length:daysCount},(_,i)=>i+1)];
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-        <span style={{ fontWeight: 700, fontSize: '0.82rem', color: 'var(--text-primary)' }}>
-          {MONTHS[month]} {year}
-        </span>
-        <div style={{ display: 'flex', gap: 4 }}>
-          {['←','→'].map(c => (
-            <button key={c} style={{
-              width: 22, height: 22, borderRadius: 6, display: 'flex', alignItems: 'center',
-              justifyContent: 'center', border: '1px solid var(--border-default)',
-              background: 'var(--bg-elevated)', cursor: 'pointer', fontSize: '0.7rem',
-              color: 'var(--text-secondary)',
-            }}>{c}</button>
-          ))}
-        </div>
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3 }}>
-        {DAYS.map(d => (
-          <div key={d} style={{ textAlign: 'center', fontSize: '0.6rem', fontWeight: 700,
-            color: 'var(--text-muted)', paddingBottom: 4 }}>
-            {d}
-          </div>
-        ))}
-        {cells.map((day, i) => {
-          if (!day) return <div key={`e${i}`} />;
-          const isToday   = day === today;
-          const hasLog    = loggedDays.has(day);
-          const isPast    = day < today;
+      <div style={{ fontWeight:700, fontSize:'0.8rem', color:'var(--text-primary)', marginBottom:8 }}>{MONTHS[mo]} {y}</div>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:2 }}>
+        {DAYS.map(d=><div key={d} style={{ textAlign:'center', fontSize:'0.6rem', fontWeight:700, color:'var(--text-muted)', paddingBottom:3 }}>{d}</div>)}
+        {cells.map((day,i)=>{
+          if(!day) return <div key={`e${i}`}/>;
+          const isToday=day===today, hasLog=logged.has(day);
           return (
-            <div key={day} style={{
-              textAlign: 'center', fontSize: '0.72rem', fontWeight: isToday ? 800 : 500,
-              padding: '3px 0', borderRadius: 6, position: 'relative',
-              background: isToday ? '#6366F1' : 'transparent',
-              color: isToday ? 'white' : isPast ? 'var(--text-secondary)' : 'var(--text-muted)',
-            }}>
-              {day}
-              {hasLog && !isToday && (
-                <div style={{
-                  width: 4, height: 4, borderRadius: '50%', background: '#10B981',
-                  position: 'absolute', bottom: 1, left: '50%', transform: 'translateX(-50%)',
-                }}/>
-              )}
-            </div>
+            <div key={day} style={{ textAlign:'center', fontSize:'0.7rem', fontWeight:isToday?800:500, padding:'3px 0', borderRadius:5, background:isToday?'#6366F1':hasLog?'rgba(16,185,129,0.12)':'transparent', color:isToday?'white':day<today?'var(--text-secondary)':'var(--text-muted)', border:hasLog&&!isToday?'1px solid rgba(16,185,129,0.22)':'1px solid transparent' }}>{day}</div>
           );
         })}
       </div>
-      <div style={{ display: 'flex', gap: 12, marginTop: 10 }}>
-        {[
-          { color: '#10B981', label: 'Logged' },
-          { color: '#6366F1', label: 'Today' },
-          { color: '#F59E0B', label: 'Rest Day' },
-        ].map(({ color, label }) => (
-          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: color }}/>
-            <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{label}</span>
+      <div style={{ display:'flex', gap:10, marginTop:8 }}>
+        {[{c:'#10B981',l:'Logged'},{c:'#6366F1',l:'Today'}].map(({c,l})=>(
+          <div key={l} style={{ display:'flex', alignItems:'center', gap:4 }}>
+            <div style={{ width:5, height:5, borderRadius:'50%', background:c }}/>
+            <span style={{ fontSize:'0.6rem', color:'var(--text-muted)' }}>{l}</span>
           </div>
         ))}
       </div>
@@ -218,123 +181,63 @@ function MiniCalendar({ logs = [] }) {
   );
 }
 
-// ─── Health Log Modal ─────────────────────────────────────────────
+// ─── Log modal ────────────────────────────────────────────────────────────────
 function LogModal({ onClose, onSuccess }) {
-  const [form, setForm] = useState({ fatigue: 3, soreness: 3, sleep_quality: 3, notes: '' });
+  const [form, setForm] = useState({ fatigue:3, soreness:3, sleep_quality:3, notes:'' });
   const { submit, loading, error, reset } = useSubmit(() => healthApi.submitLog(form));
-
+  const SCALE = {
+    fatigue:       ['Energised','Good','Average','Tired','Exhausted'],
+    soreness:      ['None','Slight','Moderate','Sore','Very Sore'],
+    sleep_quality: ['Excellent','Good','Fair','Poor','Terrible'],
+  };
   async function handleSubmit(e) {
     e.preventDefault();
     const res = await submit();
     if (res.ok) { onSuccess?.(); onClose(); }
   }
-
-  const SCALE_LABELS = {
-    fatigue:       ['Perfect', 'Good', 'Average', 'Tired', 'Exhausted'],
-    soreness:      ['None', 'Slight', 'Moderate', 'Sore', 'Very Sore'],
-    sleep_quality: ['Excellent', 'Good', 'Fair', 'Poor', 'Terrible'],
-  };
-
   return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 300,
-      background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
-    }}
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div style={{
-        width: '100%', maxWidth: 460,
-        background: 'var(--bg-surface)',
-        border: '1px solid var(--border-default)',
-        borderRadius: 16, overflow: 'hidden',
-        boxShadow: 'var(--shadow-xl)',
-        animation: 'fadeIn 0.2s ease',
-      }}>
-        <div style={{
-          padding: '18px 24px', borderBottom: '1px solid var(--border-subtle)',
-          background: 'linear-gradient(135deg, rgba(16,185,129,0.08), var(--bg-elevated))',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        }}>
+    <div style={{ position:'fixed', inset:0, zIndex:300, background:'rgba(0,0,0,0.6)', backdropFilter:'blur(6px)', display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}
+      onClick={e=>{ if(e.target===e.currentTarget) onClose(); }}>
+      <div style={{ width:'100%', maxWidth:480, background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:18, overflow:'hidden', boxShadow:'0 24px 60px rgba(0,0,0,0.4)', animation:'tabSlideIn 0.25s ease' }}>
+        <div style={{ padding:'18px 24px', borderBottom:'1px solid var(--border-subtle)', background:'linear-gradient(135deg,rgba(99,102,241,0.1),var(--bg-elevated))', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
           <div>
-            <div style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--text-primary)' }}>
-              Log Today's Wellness
-            </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>
-              {new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
-            </div>
+            <div style={{ fontWeight:800, fontSize:'1.05rem', color:'var(--text-primary)' }}>Log Wellness Check-in</div>
+            <div style={{ fontSize:'0.75rem', color:'var(--text-muted)', marginTop:2 }}>{new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</div>
           </div>
-          <button onClick={onClose} style={{
-            background: 'var(--bg-elevated)', border: '1px solid var(--border-default)',
-            borderRadius: 8, width: 30, height: 30, cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: 'var(--text-muted)', fontSize: '1rem',
-          }}>×</button>
+          <button onClick={onClose} style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:8, width:32, height:32, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--text-muted)', fontSize:'1.1rem', fontWeight:700 }}>×</button>
         </div>
-
-        <form onSubmit={handleSubmit} style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 20 }}>
-          {Object.entries({
-            fatigue:       { label: 'Energy Level', desc: '1 = Energised, 5 = Exhausted' },
-            soreness:      { label: 'Muscle Soreness', desc: '1 = None, 5 = Very Sore' },
-            sleep_quality: { label: 'Sleep Quality', desc: '1 = Excellent, 5 = Terrible' },
-          }).map(([key, { label, desc }]) => (
+        <form onSubmit={handleSubmit} style={{ padding:24, display:'flex', flexDirection:'column', gap:18 }}>
+          {[
+            { key:'fatigue',       label:'Energy Level',   desc:'1 = Energised · 5 = Exhausted', icon:'⚡' },
+            { key:'soreness',      label:'Muscle Soreness',desc:'1 = None · 5 = Very Sore',       icon:'💪' },
+            { key:'sleep_quality', label:'Sleep Quality',  desc:'1 = Excellent · 5 = Terrible',   icon:'😴' },
+          ].map(({ key, label, desc, icon }) => (
             <div key={key}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-primary)' }}>{label}</div>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{desc}</div>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
+                <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                  <span>{icon}</span>
+                  <div>
+                    <div style={{ fontWeight:700, fontSize:'0.85rem', color:'var(--text-primary)' }}>{label}</div>
+                    <div style={{ fontSize:'0.68rem', color:'var(--text-muted)' }}>{desc}</div>
+                  </div>
                 </div>
-                <span style={{
-                  padding: '3px 10px', borderRadius: 99, fontSize: '0.75rem', fontWeight: 700,
-                  background: 'var(--accent-subtle)', color: 'var(--accent)',
-                }}>
-                  {SCALE_LABELS[key][form[key] - 1]}
-                </span>
+                <span style={{ padding:'3px 10px', borderRadius:99, fontSize:'0.72rem', fontWeight:800, background:'rgba(99,102,241,0.1)', color:'#6366F1' }}>{SCALE[key][form[key]-1]}</span>
               </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                {[1,2,3,4,5].map(v => (
-                  <button
-                    key={v} type="button"
-                    onClick={() => setForm(p => ({ ...p, [key]: v }))}
-                    style={{
-                      flex: 1, height: 38, borderRadius: 8, cursor: 'pointer',
-                      border: `2px solid ${form[key] === v ? 'var(--accent)' : 'var(--border-default)'}`,
-                      background: form[key] === v ? 'var(--accent-subtle)' : 'var(--bg-elevated)',
-                      color: form[key] === v ? 'var(--accent)' : 'var(--text-secondary)',
-                      fontWeight: 700, fontSize: '0.9rem', transition: 'all 0.12s',
-                    }}
-                  >
-                    {v}
-                  </button>
+              <div style={{ display:'flex', gap:6 }}>
+                {[1,2,3,4,5].map(v=>(
+                  <button key={v} type="button" onClick={()=>{ setForm(p=>({...p,[key]:v})); reset(); }}
+                    style={{ flex:1, height:36, borderRadius:8, cursor:'pointer', border:`2px solid ${form[key]===v?'#6366F1':'var(--border-default)'}`, background:form[key]===v?'rgba(99,102,241,0.12)':'var(--bg-elevated)', color:form[key]===v?'#6366F1':'var(--text-secondary)', fontWeight:700, fontSize:'0.9rem', transition:'all 0.12s' }}
+                  >{v}</button>
                 ))}
               </div>
             </div>
           ))}
-
-          <div className="field">
-            <label className="field-label">Notes (optional)</label>
-            <textarea
-              className="field-input"
-              rows={2}
-              placeholder="Any injuries, comments, how you're feeling..."
-              value={form.notes}
-              onChange={e => { setForm(p => ({ ...p, notes: e.target.value })); reset(); }}
-              style={{ resize: 'vertical' }}
-            />
+          <div>
+            <textarea placeholder="Notes (optional)" value={form.notes} onChange={e=>{setForm(p=>({...p,notes:e.target.value})); reset();}}
+              style={{ width:'100%', padding:'10px 14px', borderRadius:10, border:'1px solid var(--border-default)', background:'var(--bg-elevated)', color:'var(--text-primary)', fontSize:'0.85rem', resize:'vertical', minHeight:56, outline:'none', boxSizing:'border-box' }}/>
           </div>
-
-          {error && (
-            <div className="alert alert-error" style={{ padding: '10px 14px' }}>
-              <span style={{ fontSize: '0.85rem' }}>{error}</span>
-            </div>
-          )}
-
-          <button
-            type="submit"
-            className={`btn btn-primary${loading ? ' btn-loading' : ''}`}
-            disabled={loading}
-            style={{ width: '100%' }}
-          >
+          {error && <div style={{ padding:'10px 14px', borderRadius:8, background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.22)', color:'#EF4444', fontSize:'0.82rem' }}>{error}</div>}
+          <button type="submit" disabled={loading} className={`btn btn-primary${loading?' btn-loading':''}`} style={{ background:'linear-gradient(135deg,#6366F1,#4F46E5)', boxShadow:'0 4px 16px rgba(99,102,241,0.35)' }}>
             {!loading && 'Submit Wellness Log'}
           </button>
         </form>
@@ -343,165 +246,32 @@ function LogModal({ onClose, onSuccess }) {
   );
 }
 
-// ─── AI Recommendations ───────────────────────────────────────────
-function buildRecommendations(log) {
-  if (!log) return [
-    { type: 'info', color: '#3B82F6', icon: '💡', text: 'Log today\'s wellness to get personalised recommendations.' },
-  ];
+// ─── AI recommendations builder ───────────────────────────────────────────────
+function buildRecs(log) {
+  if (!log) return [{ type:'Info', color:'#3B82F6', icon:'💡', text:"Log today's wellness to receive personalised AI health insights." }];
   const recs = [];
-  if (log.fatigue >= 4)
-    recs.push({ type: 'warning', color: '#F59E0B', icon: '⚡', text: `High fatigue detected. Reduce sprint drills by 20% this week.` });
-  if (log.soreness >= 4)
-    recs.push({ type: 'danger', color: '#EF4444', icon: '🦵', text: 'Elevated soreness flagged — risk of muscle strain if pace continues.' });
-  else if (log.soreness === 3)
-    recs.push({ type: 'warning', color: '#F59E0B', icon: '🔄', text: `Schedule ${log.soreness >= 4 ? '2 rest days' : 'a recovery session'} to avoid fatigue spike.` });
-  if (log.sleep_quality >= 4)
-    recs.push({ type: 'danger', color: '#EF4444', icon: '😴', text: 'Poor sleep quality. Prioritise 8h rest and hydration tonight.' });
-  if (recs.length === 0) {
-    recs.push(
-      { type: 'success', color: '#10B981', icon: '✅', text: 'Great recovery scores! Maintain current training intensity.' },
-      { type: 'info',    color: '#3B82F6', icon: '💧', text: 'Hydration on track. Keep up with pre-training fluid intake.' },
-    );
-  }
+  if (log.soreness >= 4)      recs.push({ type:'Alert',   color:'#EF4444', icon:'🦵', text:'Elevated soreness flagged — risk of muscle strain if pace continues.' });
+  else if (log.soreness === 3) recs.push({ type:'Warning', color:'#F59E0B', icon:'🔄', text:'Moderate soreness detected. Schedule a recovery session to prevent fatigue spike.' });
+  if (log.sleep_quality >= 4)  recs.push({ type:'Alert',   color:'#EF4444', icon:'😴', text:'Poor sleep quality. Prioritise 8h rest and hydration tonight.' });
+  else if (log.sleep_quality === 3) recs.push({ type:'Warning', color:'#F59E0B', icon:'🌙', text:'Below-average sleep. Aim for 7–9 hours to optimise athletic recovery.' });
+  if (log.fatigue >= 4)        recs.push({ type:'Warning', color:'#F59E0B', icon:'⚡', text:`High fatigue detected. Reduce sprint drills by 20% this week.` });
+  if (!recs.length) recs.push(
+    { type:'Good', color:'#10B981', icon:'✅', text:'Great recovery scores! Maintain current training intensity.' },
+    { type:'Info', color:'#3B82F6', icon:'💧', text:'Hydration on track. Keep up with pre-training fluid intake.' },
+  );
   return recs;
 }
 
-// ─── Player Fitness Profile Card (Rohit Sharma style) ────────────
-function PlayerFitnessCard({ user, latestLog, logs, fitnessLabel, fitnessColor, recs, onLog, todayLogged }) {
-  const initials  = `${user?.first_name?.[0] ?? ''}${user?.last_name?.[0] ?? ''}`.toUpperCase();
-  const scoreNum  = latestLog
-    ? Math.round(((5-latestLog.fatigue) + (5-latestLog.soreness) + latestLog.sleep_quality) / 3 / 5 * 100)
-    : null;
-  const avail     = scoreNum ?? 80;
-  const lastDate  = latestLog
-    ? new Date(latestLog.logged_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
-    : 'Not logged';
-  const insight   = recs.find(r => r.type !== 'success') || recs[0];
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN PAGE
+// ─────────────────────────────────────────────────────────────────────────────
 
-  return (
-    <div style={{
-      background: 'var(--bg-surface)',
-      border: '1px solid var(--border-subtle)',
-      borderRadius: 18, overflow: 'hidden',
-      boxShadow: 'var(--shadow-md)', marginBottom: 20,
-      display: 'flex', alignItems: 'stretch',
-    }}>
-      {/* Left: Avatar column */}
-      <div style={{
-        width: 170, flexShrink: 0,
-        background: 'linear-gradient(160deg, #6366F115 0%, #4F46E510 100%)',
-        display: 'flex', flexDirection: 'column', alignItems: 'center',
-        justifyContent: 'center', padding: '28px 16px',
-        borderRight: '1px solid var(--border-subtle)',
-        gap: 14,
-      }}>
-        <div style={{
-          width: 112, height: 112, borderRadius: '50%',
-          background: 'linear-gradient(135deg, #6366F1, #4F46E5)',
-          border: '4px solid var(--bg-surface)',
-          boxShadow: '0 8px 28px rgba(99,102,241,0.35)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '2rem', fontWeight: 900, color: 'white',
-          overflow: 'hidden',
-        }}>
-          {user?.avatar_url
-            ? <img src={user.avatar_url} alt="Player" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            : initials
-          }
-        </div>
-        {/* Wellness streak */}
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#6366F1' }}>{logs?.length ?? 0}</div>
-          <div style={{ fontSize: '0.62rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Entries</div>
-        </div>
-      </div>
-
-      {/* Right: Info */}
-      <div style={{ flex: 1, padding: '22px 28px', position: 'relative' }}>
-
-        {/* Fitness badge — top right */}
-        <div style={{ position: 'absolute', top: 20, right: 20 }}>
-          <span style={{
-            padding: '5px 16px', borderRadius: 99, fontSize: '0.78rem', fontWeight: 800,
-            background: `${fitnessColor}18`, border: `1.5px solid ${fitnessColor}40`,
-            color: fitnessColor, letterSpacing: '0.04em',
-          }}>
-            {fitnessLabel}
-          </span>
-        </div>
-
-        {/* Academy tag */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-          <span style={{ fontSize: '1.1rem' }}>🏟️</span>
-          <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.02em' }}>
-            Sports Academy
-          </span>
-        </div>
-
-        {/* Name */}
-        <h2 style={{ fontWeight: 900, fontSize: '1.55rem', color: 'var(--text-primary)', margin: '0 0 3px' }}>
-          {user?.first_name} {user?.last_name}
-        </h2>
-        <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: 18 }}>
-          Player · Field Player
-        </div>
-
-        {/* Stats row */}
-        <div style={{ display: 'flex', gap: 32, marginBottom: 16, flexWrap: 'wrap' }}>
-          <div>
-            <div style={{ fontSize: '0.62rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 3 }}>
-              Last Wellness Log
-            </div>
-            <div style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-              {lastDate}
-              {latestLog && (
-                <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: '0.82rem' }}>
-                  {' '}| Score: {scoreNum}%
-                </span>
-              )}
-            </div>
-          </div>
-          <div>
-            <div style={{ fontSize: '0.62rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 3 }}>
-              Next Match Availability
-            </div>
-            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-              {avail}%
-            </div>
-          </div>
-        </div>
-
-        {/* AI insight box */}
-        <div style={{
-          background: 'linear-gradient(135deg, rgba(99,102,241,0.07), rgba(139,92,246,0.05))',
-          border: '1px solid rgba(99,102,241,0.18)',
-          borderRadius: 12, padding: '11px 16px',
-          display: 'flex', alignItems: 'flex-start', gap: 10,
-          maxWidth: 540,
-        }}>
-          <span style={{ fontSize: '1rem', flexShrink: 0, marginTop: 1 }}>✨</span>
-          <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-            {insight
-              ? insight.text
-              : `Player has logged ${logs?.length ?? 0} wellness entr${(logs?.length ?? 0) === 1 ? 'y' : 'ies'} this season. Keep maintaining the routine for best results.`
-            }
-          </span>
-        </div>
-
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────
-// MAIN HEALTH PAGE
-// ─────────────────────────────────────────────────────────────────
-const HEALTH_TABS = ['Overview', 'Fitness & Health', 'Training', 'Performance'];
+const TABS = ['Overview', 'Biometrics & Vitals', 'AI Medical Insights', 'Logs History'];
 
 export default function PlayerHealthPage() {
   const user = useAuthStore(s => s.user);
-  const [tab,      setTab]      = useState('Fitness & Health');
-  const [showLog,  setShowLog]  = useState(false);
+  const [tab,     setTab]     = useState('Overview');
+  const [showLog, setShowLog] = useState(false);
 
   const { data: logs, loading, refetch } = useApi(
     () => healthApi.getLogs({ days: 60 }),
@@ -509,1124 +279,507 @@ export default function PlayerHealthPage() {
   );
 
   const latestLog = logs?.[0] ?? null;
-  const initials  = `${user?.first_name?.[0] ?? ''}${user?.last_name?.[0] ?? ''}`.toUpperCase();
 
-  // Derive health metrics from latest log
-  const metrics = useMemo(() => {
-    if (!latestLog) return { fatigue: 0, stress: 0, sleep: 0, hydration: 73, injuryRisk: 'Unknown' };
-    const fatigue  = Math.round((latestLog.fatigue / 5) * 100);
-    const stress   = Math.round((latestLog.soreness / 5) * 100);
-    const sleep    = Math.round(((6 - latestLog.sleep_quality) / 5) * 100); // invert: 1=excellent
-    const hydration = 73; // demo — could be added to health log form
-    const injuryRisk = latestLog.is_flagged ? 'High' : latestLog.soreness >= 4 ? 'High' : latestLog.soreness === 3 ? 'Medium' : 'Low';
-    return { fatigue, stress, sleep, hydration, injuryRisk };
+  const m = useMemo(() => {
+    if (!latestLog) return { energy:0, recovery:0, sleep:0, overall:0, risk:'Unknown' };
+    const energy   = Math.round(((5 - latestLog.fatigue)       / 4) * 100);
+    const recovery = Math.round(((5 - latestLog.soreness)      / 4) * 100);
+    const sleep    = Math.round(((5 - latestLog.sleep_quality) / 4) * 100);
+    const overall  = Math.round((energy + recovery + sleep) / 3);
+    const risk     = latestLog.is_flagged || latestLog.soreness >= 4 || latestLog.fatigue >= 4 ? 'High'
+                   : latestLog.soreness === 3 || latestLog.fatigue === 3 ? 'Medium'
+                   : 'Low';
+    return { energy, recovery, sleep, overall, risk };
   }, [latestLog]);
 
-  const hrData  = useMemo(() => heartRatePath(latestLog?.fatigue ?? 3), [latestLog]);
-  const hrBpm   = hrData[hrData.length - 1];
-  const recs    = useMemo(() => buildRecommendations(latestLog), [latestLog]);
+  const recs  = useMemo(() => buildRecs(latestLog), [latestLog]);
+  const trend = useMemo(() => [...(logs||[])].reverse().slice(-5), [logs]);
 
   const todayLogged = latestLog
     ? new Date(latestLog.logged_at).toDateString() === new Date().toDateString()
     : false;
 
-  // Fitness status label
-  const avgScore = latestLog
-    ? Math.round(((5 - latestLog.fatigue) + (5 - latestLog.soreness) + latestLog.sleep_quality) / 3 / 5 * 100)
-    : null;
-  const fitnessLabel = avgScore === null ? 'No Data' : avgScore >= 70 ? 'Fully Fit' : avgScore >= 45 ? 'Moderate' : 'Needs Rest';
-  const fitnessColor = avgScore === null ? '#94A3B8' : avgScore >= 70 ? '#10B981' : avgScore >= 45 ? '#F59E0B' : '#EF4444';
+  const initials = `${user?.first_name?.[0]??''}${user?.last_name?.[0]??''}`.toUpperCase();
 
-  const currentMonth = new Date().getMonth();
+  const avgScore = (logs||[]).length
+    ? Math.round((logs||[]).reduce((a,l) => a + Math.round(((5-l.fatigue)+(5-l.soreness)+(5-l.sleep_quality))/3/4*100), 0) / (logs||[]).length)
+    : 0;
 
   return (
-    <div style={{ animation: 'fadeIn 0.3s ease' }}>
-      {showLog && (
-        <LogModal onClose={() => setShowLog(false)} onSuccess={refetch} />
-      )}
+    <div style={{ animation:'fadeIn 0.3s ease' }}>
+      <style dangerouslySetInnerHTML={{ __html: CSS }}/>
+      {showLog && <LogModal onClose={() => setShowLog(false)} onSuccess={refetch}/>}
 
-      {/* ── Player Profile Banner ──────────────────────────────── */}
-      <div style={{
-        background: 'linear-gradient(135deg, #0D1B3E 0%, #1a2d5a 60%, #0D1B3E 100%)',
-        borderRadius: 16, padding: '24px 28px',
-        display: 'flex', alignItems: 'center', gap: 20,
-        marginBottom: 24, position: 'relative', overflow: 'hidden',
-      }}>
-        {/* Background decoration */}
-        <div style={{
-          position: 'absolute', right: -40, top: -40, width: 200, height: 200,
-          borderRadius: '50%', background: 'rgba(99,102,241,0.08)',
-        }}/>
-        <div style={{
-          position: 'absolute', right: 80, bottom: -60, width: 160, height: 160,
-          borderRadius: '50%', background: 'rgba(99,102,241,0.05)',
-        }}/>
-
-        {/* Avatar */}
-        <div style={{
-          width: 72, height: 72, borderRadius: '50%', flexShrink: 0,
-          background: 'linear-gradient(135deg, #6366F1, #4F46E5)',
-          border: '3px solid rgba(99,102,241,0.5)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 8px 24px rgba(99,102,241,0.35)',
-          fontSize: '1.5rem', fontWeight: 900, color: 'white',
-          overflow: 'hidden',
-        }}>
-          {user?.avatar_url ? (
-            <img src={user.avatar_url} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          ) : initials}
+      {/* ── Header ─────────────────────────────────────────────── */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:22 }}>
+        <div>
+          <h1 style={{ fontWeight:900, fontSize:'1.4rem', color:'var(--text-primary)', margin:0 }}>Health & Wellness</h1>
+          <div style={{ fontSize:'0.78rem', color:'var(--text-muted)', marginTop:3 }}>Medical-grade athlete tracking hub</div>
         </div>
-
-        {/* Info */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-            <h2 style={{ fontWeight: 900, fontSize: '1.4rem', color: 'white', margin: 0 }}>
-              {user?.first_name} {user?.last_name}
-            </h2>
-            <span style={{
-              padding: '3px 10px', borderRadius: 99, fontSize: '0.7rem', fontWeight: 800,
-              background: `${fitnessColor}25`, border: `1px solid ${fitnessColor}50`,
-              color: fitnessColor, letterSpacing: '0.06em',
-            }}>
-              {fitnessLabel}
-            </span>
-          </div>
-          <div style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.55)' }}>
-            Player · Sports Academy
-          </div>
-          <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>
-            {[
-              { label: 'Last Wellness Log', value: latestLog ? new Date(latestLog.logged_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : 'Not logged' },
-              { label: 'Health Entries', value: `${logs?.length ?? 0} entries` },
-            ].map(({ label, value }) => (
-              <div key={label}>
-                <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{label}</div>
-                <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'white', marginTop: 1 }}>{value}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Log button */}
-        <button
-          onClick={() => setShowLog(true)}
-          style={{
-            padding: '10px 20px', borderRadius: 10, flexShrink: 0,
-            background: todayLogged ? 'rgba(16,185,129,0.2)' : '#6366F1',
-            border: `1px solid ${todayLogged ? 'rgba(16,185,129,0.4)' : '#4F46E5'}`,
-            color: todayLogged ? '#10B981' : 'white',
-            fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer',
-          }}
-        >
+        <button onClick={() => setShowLog(true)} style={{ padding:'10px 20px', borderRadius:10, cursor:'pointer', fontWeight:700, fontSize:'0.85rem', background: todayLogged ? 'rgba(16,185,129,0.1)' : 'linear-gradient(135deg,#6366F1,#4F46E5)', color: todayLogged ? '#10B981' : 'white', border:`1px solid ${todayLogged ? 'rgba(16,185,129,0.28)' : 'transparent'}`, boxShadow: todayLogged ? 'none' : '0 4px 16px rgba(99,102,241,0.3)' }}>
           {todayLogged ? '✓ Logged Today' : '+ Log Wellness'}
         </button>
       </div>
 
-      {/* ── Tab Navigation ─────────────────────────────────────── */}
-      <div style={{
-        display: 'flex', gap: 0,
-        borderBottom: '2px solid var(--border-subtle)',
-        marginBottom: 24, overflowX: 'auto',
-      }}>
-        {HEALTH_TABS.map(t => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            style={{
-              padding: '10px 20px', background: 'none', border: 'none',
-              cursor: 'pointer', fontWeight: tab === t ? 700 : 500,
-              fontSize: '0.875rem', whiteSpace: 'nowrap',
-              color: tab === t ? 'var(--accent)' : 'var(--text-muted)',
-              borderBottom: `2px solid ${tab === t ? 'var(--accent)' : 'transparent'}`,
-              marginBottom: -2, transition: 'all 0.15s',
-            }}
-            onMouseEnter={e => { if (tab !== t) e.currentTarget.style.color = 'var(--text-secondary)'; }}
-            onMouseLeave={e => { if (tab !== t) e.currentTarget.style.color = 'var(--text-muted)'; }}
-          >
-            {t}
-          </button>
+      {/* ── Tab bar ────────────────────────────────────────────── */}
+      <div style={{ display:'flex', borderBottom:'1px solid var(--border-subtle)', marginBottom:24, overflowX:'auto' }}>
+        {TABS.map(t => (
+          <button key={t} onClick={() => setTab(t)} style={{ padding:'10px 20px', background:'none', border:'none', cursor:'pointer', fontWeight: t===tab ? 700 : 500, fontSize:'0.875rem', whiteSpace:'nowrap', color: t===tab ? '#7C3AED' : 'var(--text-muted)', borderBottom:`2px solid ${t===tab ? '#7C3AED' : 'transparent'}`, marginBottom:-1, transition:'all 0.15s' }}>{t}</button>
         ))}
       </div>
 
-      {/* ── Overview Tab ─────────────────────────────────────── */}
+      {/* ════════════════════════════════════════════════════════
+          OVERVIEW
+      ════════════════════════════════════════════════════════ */}
       {tab === 'Overview' && (
-        <div style={{ animation: 'fadeIn 0.2s ease' }}>
+        <div style={{ animation:'tabSlideIn 0.25s ease', display:'flex', flexDirection:'column', gap:20 }}>
 
-          {/* ── Section 1: Today's Readiness ───────────────────── */}
-          <div style={{ marginBottom: 20 }}>
-            <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>
-              Today's Readiness
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
-              {[
-                {
-                  label: 'Fatigue', value: latestLog?.fatigue ?? '—', max: 5,
-                  color: latestLog ? (latestLog.fatigue <= 2 ? '#10B981' : latestLog.fatigue === 3 ? '#F59E0B' : '#EF4444') : '#94A3B8',
-                  desc: 'Energy level (1=best)',
-                  icon: '⚡',
-                  badge: latestLog ? (latestLog.fatigue <= 2 ? 'Good' : latestLog.fatigue === 3 ? 'Moderate' : 'High') : '—',
-                },
-                {
-                  label: 'Soreness', value: latestLog?.soreness ?? '—', max: 5,
-                  color: latestLog ? (latestLog.soreness <= 2 ? '#10B981' : latestLog.soreness === 3 ? '#F59E0B' : '#EF4444') : '#94A3B8',
-                  desc: 'Muscle soreness (1=best)',
-                  icon: '💪',
-                  badge: latestLog ? (latestLog.soreness <= 2 ? 'Low' : latestLog.soreness === 3 ? 'Moderate' : 'High') : '—',
-                },
-                {
-                  label: 'Sleep Quality', value: latestLog?.sleep_quality ?? '—', max: 5,
-                  color: latestLog ? (latestLog.sleep_quality <= 2 ? '#10B981' : latestLog.sleep_quality === 3 ? '#F59E0B' : '#EF4444') : '#94A3B8',
-                  desc: 'Sleep quality (1=best)',
-                  icon: '😴',
-                  badge: latestLog ? (latestLog.sleep_quality <= 2 ? 'Good' : latestLog.sleep_quality === 3 ? 'Fair' : 'Poor') : '—',
-                },
-                {
-                  label: 'Wellness Logs', value: logs?.length ?? 0, max: null,
-                  color: '#6366F1',
-                  desc: 'Last 60 days',
-                  icon: '📊',
-                  badge: logs?.length >= 20 ? 'Excellent' : logs?.length >= 10 ? 'Good' : 'Building',
-                },
-              ].map(({ label, value, max, color, desc, icon, badge }) => (
-                <div key={label} style={{
-                  background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)',
-                  borderRadius: 14, padding: '18px 20px',
-                  boxShadow: 'var(--shadow-sm)',
-                  borderLeft: `3px solid ${color}`,
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <div style={{
-                      width: 32, height: 32, borderRadius: 8,
-                      background: `${color}15`, display: 'flex', alignItems: 'center',
-                      justifyContent: 'center', fontSize: '0.9rem',
-                    }}>{icon}</div>
-                    <span style={{
-                      padding: '2px 8px', borderRadius: 99, fontSize: '0.62rem', fontWeight: 700,
-                      background: `${color}15`, color,
-                    }}>{badge}</span>
-                  </div>
-                  <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', marginBottom: 3 }}>{label}</div>
-                  <div style={{ fontSize: '1.8rem', fontWeight: 900, color, lineHeight: 1 }}>
-                    {value}{max && <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-muted)' }}>/{max}</span>}
-                  </div>
-                  <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: 4 }}>{desc}</div>
-                  {latestLog && max && (
-                    <div style={{ marginTop: 8, height: 4, borderRadius: 99, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', borderRadius: 99, width: `${(value/max)*100}%`, background: color, transition: 'width 1s ease' }}/>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
+          {/* Row 1: Health Metrics + AI Recommendations */}
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:18 }}>
 
-          {/* ── Section 2: Health overview 2-col ────────────────── */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
-
-            {/* Key health metrics card — all values from latestLog, no hardcoded data */}
-            <div style={{ ...card }}>
-              <div style={{ ...cardHdr, borderBottom: '1px solid var(--border-subtle)' }}>
+            {/* Health Metrics */}
+            <div style={card}>
+              <div style={cardHdr}>
                 <div>
-                  <div style={cardTitle}>Health Metrics</div>
-                  <div style={cardSub}>
-                    {latestLog
-                      ? `From wellness log · ${new Date(latestLog.logged_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`
-                      : 'Log today\'s wellness to see metrics'}
-                  </div>
+                  <div style={cardT}>Health Metrics</div>
+                  <div style={cardS}>{latestLog ? `From wellness log · ${new Date(latestLog.logged_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}` : 'Log wellness to see metrics'}</div>
                 </div>
+                <svg viewBox="0 0 44 44" width={44} height={44}>
+                  <circle cx={22} cy={22} r={18} fill="none" stroke="var(--bg-elevated)" strokeWidth={5}/>
+                  <circle cx={22} cy={22} r={18} fill="none" stroke={scoreColor(m.overall)} strokeWidth={5}
+                    strokeDasharray={`${(m.overall/100)*113} 113`} strokeLinecap="round" transform="rotate(-90 22 22)"
+                    style={{ transition:'stroke-dasharray 1.4s ease', filter:`drop-shadow(0 0 3px ${scoreColor(m.overall)}80)` }}/>
+                  <text x={22} y={26} textAnchor="middle" fontSize={10} fontWeight="800" fill={scoreColor(m.overall)}>{m.overall}%</text>
+                </svg>
               </div>
-              <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {(latestLog
-                  ? (() => {
-                      // (5-x)/4*100 → 1=best gives 100%, 5=worst gives 0%
-                      const e = Math.round((5 - latestLog.fatigue)       / 4 * 100);
-                      const r = Math.round((5 - latestLog.soreness)      / 4 * 100);
-                      const s = Math.round((5 - latestLog.sleep_quality) / 4 * 100);
-                      const o = Math.round((e + r + s) / 3);
-                      return [
-                        { label: 'Overall Wellness', pct: o, color: scoreColor(o), icon: '💪', desc: 'Combined score' },
-                        { label: 'Energy Level',     pct: e, color: scoreColor(e), icon: '⚡', desc: `Fatigue logged: ${latestLog.fatigue}/5` },
-                        { label: 'Recovery Status',  pct: r, color: scoreColor(r), icon: '🔄', desc: `Soreness logged: ${latestLog.soreness}/5` },
-                        { label: 'Sleep Quality',    pct: s, color: scoreColor(s), icon: '😴', desc: `Sleep logged: ${latestLog.sleep_quality}/5` },
-                      ];
-                    })()
-                  : [
-                      { label: 'Overall Wellness', pct: 0, color: '#94A3B8', icon: '💪', desc: 'Log wellness to unlock' },
-                      { label: 'Energy Level',     pct: 0, color: '#94A3B8', icon: '⚡', desc: 'Log wellness to unlock' },
-                      { label: 'Recovery Status',  pct: 0, color: '#94A3B8', icon: '🔄', desc: 'Log wellness to unlock' },
-                      { label: 'Sleep Quality',    pct: 0, color: '#94A3B8', icon: '😴', desc: 'Log wellness to unlock' },
-                    ]
-                ).map(({ label, pct, color, icon, desc }) => (
-                  <div key={label}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ fontSize: '0.85rem' }}>{icon}</span>
-                        <div>
-                          <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{label}</span>
-                          <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginLeft: 6 }}>{desc}</span>
-                        </div>
-                      </div>
-                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color }}>{pct}%</span>
-                    </div>
-                    <div style={{ height: 7, borderRadius: 99, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', borderRadius: 99, width: `${pct}%`, background: `linear-gradient(90deg, ${color}, ${color}cc)`, transition: 'width 1.2s ease' }}/>
-                    </div>
-                  </div>
-                ))}
+              <div style={{ padding:'18px 20px' }}>
+                <NeonMeter pct={m.overall}  color={scoreColor(m.overall)}  label="Overall Wellness"  sub="Combined score"/>
+                <NeonMeter pct={m.energy}   color={scoreColor(m.energy)}   label="Energy Level"      sub={latestLog ? `Fatigue logged: ${latestLog.fatigue}/5` : '—'}/>
+                <NeonMeter pct={m.recovery} color={scoreColor(m.recovery)} label="Recovery Status"   sub={latestLog ? `Soreness logged: ${latestLog.soreness}/5` : '—'}/>
+                <NeonMeter pct={m.sleep}    color={scoreColor(m.sleep)}    label="Sleep Quality"     sub={latestLog ? `Sleep logged: ${latestLog.sleep_quality}/5` : '—'}/>
               </div>
             </div>
 
-            {/* AI recommendations */}
-            <div style={{ ...card }}>
-              <div style={{ ...cardHdr, borderBottom: '1px solid var(--border-subtle)' }}>
+            {/* AI Recommendations */}
+            <div style={card}>
+              <div style={cardHdr}>
                 <div>
-                  <div style={cardTitle}>AI Recommendations</div>
-                  <div style={cardSub}>Based on your data</div>
+                  <div style={cardT}>AI Recommendations</div>
+                  <div style={cardS}>Based on your data</div>
                 </div>
-                <span style={{
-                  padding: '2px 8px', borderRadius: 99, fontSize: '0.62rem', fontWeight: 800,
-                  background: 'rgba(99,102,241,0.12)', color: 'var(--accent)',
-                  letterSpacing: '0.08em', textTransform: 'uppercase',
-                }}>AI</span>
+                <span style={{ padding:'2px 9px', borderRadius:99, fontSize:'0.62rem', fontWeight:800, background:'rgba(99,102,241,0.12)', color:'#7C3AED', border:'1px solid rgba(99,102,241,0.22)', letterSpacing:'0.1em' }}>AI</span>
               </div>
-              <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {recs.map((rec, i) => (
-                  <div key={i} style={{
-                    display: 'flex', alignItems: 'flex-start', gap: 10,
-                    padding: '10px 12px', borderRadius: 10,
-                    background: `${rec.color}0D`, border: `1px solid ${rec.color}25`,
-                  }}>
-                    <span style={{ fontSize: '0.9rem', flexShrink: 0, marginTop: 1 }}>{rec.icon}</span>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>{rec.text}</span>
-                  </div>
-                ))}
+              <div style={{ padding:'12px 16px', display:'flex', flexDirection:'column', gap:8 }}>
+                {recs.map((r,i) => <AICard key={i} {...r}/>)}
               </div>
             </div>
           </div>
 
-          {/* ── Section 3: Recent trend + injury risk ───────────── */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 16, marginBottom: 20 }}>
+          {/* Row 2: Wellness Trend + Injury Risk + Season Logs */}
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 196px', gap:18 }}>
 
-            {/* Trend */}
-            <div style={{ ...card }}>
-              <div style={{ ...cardHdr, borderBottom: '1px solid var(--border-subtle)' }}>
+            {/* Wellness Trend */}
+            <div style={card}>
+              <div style={cardHdr}>
                 <div>
-                  <div style={cardTitle}>Wellness Trend</div>
-                  <div style={cardSub}>Last {Math.min(logs?.length ?? 0, 5)} entries</div>
+                  <div style={cardT}>Wellness Trend</div>
+                  <div style={cardS}>Last {trend.length} entries</div>
                 </div>
               </div>
-              <div style={{ padding: '16px 20px' }}>
-                {logs && logs.length > 0 ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {[
-                      { key: 'fatigue',       label: 'Fatigue',  color: '#EF4444', invert: true },
-                      { key: 'soreness',      label: 'Soreness', color: '#F59E0B', invert: true },
-                      { key: 'sleep_quality', label: 'Sleep',    color: '#6366F1', invert: false },
-                    ].map(({ key, label, color, invert }) => {
-                      const entries = [...(logs || [])].reverse().slice(-5);
-                      const vals = entries.map(l => invert ? (6 - l[key]) : l[key]);
-                      const W = 320, H = 36;
-                      const maxV = 5, minV = 0;
-                      const pts = vals.map((v, i) => ({
-                        x: (i / Math.max(vals.length - 1, 1)) * W,
-                        y: 4 + ((maxV - v) / (maxV - minV)) * (H - 8),
-                      }));
-                      const linePath = pts.map((p, i) => `${i ? 'L' : 'M'}${p.x},${p.y}`).join(' ');
-                      return (
-                        <div key={key}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                            <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{label}</span>
-                            <span style={{ fontSize: '0.68rem', fontWeight: 700, color }}>
-                              {vals[vals.length - 1]}/5
-                            </span>
-                          </div>
-                          <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} preserveAspectRatio="none">
-                            <path d={linePath} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-                            {pts.map((p, i) => (
-                              <circle key={i} cx={p.x} cy={p.y} r="3.5" fill={color} opacity="0.85"/>
-                            ))}
-                          </svg>
-                        </div>
-                      );
-                    })}
-                  </div>
+              <div style={{ padding:'16px 20px' }}>
+                {trend.length > 0 ? (
+                  <>
+                    <TrendLine values={trend.map(e=>6-e.fatigue)}       color="#10B981" label="Fatigue"  badge={latestLog ? `${latestLog.fatigue}/5` : '—'}/>
+                    <TrendLine values={trend.map(e=>6-e.soreness)}      color="#F59E0B" label="Soreness" badge={latestLog ? `${latestLog.soreness}/5` : '—'}/>
+                    <TrendLine values={trend.map(e=>6-e.sleep_quality)} color="#6366F1" label="Sleep"    badge={latestLog ? `${latestLog.sleep_quality}/5` : '—'}/>
+                  </>
                 ) : (
-                  <div style={{ textAlign: 'center', padding: '16px 0', color: 'var(--text-muted)' }}>
-                    <div style={{ fontSize: '1.5rem', marginBottom: 6 }}>📈</div>
-                    <div style={{ fontSize: '0.78rem' }}>No entries yet — start logging to see trends</div>
+                  <div style={{ textAlign:'center', padding:'24px 0', color:'var(--text-muted)' }}>
+                    <div style={{ fontSize:'1.8rem', marginBottom:8 }}>📈</div>
+                    <div style={{ fontSize:'0.82rem' }}>Log multiple entries to see your wellness trends</div>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Injury risk + season goals compact */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, width: 200 }}>
-              {/* Injury risk */}
-              <div style={{
-                ...card,
-                padding: '18px 16px', textAlign: 'center', flex: 1,
-              }}>
-                <div style={{
-                  width: 64, height: 64, borderRadius: '50%', margin: '0 auto 10px',
-                  background: `linear-gradient(135deg, ${
-                    metrics.injuryRisk === 'High' ? '#FEF2F2' :
-                    metrics.injuryRisk === 'Medium' ? '#FFFBEB' : '#ECFDF5'}, var(--bg-elevated))`,
-                  border: `3px solid ${
-                    metrics.injuryRisk === 'High' ? '#FECACA' :
-                    metrics.injuryRisk === 'Medium' ? '#FDE68A' : '#A7F3D0'}`,
-                  display: 'flex', flexDirection: 'column', alignItems: 'center',
-                  justifyContent: 'center', gap: 1,
-                }}>
-                  <span style={{ fontSize: '1.3rem', lineHeight: 1 }}>
-                    {metrics.injuryRisk === 'High' ? '🚨' : metrics.injuryRisk === 'Medium' ? '⚠️' : '🛡️'}
-                  </span>
+            {/* Right mini-column */}
+            <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+              <InjuryRiskWidget risk={latestLog ? m.risk : 'Unknown'}/>
+              <div style={{ ...card, padding:'16px 14px', textAlign:'center' }}>
+                <div style={{ fontSize:'1.2rem', marginBottom:5 }}>📅</div>
+                <div style={{ fontWeight:800, fontSize:'1.05rem', color:'var(--text-primary)' }}>
+                  {(logs||[]).length} <span style={{ fontSize:'0.68rem', fontWeight:500, color:'var(--text-muted)' }}>/ 30</span>
                 </div>
-                <div style={{ fontWeight: 700, fontSize: '0.82rem', color: 'var(--text-primary)' }}>Injury Risk</div>
-                <span style={{
-                  display: 'inline-block', marginTop: 4,
-                  padding: '2px 10px', borderRadius: 99, fontSize: '0.68rem', fontWeight: 800,
-                  background: metrics.injuryRisk === 'High' ? 'rgba(239,68,68,0.1)' : metrics.injuryRisk === 'Medium' ? 'rgba(245,158,11,0.1)' : 'rgba(16,185,129,0.1)',
-                  color: metrics.injuryRisk === 'High' ? '#EF4444' : metrics.injuryRisk === 'Medium' ? '#F59E0B' : '#10B981',
-                }}>
-                  {metrics.injuryRisk === 'Unknown' ? 'N/A' : metrics.injuryRisk}
-                </span>
-                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: 4 }}>AI Prediction</div>
-              </div>
-
-              {/* Calendar indicator */}
-              <div style={{ ...card, padding: '14px 16px', textAlign: 'center' }}>
-                <div style={{ fontSize: '1.4rem', marginBottom: 4 }}>📅</div>
-                <div style={{ fontWeight: 700, fontSize: '0.78rem', color: 'var(--text-primary)' }}>
-                  {logs?.length ?? 0} / 30
-                </div>
-                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: 2 }}>Season logs</div>
-                <div style={{ marginTop: 8, height: 5, borderRadius: 99, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', borderRadius: 99, width: `${Math.min(100, ((logs?.length ?? 0)/30)*100)}%`, background: '#6366F1' }}/>
+                <div style={{ fontSize:'0.6rem', color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.08em', marginTop:2 }}>Season logs</div>
+                <div style={{ marginTop:8, height:4, borderRadius:99, background:'var(--bg-elevated)', overflow:'hidden' }}>
+                  <div style={{ height:'100%', width:`${Math.min(100,((logs||[]).length/30)*100)}%`, borderRadius:99, background:'linear-gradient(90deg,#6366F1,#7C3AED)', boxShadow:'0 0 7px rgba(99,102,241,0.4)' }}/>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* ── Log today prompt ─────────────────────────────────── */}
+          {/* CTA */}
           {!todayLogged && (
-            <div style={{
-              background: 'linear-gradient(135deg, rgba(99,102,241,0.08), rgba(16,185,129,0.04))',
-              border: '1px solid rgba(99,102,241,0.2)',
-              borderRadius: 14, padding: '20px 24px',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            }}>
+            <div style={{ borderRadius:14, padding:'20px 24px', background:'linear-gradient(135deg,rgba(99,102,241,0.08),rgba(124,58,237,0.05))', border:'1px solid rgba(99,102,241,0.18)', display:'flex', alignItems:'center', justifyContent:'space-between', backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)' }}>
               <div>
-                <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)' }}>Log your wellness today</div>
-                <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: 3 }}>
-                  Track fatigue, soreness, and sleep to get personalised recommendations.
-                </div>
+                <div style={{ fontWeight:700, fontSize:'1rem', color:'var(--text-primary)' }}>Log your wellness today</div>
+                <div style={{ fontSize:'0.82rem', color:'var(--text-muted)', marginTop:3 }}>Track fatigue, soreness, and sleep to get personalised recommendations.</div>
               </div>
-              <button className="btn btn-primary" onClick={() => setShowLog(true)}>Log Now</button>
+              <button onClick={() => setShowLog(true)} style={{ padding:'11px 24px', borderRadius:10, border:'none', cursor:'pointer', background:'linear-gradient(135deg,#6366F1,#4F46E5)', color:'white', fontWeight:800, fontSize:'0.9rem', boxShadow:'0 4px 16px rgba(99,102,241,0.35)' }}>
+                Log Now
+              </button>
             </div>
           )}
-
         </div>
       )}
 
-      {/* ── Fitness & Health Tab ─────────────────────────────── */}
-      {tab === 'Fitness & Health' && (
-        <div style={{ animation: 'fadeIn 0.2s ease' }}>
+      {/* ════════════════════════════════════════════════════════
+          BIOMETRICS & VITALS
+      ════════════════════════════════════════════════════════ */}
+      {tab === 'Biometrics & Vitals' && (
+        <div style={{ animation:'tabSlideIn 0.25s ease', display:'flex', flexDirection:'column', gap:20 }}>
 
-          {/* Player Fitness Profile Card */}
-          <PlayerFitnessCard
-            user={user}
-            latestLog={latestLog}
-            logs={logs}
-            fitnessLabel={fitnessLabel}
-            fitnessColor={fitnessColor}
-            recs={recs}
-            todayLogged={todayLogged}
-          />
-
-          {!latestLog && !loading && (
-            <div style={{
-              background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.2)',
-              borderRadius: 12, padding: '14px 18px', marginBottom: 20,
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            }}>
-              <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                No wellness data yet. Log your first entry to personalise these widgets.
-              </span>
-              <button className="btn btn-primary btn-sm" onClick={() => setShowLog(true)}>Log Now</button>
-            </div>
-          )}
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 20, alignItems: 'start' }}>
-
-            {/* ── Left column ─────────────────────────────────── */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-
-              {/* Key Health Summary */}
-              <div style={card}>
-                <div style={cardHdr}>
-                  <div>
-                    <div style={cardTitle}>Key Health Summary</div>
-                    <div style={cardSub}>
-                      {latestLog
-                        ? `Based on wellness log · ${new Date(latestLog.logged_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
-                        : 'Log your wellness to see live data'}
-                    </div>
-                  </div>
-                </div>
-                <div style={{ padding: '20px 24px' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-                    <CircularGauge
-                      pct={metrics.hydration}
-                      color="#3B82F6"
-                      label="Hydration Level"
-                      status={metrics.hydration >= 70 ? 'Good' : metrics.hydration >= 50 ? 'Medium' : 'Low'}
-                    />
-                    <CircularGauge
-                      pct={metrics.stress}
-                      color={scoreColor(100 - metrics.stress)}
-                      label="Stress Index"
-                      status={metrics.stress >= 70 ? 'High' : metrics.stress >= 40 ? 'Moderate' : 'Low'}
-                      note={latestLog ? null : 'Demo'}
-                    />
-                    <CircularGauge
-                      pct={metrics.fatigue}
-                      color={scoreColor(100 - metrics.fatigue)}
-                      label="Fatigue Score"
-                      status={metrics.fatigue >= 70 ? 'High' : metrics.fatigue >= 40 ? 'Needs Recovery' : 'Low'}
-                      note={latestLog ? null : 'Demo'}
-                    />
-                    {/* Injury Risk — different styling */}
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-                      <div style={{
-                        width: 110, height: 110, borderRadius: '50%', flexShrink: 0,
-                        background: `linear-gradient(135deg, ${
-                          metrics.injuryRisk === 'High' ? '#FEF2F2' :
-                          metrics.injuryRisk === 'Medium' ? '#FFFBEB' : '#ECFDF5'}
-                          , var(--bg-elevated))`,
-                        border: `3px solid ${
-                          metrics.injuryRisk === 'High' ? '#FECACA' :
-                          metrics.injuryRisk === 'Medium' ? '#FDE68A' : '#A7F3D0'}`,
-                        display: 'flex', flexDirection: 'column',
-                        alignItems: 'center', justifyContent: 'center', gap: 2,
-                      }}>
-                        <span style={{ fontSize: '1.6rem', lineHeight: 1 }}>
-                          {metrics.injuryRisk === 'High' ? '🚨' : metrics.injuryRisk === 'Medium' ? '⚠️' : '🛡️'}
-                        </span>
-                        <span style={{
-                          fontSize: '0.65rem', fontWeight: 800, letterSpacing: '0.06em',
-                          textTransform: 'uppercase',
-                          color: metrics.injuryRisk === 'High' ? '#EF4444' :
-                                 metrics.injuryRisk === 'Medium' ? '#F59E0B' : '#10B981',
-                        }}>
-                          {metrics.injuryRisk}
-                        </span>
-                      </div>
-                      <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontWeight: 700, fontSize: '0.82rem', color: 'var(--text-primary)' }}>Injury Risk</div>
-                        <span style={{
-                          display: 'inline-block', marginTop: 3,
-                          padding: '1px 8px', borderRadius: 99, fontSize: '0.65rem', fontWeight: 700,
-                          background: 'rgba(99,102,241,0.1)', color: 'var(--accent)',
-                        }}>
-                          AI Prediction
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Overall message */}
-                  {latestLog && (
-                    <div style={{
-                      marginTop: 16, padding: '10px 14px', borderRadius: 10,
-                      background: `${fitnessColor}10`, border: `1px solid ${fitnessColor}25`,
-                      display: 'flex', alignItems: 'center', gap: 8,
-                    }}>
-                      <span style={{ fontSize: '1rem' }}>
-                        {fitnessColor === '#10B981' ? '💪' : fitnessColor === '#F59E0B' ? '⚡' : '😴'}
-                      </span>
-                      <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                        {fitnessLabel === 'Fully Fit'
-                          ? 'Player has shown good recovery. Maintain current training pace.'
-                          : fitnessLabel === 'Moderate'
-                          ? `Moderate fatigue detected over the past ${logs?.length} days. Recommend lighter training today.`
-                          : 'Flagged recovery indicators. Rest recommended before next training session.'}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Heart Rate + Sleep row */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-
-                {/* Heart Rate */}
-                <div style={card}>
-                  <div style={{ padding: '16px 20px 12px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                      <div>
-                        <div style={cardTitle}>Heart Rate</div>
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 1 }}>
-                          Last 24 hours · Simulated
-                        </div>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#EF4444', lineHeight: 1 }}>{hrBpm}</div>
-                        <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>bpm avg</div>
-                      </div>
-                    </div>
-                    <HeartRateSparkline data={hrData} />
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
-                      {[
-                        { label: 'Resting', value: `${Math.min(...hrData)} bpm` },
-                        { label: 'Peak',    value: `${Math.max(...hrData)} bpm` },
-                      ].map(({ label, value }) => (
-                        <div key={label}>
-                          <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</div>
-                          <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>{value}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Sleep */}
-                <div style={card}>
-                  <div style={{ padding: '16px 20px 12px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                      <div style={cardTitle}>Sleep Periodic</div>
-                      <span style={{
-                        fontSize: '0.65rem', fontWeight: 700, padding: '2px 7px',
-                        borderRadius: 99, background: 'var(--accent-subtle)', color: 'var(--accent)',
-                      }}>Monthly</span>
-                    </div>
-                    <SleepBars highlight={currentMonth} />
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 8 }}>
-                      {[
-                        { label: 'Avg Sleep',  value: `${latestLog?.sleep_quality === 1 ? '8.1' : latestLog?.sleep_quality === 2 ? '7.3' : latestLog?.sleep_quality === 3 ? '6.8' : latestLog?.sleep_quality === 4 ? '5.9' : '5.1'}h` || '7.2h' },
-                        { label: 'Recovery',   value: `${metrics.sleep >= 60 ? 'Good' : metrics.sleep >= 30 ? 'Fair' : 'Poor'}` },
-                      ].map(({ label, value }) => (
-                        <div key={label} style={{
-                          background: 'var(--bg-elevated)', borderRadius: 8, padding: '8px 10px',
-                          border: '1px solid var(--border-subtle)',
-                        }}>
-                          <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</div>
-                          <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: 2 }}>{value}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Movement Intensity */}
-              <div style={card}>
-                <div style={{ padding: '16px 20px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-                    <div>
-                      <div style={cardTitle}>Movement Intensity / Load</div>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 1 }}>Based on recent training activity</div>
-                    </div>
-                    <span style={{
-                      padding: '4px 12px', borderRadius: 99, fontSize: '0.72rem', fontWeight: 700,
-                      background: metrics.fatigue >= 70 ? 'rgba(239,68,68,0.12)' : metrics.fatigue >= 40 ? 'rgba(245,158,11,0.12)' : 'rgba(16,185,129,0.12)',
-                      color: metrics.fatigue >= 70 ? '#EF4444' : metrics.fatigue >= 40 ? '#F59E0B' : '#10B981',
-                    }}>
-                      {metrics.fatigue >= 70 ? 'High' : metrics.fatigue >= 40 ? 'Moderate' : 'Low'}
-                    </span>
-                  </div>
-
-                  {[
-                    { label: 'Sprint Load',    pct: Math.max(10, 100 - metrics.fatigue * 1.2), color: '#6366F1' },
-                    { label: 'Cardio',         pct: Math.max(20, 95 - metrics.stress * 0.8),  color: '#3B82F6' },
-                    { label: 'Strength',       pct: Math.max(15, 90 - metrics.stress),         color: '#10B981' },
-                    { label: 'Recovery Score', pct: Math.max(10, 100 - metrics.fatigue),       color: '#F59E0B' },
-                  ].map(({ label, pct, color }) => (
-                    <div key={label} style={{ marginBottom: 12 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-                        <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 500 }}>{label}</span>
-                        <span style={{ fontSize: '0.78rem', fontWeight: 700, color }}>{Math.round(pct)}%</span>
-                      </div>
-                      <div style={{
-                        height: 7, borderRadius: 99,
-                        background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)',
-                        overflow: 'hidden',
-                      }}>
-                        <div style={{
-                          height: '100%', borderRadius: 99, width: `${pct}%`,
-                          background: `linear-gradient(90deg, ${color}, ${color}cc)`,
-                          transition: 'width 1s ease',
-                        }}/>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* ── Right column ─────────────────────────────────── */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-
-              {/* AI Recommendations */}
-              <div style={card}>
-                <div style={{ ...cardHdr, borderBottom: '1px solid var(--border-subtle)' }}>
-                  <div>
-                    <div style={cardTitle}>AI Recommendations</div>
-                    <div style={cardSub}>Personalised insights</div>
-                  </div>
-                  <span style={{
-                    padding: '2px 8px', borderRadius: 99, fontSize: '0.62rem', fontWeight: 800,
-                    background: 'rgba(99,102,241,0.12)', color: 'var(--accent)',
-                    letterSpacing: '0.08em', textTransform: 'uppercase',
-                  }}>AI</span>
-                </div>
-                <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {recs.map((rec, i) => (
-                    <div key={i} style={{
-                      display: 'flex', alignItems: 'flex-start', gap: 10,
-                      padding: '10px 12px', borderRadius: 10,
-                      background: `${rec.color}0D`,
-                      border: `1px solid ${rec.color}25`,
-                    }}>
-                      <span style={{ fontSize: '1rem', flexShrink: 0, marginTop: 1 }}>{rec.icon}</span>
-                      <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                        {rec.text}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Health Calendar */}
-              <div style={card}>
-                <div style={{ ...cardHdr, borderBottom: '1px solid var(--border-subtle)' }}>
-                  <div style={cardTitle}>Health Calendar</div>
-                </div>
-                <div style={{ padding: '14px 16px' }}>
-                  <MiniCalendar logs={logs || []} />
-                </div>
-              </div>
-
-              {/* Injury / Flagged History */}
-              <div style={card}>
-                <div style={{ ...cardHdr, borderBottom: '1px solid var(--border-subtle)' }}>
-                  <div>
-                    <div style={cardTitle}>Health Flags</div>
-                    <div style={cardSub}>Flagged wellness entries</div>
-                  </div>
-                </div>
-                <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {(logs || []).filter(l => l.is_flagged).slice(0, 3).map(l => (
-                    <div key={l.id} style={{
-                      display: 'flex', alignItems: 'center', gap: 10,
-                      padding: '10px 12px', borderRadius: 10,
-                      background: 'var(--danger-subtle)', border: '1px solid var(--danger-border)',
-                    }}>
-                      <div style={{
-                        width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-                        background: 'rgba(239,68,68,0.15)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '1rem',
-                      }}>🚨</div>
-                      <div>
-                        <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                          Flagged Entry — F:{l.fatigue} S:{l.soreness}
-                        </div>
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 1 }}>
-                          {new Date(l.logged_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  {!(logs || []).some(l => l.is_flagged) && (
-                    <div style={{
-                      textAlign: 'center', padding: '16px 0',
-                      fontSize: '0.82rem', color: 'var(--text-muted)',
-                    }}>
-                      <div style={{ fontSize: '1.5rem', marginBottom: 6 }}>🛡️</div>
-                      No health flags — keep it up!
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Training Tab ─────────────────────────────────────── */}
-      {tab === 'Training' && (
-        <div style={{ animation: 'fadeIn 0.2s ease', display: 'flex', flexDirection: 'column', gap: 16 }}>
-
-          {/* Weekly Training Load */}
-          <div style={card}>
-            <div style={{ ...cardHdr, borderBottom: '1px solid var(--border-subtle)' }}>
-              <div>
-                <div style={cardTitle}>Weekly Training Load</div>
-                <div style={cardSub}>Intensity across training zones</div>
-              </div>
-              <span style={{
-                padding: '3px 10px', borderRadius: 99, fontSize: '0.68rem', fontWeight: 700,
-                background: 'rgba(99,102,241,0.1)', color: 'var(--accent)',
-              }}>This Week</span>
-            </div>
-            <div style={{ padding: '20px 24px' }}>
-              {[
-                { day: 'Mon', load: 72, type: 'Strength', color: '#6366F1' },
-                { day: 'Tue', load: 55, type: 'Cardio',   color: '#3B82F6' },
-                { day: 'Wed', load: 20, type: 'Rest',     color: '#94A3B8' },
-                { day: 'Thu', load: 88, type: 'Sprint',   color: '#EF4444' },
-                { day: 'Fri', load: 65, type: 'Tactical', color: '#10B981' },
-                { day: 'Sat', load: 90, type: 'Match',    color: '#F59E0B' },
-                { day: 'Sun', load: 15, type: 'Recovery', color: '#94A3B8' },
-              ].map(({ day, load, type, color }) => (
-                <div key={day} style={{ marginBottom: 12 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 5 }}>
-                    <span style={{ width: 32, fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>{day}</span>
-                    <div style={{ flex: 1, height: 10, borderRadius: 99, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
-                      <div style={{
-                        height: '100%', width: `${load}%`, borderRadius: 99,
-                        background: `linear-gradient(90deg, ${color}, ${color}aa)`,
-                        transition: 'width 1.2s ease',
-                      }} />
-                    </div>
-                    <span style={{ width: 28, fontSize: '0.75rem', fontWeight: 700, color, textAlign: 'right' }}>{load}</span>
-                    <span style={{
-                      width: 68, fontSize: '0.68rem', fontWeight: 600,
-                      padding: '2px 7px', borderRadius: 99,
-                      background: `${color}15`, color, textAlign: 'center',
-                    }}>{type}</span>
-                  </div>
-                </div>
-              ))}
-              <div style={{
-                display: 'flex', gap: 16, marginTop: 16, padding: '12px 16px',
-                background: 'var(--bg-elevated)', borderRadius: 10,
-                border: '1px solid var(--border-subtle)',
-              }}>
-                {[
-                  { label: 'Total Load', value: '405', unit: 'AU' },
-                  { label: 'Avg Intensity', value: '58', unit: '%' },
-                  { label: 'Sessions', value: '5', unit: 'days' },
-                  { label: 'Rest Days', value: '2', unit: 'days' },
-                ].map(({ label, value, unit }) => (
-                  <div key={label} style={{ flex: 1, textAlign: 'center' }}>
-                    <div style={{ fontSize: '1.3rem', fontWeight: 900, color: 'var(--text-primary)' }}>
-                      {value}<span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 500, marginLeft: 2 }}>{unit}</span>
-                    </div>
-                    <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Training Zones + Body Stats row */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-
-            {/* Training Zones */}
-            <div style={card}>
-              <div style={{ ...cardHdr, borderBottom: '1px solid var(--border-subtle)' }}>
-                <div style={cardTitle}>Heart Rate Zones</div>
-              </div>
-              <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {[
-                  { zone: 'Zone 5 — Max',          pct: 12, range: '185+ bpm', color: '#EF4444' },
-                  { zone: 'Zone 4 — Threshold',    pct: 28, range: '165–185',  color: '#F59E0B' },
-                  { zone: 'Zone 3 — Aerobic',      pct: 35, range: '145–165',  color: '#10B981' },
-                  { zone: 'Zone 2 — Fat Burn',     pct: 18, range: '125–145',  color: '#3B82F6' },
-                  { zone: 'Zone 1 — Recovery',     pct: 7,  range: '< 125',    color: '#6366F1' },
-                ].map(({ zone, pct, range, color }) => (
-                  <div key={zone}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{zone}</span>
-                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{range} · <b style={{ color }}>{pct}%</b></span>
-                    </div>
-                    <div style={{ height: 6, borderRadius: 99, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 99 }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Muscle Group Focus */}
-            <div style={card}>
-              <div style={{ ...cardHdr, borderBottom: '1px solid var(--border-subtle)' }}>
-                <div style={cardTitle}>Muscle Group Focus</div>
-              </div>
-              <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {[
-                  { group: 'Legs & Glutes',   load: latestLog ? Math.max(20, 100 - metrics.fatigue) : 75,  color: '#6366F1' },
-                  { group: 'Core & Stability', load: latestLog ? Math.max(30, 95 - metrics.stress * 0.6) : 68, color: '#10B981' },
-                  { group: 'Upper Body',       load: latestLog ? Math.max(25, 85 - metrics.stress * 0.4) : 55, color: '#3B82F6' },
-                  { group: 'Cardiovascular',   load: latestLog ? Math.max(35, 90 - metrics.fatigue * 0.5) : 82, color: '#EF4444' },
-                  { group: 'Flexibility',      load: latestLog ? Math.max(40, 70 - metrics.soreness * 5) : 45, color: '#F59E0B' },
-                ].map(({ group, load, color }) => (
-                  <div key={group}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{group}</span>
-                      <span style={{ fontSize: '0.72rem', fontWeight: 700, color }}>{Math.round(load)}%</span>
-                    </div>
-                    <div style={{ height: 6, borderRadius: 99, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${Math.round(load)}%`, background: color, borderRadius: 99, transition: 'width 1s ease' }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Recovery Protocol */}
-          <div style={card}>
-            <div style={{ ...cardHdr, borderBottom: '1px solid var(--border-subtle)' }}>
-              <div>
-                <div style={cardTitle}>Recovery Protocols</div>
-                <div style={cardSub}>Recommended based on your current load</div>
-              </div>
-            </div>
-            <div style={{ padding: '16px 24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
-              {[
-                { icon: '🧊', title: 'Ice Bath',     duration: '12–15 min', status: 'Recommended', color: '#3B82F6', note: 'Post high-intensity day' },
-                { icon: '💤', title: 'Sleep Target', duration: '8–9 hours', status: 'Priority',     color: '#6366F1', note: 'Deep sleep > REM ratio' },
-                { icon: '💧', title: 'Hydration',    duration: '3.5 L/day', status: 'On Track',     color: '#10B981', note: 'Electrolytes after sprint' },
-                { icon: '🧘', title: 'Stretching',   duration: '20 min',    status: 'Daily',        color: '#F59E0B', note: 'Focus on hip flexors' },
-              ].map(({ icon, title, duration, status, color, note }) => (
-                <div key={title} style={{
-                  padding: '14px 16px', borderRadius: 12,
-                  background: `${color}08`, border: `1px solid ${color}20`,
-                }}>
-                  <div style={{ fontSize: '1.5rem', marginBottom: 8 }}>{icon}</div>
-                  <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-primary)' }}>{title}</div>
-                  <div style={{ fontSize: '1rem', fontWeight: 900, color, marginTop: 2 }}>{duration}</div>
-                  <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: 4 }}>{note}</div>
-                  <span style={{
-                    display: 'inline-block', marginTop: 8,
-                    padding: '2px 8px', borderRadius: 99, fontSize: '0.62rem', fontWeight: 700,
-                    background: `${color}18`, color,
-                  }}>{status}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Performance Tab ───────────────────────────────────── */}
-      {tab === 'Performance' && (
-        <div style={{ animation: 'fadeIn 0.2s ease', display: 'flex', flexDirection: 'column', gap: 16 }}>
-
-          {/* Performance Score */}
-          <div style={{
-            background: 'linear-gradient(135deg, #0D1B3E, #1a2d5a)',
-            borderRadius: 16, padding: '24px 28px',
-            display: 'grid', gridTemplateColumns: '1fr auto',
-            gap: 20, alignItems: 'center',
-          }}>
-            <div>
-              <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', marginBottom: 6 }}>
-                Overall Performance Rating
-              </div>
-              <div style={{ fontSize: '3rem', fontWeight: 900, color: 'white', lineHeight: 1 }}>
-                {latestLog ? Math.round(((5 - latestLog.fatigue) + (5 - latestLog.soreness) + latestLog.sleep_quality) / 15 * 100) : 74}
-                <span style={{ fontSize: '1.2rem', color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>/100</span>
-              </div>
-              <div style={{ marginTop: 8, fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)' }}>
-                {latestLog ? 'Based on your latest wellness data' : 'Log wellness data to personalise'}
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: 16 }}>
-              {[
-                { label: 'Fitness', value: latestLog ? Math.round((5 - latestLog.fatigue) / 5 * 100) : 78, color: '#10B981' },
-                { label: 'Recovery', value: latestLog ? Math.round((5 - latestLog.soreness) / 5 * 100) : 65, color: '#6366F1' },
-                { label: 'Readiness', value: latestLog ? Math.round(latestLog.sleep_quality / 5 * 100) : 80, color: '#F59E0B' },
-              ].map(({ label, value, color }) => (
-                <div key={label} style={{ textAlign: 'center' }}>
-                  <CircularGauge pct={value} color={color} label={label} size={90} />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Athlete Profile Metrics */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
+          {/* Vital cards */}
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(155px,1fr))', gap:14 }}>
             {[
-              { label: 'Speed Rating',    value: '87',  unit: '/100', color: '#EF4444', icon: '⚡', trend: '+3 this month' },
-              { label: 'Endurance',       value: '74',  unit: '/100', color: '#3B82F6', icon: '🫁', trend: '+5 this month' },
-              { label: 'Strength Index',  value: '81',  unit: '/100', color: '#F59E0B', icon: '💪', trend: '+2 this month' },
-              { label: 'Agility Score',   value: '79',  unit: '/100', color: '#10B981', icon: '🏃', trend: 'Stable' },
-            ].map(({ label, value, unit, color, icon, trend }) => (
-              <div key={label} style={{
-                background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)',
-                borderRadius: 14, padding: '18px 20px',
-                boxShadow: 'var(--shadow-sm)',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <span style={{ fontSize: '1.2rem' }}>{icon}</span>
-                  <span style={{
-                    fontSize: '0.65rem', fontWeight: 700, padding: '2px 7px', borderRadius: 99,
-                    background: `${color}15`, color,
-                  }}>{trend}</span>
+              { label:'Energy',     pct:m.energy,   color:'#10B981', icon:'⚡', raw:latestLog?.fatigue,       rawMax:5, desc:'Fatigue inverted' },
+              { label:'Sleep',      pct:m.sleep,    color:'#6366F1', icon:'😴', raw:latestLog?.sleep_quality, rawMax:5, desc:'Sleep inverted'   },
+              { label:'Recovery',   pct:m.recovery, color:'#F59E0B', icon:'🔄', raw:latestLog?.soreness,      rawMax:5, desc:'Soreness inverted'},
+              { label:'Overall',    pct:m.overall,  color:scoreColor(m.overall), icon:'💪', raw:null, rawMax:null, desc:'Combined score' },
+            ].map(({ label, pct, color, icon, raw, rawMax, desc }) => (
+              <div key={label} style={{ ...card, padding:'18px 16px', borderLeft:`3px solid ${color}` }}>
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+                  <div style={{ width:32, height:32, borderRadius:8, background:`${color}14`, border:`1px solid ${color}22`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.9rem' }}>{icon}</div>
+                  <span style={{ padding:'2px 8px', borderRadius:99, fontSize:'0.65rem', fontWeight:700, background:`${color}14`, color }}>{raw!=null ? `${raw}/${rawMax}` : `${pct}%`}</span>
                 </div>
-                <div style={{ fontSize: '2rem', fontWeight: 900, color }}>
-                  {value}<span style={{ fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-muted)' }}>{unit}</span>
+                <div style={{ fontSize:'2rem', fontWeight:900, color, lineHeight:1 }}>{pct}<span style={{ fontSize:'0.85rem', color:'var(--text-muted)', fontWeight:500 }}>%</span></div>
+                <div style={{ fontSize:'0.62rem', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--text-muted)', marginTop:4 }}>{label}</div>
+                <div style={{ marginTop:8, height:3, borderRadius:99, background:'var(--bg-elevated)', overflow:'hidden' }}>
+                  <div style={{ height:'100%', width:`${pct}%`, background:color, borderRadius:99, boxShadow:`0 0 6px ${color}55`, transition:'width 1.2s ease' }}/>
                 </div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</div>
+                <div style={{ fontSize:'0.6rem', color:'var(--text-muted)', marginTop:4 }}>{desc}</div>
               </div>
             ))}
           </div>
 
-          {/* Progress Over Time */}
-          <div style={card}>
-            <div style={{ ...cardHdr, borderBottom: '1px solid var(--border-subtle)' }}>
-              <div>
-                <div style={cardTitle}>Wellness Trend — Last 7 Entries</div>
-                <div style={cardSub}>Fatigue · Soreness · Sleep quality over time</div>
-              </div>
-            </div>
-            <div style={{ padding: '20px 24px' }}>
-              {logs && logs.length > 0 ? (
-                <div>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 260px', gap:18 }}>
+            <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+
+              {/* Biometric detail */}
+              <div style={card}>
+                <div style={cardHdr}>
+                  <div>
+                    <div style={cardT}>Biometric Detail</div>
+                    <div style={cardS}>Raw values from latest wellness log</div>
+                  </div>
+                </div>
+                <div style={{ padding:'18px 20px' }}>
                   {[
-                    { key: 'fatigue',       label: 'Fatigue',       color: '#EF4444', invert: true },
-                    { key: 'soreness',      label: 'Soreness',      color: '#F59E0B', invert: true },
-                    { key: 'sleep_quality', label: 'Sleep Quality', color: '#6366F1', invert: false },
-                  ].map(({ key, label, color, invert }) => {
-                    const entries = [...(logs || [])].reverse().slice(-7);
-                    const vals    = entries.map(l => invert ? (6 - l[key]) : l[key]);
-                    const maxV    = 5;
-                    const minV    = 0;
-                    const W = 500, H = 60;
-                    const pts = vals.map((v, i) => ({
-                      x: (i / Math.max(vals.length - 1, 1)) * W,
-                      y: 4 + ((maxV - v) / (maxV - minV)) * (H - 8),
-                    }));
-                    const linePath = pts.map((p, i) => `${i ? 'L' : 'M'}${p.x},${p.y}`).join(' ');
-                    const fillPath = `${linePath} L${W},${H} L0,${H} Z`;
-                    const uid = `tr-${key}`;
-                    return (
-                      <div key={key} style={{ marginBottom: 16 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{label}</span>
-                          <span style={{ fontSize: '0.72rem', color, fontWeight: 700 }}>
-                            {vals[vals.length - 1]}/5 {invert ? '(higher = better)' : ''}
-                          </span>
+                    { label:'Fatigue Level',  value:latestLog?.fatigue,       max:5, color:'#10B981', note:'1 = Energised · 5 = Exhausted (inverted for score)' },
+                    { label:'Soreness Level', value:latestLog?.soreness,      max:5, color:'#F59E0B', note:'1 = None · 5 = Very Sore (inverted for score)' },
+                    { label:'Sleep Quality',  value:latestLog?.sleep_quality, max:5, color:'#6366F1', note:'1 = Excellent · 5 = Terrible (inverted for score)' },
+                  ].map(({ label, value, max, color, note }) => (
+                    <div key={label} style={{ marginBottom:16 }}>
+                      <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
+                        <div>
+                          <div style={{ fontSize:'0.82rem', fontWeight:600, color:'var(--text-secondary)' }}>{label}</div>
+                          <div style={{ fontSize:'0.63rem', color:'var(--text-muted)', marginTop:1 }}>{note}</div>
                         </div>
-                        <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} preserveAspectRatio="none">
-                          <defs>
-                            <linearGradient id={uid} x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor={color} stopOpacity="0.18"/>
-                              <stop offset="100%" stopColor={color} stopOpacity="0"/>
-                            </linearGradient>
-                          </defs>
-                          <path d={fillPath} fill={`url(#${uid})`}/>
-                          <path d={linePath} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                          {pts.map((p, i) => (
-                            <circle key={i} cx={p.x} cy={p.y} r="3.5" fill={color} opacity="0.8"/>
-                          ))}
-                        </svg>
+                        <span style={{ fontSize:'0.9rem', fontWeight:800, color, alignSelf:'flex-start' }}>{value!=null ? `${value}/${max}` : '—'}</span>
                       </div>
-                    );
-                  })}
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textAlign: 'center', marginTop: 8 }}>
-                    Showing last {Math.min(logs.length, 7)} entries · Latest on right
-                  </div>
+                      <div style={{ height:5, borderRadius:99, background:'var(--bg-elevated)', overflow:'hidden' }}>
+                        <div style={{ height:'100%', borderRadius:99, width: value!=null ? `${(value/max)*100}%` : '0%', background:`linear-gradient(90deg,${color}88,${color})`, boxShadow:`0 0 5px ${color}44`, transition:'width 1.2s ease' }}/>
+                      </div>
+                    </div>
+                  ))}
+                  {latestLog?.notes && (
+                    <div style={{ padding:'10px 14px', borderRadius:10, background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', fontSize:'0.78rem', color:'var(--text-secondary)', fontStyle:'italic' }}>
+                      Note: &ldquo;{latestLog.notes}&rdquo;
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div style={{ textAlign: 'center', padding: '30px 0', color: 'var(--text-muted)' }}>
-                  <div style={{ fontSize: '2rem', marginBottom: 8 }}>📈</div>
-                  <div style={{ fontWeight: 600 }}>No entries yet</div>
-                  <div style={{ fontSize: '0.82rem', marginTop: 4 }}>Log wellness data to see your trend charts</div>
-                  <button className="btn btn-primary btn-sm" onClick={() => setShowLog(true)} style={{ marginTop: 14 }}>
-                    Log Wellness Now
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Comparison + Goals */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-            <div style={card}>
-              <div style={{ ...cardHdr, borderBottom: '1px solid var(--border-subtle)' }}>
-                <div style={cardTitle}>Position Benchmark</div>
               </div>
-              <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {[
-                  { label: 'vs. Team Average',  you: 81, avg: 74, color: '#10B981' },
-                  { label: 'vs. Academy Best',  you: 81, avg: 94, color: '#6366F1' },
-                  { label: 'vs. Position Avg',  you: 81, avg: 79, color: '#F59E0B' },
-                ].map(({ label, you, avg, color }) => (
-                  <div key={label}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{label}</span>
-                      <span style={{ fontSize: '0.72rem', fontWeight: 700, color: you >= avg ? '#10B981' : '#F59E0B' }}>
-                        {you >= avg ? `+${you - avg}` : `${you - avg}`} pts
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', gap: 4 }}>
-                      <div style={{ flex: you, height: 8, borderRadius: '99px 0 0 99px', background: color }} />
-                      <div style={{ flex: Math.max(0, 100 - you - avg + you), height: 8, background: 'var(--bg-elevated)' }} />
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 3 }}>
-                      <span style={{ fontSize: '0.65rem', color, fontWeight: 700 }}>You: {you}</span>
-                      <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Ref: {avg}</span>
-                    </div>
+
+              {/* Recovery trend */}
+              <div style={card}>
+                <div style={cardHdr}>
+                  <div>
+                    <div style={cardT}>Recovery Trend</div>
+                    <div style={cardS}>Last {trend.length} logged entries</div>
                   </div>
-                ))}
+                </div>
+                <div style={{ padding:'16px 20px' }}>
+                  {trend.length > 0 ? (
+                    <>
+                      <TrendLine values={trend.map(e=>6-e.fatigue)}       color="#10B981" label="Energy (Fatigue inv.)"       badge={latestLog ? `${latestLog.fatigue}/5` : '—'}/>
+                      <TrendLine values={trend.map(e=>6-e.soreness)}      color="#F59E0B" label="Recovery (Soreness inv.)"    badge={latestLog ? `${latestLog.soreness}/5` : '—'}/>
+                      <TrendLine values={trend.map(e=>6-e.sleep_quality)} color="#6366F1" label="Sleep (Quality inv.)"        badge={latestLog ? `${latestLog.sleep_quality}/5` : '—'}/>
+                    </>
+                  ) : (
+                    <div style={{ textAlign:'center', padding:'20px 0', fontSize:'0.82rem', color:'var(--text-muted)' }}>Log multiple entries to see recovery trends.</div>
+                  )}
+                </div>
               </div>
             </div>
 
-            <div style={card}>
-              <div style={{ ...cardHdr, borderBottom: '1px solid var(--border-subtle)' }}>
-                <div style={cardTitle}>Season Goals</div>
+            {/* Right column */}
+            <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+              {/* Overall score gauge */}
+              <div style={{ ...card, padding:'20px 16px', textAlign:'center' }}>
+                <div style={{ fontWeight:700, fontSize:'0.85rem', color:'var(--text-primary)', marginBottom:14 }}>Overall Score</div>
+                <svg viewBox="0 0 100 100" width={100} height={100} style={{ margin:'0 auto', display:'block' }}>
+                  <circle cx={50} cy={50} r={38} fill="none" stroke="var(--bg-elevated)" strokeWidth={9}/>
+                  <circle cx={50} cy={50} r={38} fill="none" stroke={scoreColor(m.overall)} strokeWidth={9}
+                    strokeDasharray={`${(m.overall/100)*239} 239`} strokeLinecap="round" transform="rotate(-90 50 50)"
+                    style={{ transition:'stroke-dasharray 1.5s ease', filter:`drop-shadow(0 0 5px ${scoreColor(m.overall)}88)` }}/>
+                  <text x={50} y={47} textAnchor="middle" fontSize={18} fontWeight="900" fill="var(--text-primary)">{m.overall}</text>
+                  <text x={50} y={60} textAnchor="middle" fontSize={8} fill="var(--text-muted)">/ 100</text>
+                </svg>
+                <span style={{ marginTop:10, display:'inline-block', padding:'3px 12px', borderRadius:99, fontSize:'0.72rem', fontWeight:800, background:`${scoreColor(m.overall)}14`, color:scoreColor(m.overall), border:`1px solid ${scoreColor(m.overall)}28` }}>
+                  {m.overall >= 70 ? 'Fully Fit' : m.overall >= 40 ? 'Moderate' : 'Needs Rest'}
+                </span>
+                <div style={{ fontSize:'0.62rem', color:'var(--text-muted)', marginTop:8 }}>
+                  {latestLog ? `Logged: ${new Date(latestLog.logged_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}` : 'No data yet'}
+                </div>
               </div>
-              <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {[
-                  { goal: 'Zero injury flags',    done: !(logs||[]).some(l => l.is_flagged), color: '#10B981' },
-                  { goal: '30+ wellness logs',    done: (logs||[]).length >= 30,               color: '#6366F1' },
-                  { goal: 'Avg fatigue < 3',      done: latestLog ? latestLog.fatigue <= 3 : false, color: '#F59E0B' },
-                  { goal: 'Consistent sleep 1–2', done: latestLog ? latestLog.sleep_quality <= 2 : false, color: '#3B82F6' },
-                ].map(({ goal, done, color }) => (
-                  <div key={goal} style={{
-                    display: 'flex', alignItems: 'center', gap: 10,
-                    padding: '8px 12px', borderRadius: 8,
-                    background: done ? `${color}10` : 'var(--bg-elevated)',
-                    border: `1px solid ${done ? `${color}30` : 'var(--border-subtle)'}`,
-                  }}>
-                    <div style={{
-                      width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
-                      background: done ? color : 'var(--bg-overlay)',
-                      border: `2px solid ${done ? color : 'var(--border-default)'}`,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                      {done && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
-                    </div>
-                    <span style={{ fontSize: '0.78rem', color: done ? 'var(--text-primary)' : 'var(--text-muted)', fontWeight: done ? 600 : 400 }}>
-                      {goal}
-                    </span>
-                    {done && <span style={{ marginLeft: 'auto', fontSize: '0.65rem', color, fontWeight: 700 }}>Done</span>}
-                  </div>
-                ))}
+
+              {/* Calendar */}
+              <div style={card}>
+                <div style={cardHdr}><div style={cardT}>Log Calendar</div></div>
+                <div style={{ padding:'12px 14px' }}><MiniCal logs={logs||[]}/></div>
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════
+          AI MEDICAL INSIGHTS
+      ════════════════════════════════════════════════════════ */}
+      {tab === 'AI Medical Insights' && (
+        <div style={{ animation:'tabSlideIn 0.25s ease', display:'flex', flexDirection:'column', gap:20 }}>
+
+          {/* Injury risk + assessment */}
+          <div style={{ display:'grid', gridTemplateColumns:'196px 1fr', gap:18 }}>
+            <InjuryRiskWidget risk={latestLog ? m.risk : 'Unknown'}/>
+            <div style={card}>
+              <div style={cardHdr}>
+                <div>
+                  <div style={cardT}>AI Health Assessment</div>
+                  <div style={cardS}>Comprehensive wellness analysis</div>
+                </div>
+                <span style={{ padding:'2px 9px', borderRadius:99, fontSize:'0.62rem', fontWeight:800, background:'rgba(99,102,241,0.12)', color:'#7C3AED', border:'1px solid rgba(99,102,241,0.22)', letterSpacing:'0.1em' }}>AI</span>
+              </div>
+              <div style={{ padding:'14px 20px' }}>
+                {!latestLog ? (
+                  <div style={{ textAlign:'center', padding:'20px 0', color:'var(--text-muted)', fontSize:'0.85rem' }}>Log your wellness to receive AI-powered medical insights.</div>
+                ) : (
+                  <div>
+                    {[
+                      { label:'Energy Level',    pct:m.energy,   color:scoreColor(m.energy)   },
+                      { label:'Sleep Quality',   pct:m.sleep,    color:scoreColor(m.sleep)    },
+                      { label:'Recovery Status', pct:m.recovery, color:scoreColor(m.recovery) },
+                      { label:'Overall Wellness',pct:m.overall,  color:scoreColor(m.overall)  },
+                    ].map(({ label, pct, color }) => (
+                      <div key={label} style={{ marginBottom:12 }}>
+                        <div style={{ display:'flex', justifyContent:'space-between', marginBottom:5 }}>
+                          <span style={{ fontSize:'0.78rem', fontWeight:600, color:'var(--text-secondary)' }}>{label}</span>
+                          <span style={{ fontSize:'0.78rem', fontWeight:800, color }}>{pct}%</span>
+                        </div>
+                        <div style={{ height:4, borderRadius:99, background:'var(--bg-elevated)', overflow:'hidden' }}>
+                          <div style={{ height:'100%', width:`${pct}%`, background:`linear-gradient(90deg,${color}88,${color})`, borderRadius:99, boxShadow:`0 0 6px ${color}44`, transition:'width 1.2s ease' }}/>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Diagnostic alerts */}
+          <div style={card}>
+            <div style={cardHdr}>
+              <div>
+                <div style={cardT}>Diagnostic Alerts & Recommendations</div>
+                <div style={cardS}>Personalised insights from your wellness data</div>
+              </div>
+            </div>
+            <div style={{ padding:'14px 18px', display:'flex', flexDirection:'column', gap:10 }}>
+              {recs.map((r,i) => <AICard key={i} {...r}/>)}
+            </div>
+          </div>
+
+          {/* Recovery protocols */}
+          <div style={card}>
+            <div style={cardHdr}>
+              <div>
+                <div style={cardT}>Recovery Protocols</div>
+                <div style={cardS}>Recommended based on your current load</div>
+              </div>
+            </div>
+            <div style={{ padding:'16px 20px', display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))', gap:12 }}>
+              {[
+                { icon:'🧊', title:'Ice Bath',     duration:'12–15 min', status:'Recommended', color:'#3B82F6', note:'Post high-intensity day' },
+                { icon:'💤', title:'Sleep Target', duration:'8–9 hours', status:'Priority',    color:'#6366F1', note:'Deep sleep > REM ratio'   },
+                { icon:'💧', title:'Hydration',    duration:'3.5 L/day', status:'On Track',    color:'#10B981', note:'Electrolytes after sprint' },
+                { icon:'🧘', title:'Stretching',   duration:'20 min',    status:'Daily',       color:'#F59E0B', note:'Focus on hip flexors'      },
+              ].map(({ icon, title, duration, status, color, note }) => (
+                <div key={title} style={{ padding:'14px 16px', borderRadius:12, background:`${color}08`, border:`1px solid ${color}1E`, backdropFilter:'blur(4px)' }}>
+                  <div style={{ fontSize:'1.5rem', marginBottom:8 }}>{icon}</div>
+                  <div style={{ fontWeight:700, fontSize:'0.85rem', color:'var(--text-primary)' }}>{title}</div>
+                  <div style={{ fontSize:'1rem', fontWeight:900, color, marginTop:2 }}>{duration}</div>
+                  <div style={{ fontSize:'0.68rem', color:'var(--text-muted)', marginTop:4 }}>{note}</div>
+                  <span style={{ display:'inline-block', marginTop:8, padding:'2px 8px', borderRadius:99, fontSize:'0.62rem', fontWeight:700, background:`${color}18`, color }}>{status}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Medical flags */}
+          {latestLog && (latestLog.soreness >= 4 || latestLog.fatigue >= 4 || latestLog.sleep_quality >= 4 || latestLog.is_flagged) && (
+            <div style={{ borderRadius:14, padding:'18px 22px', background:'rgba(239,68,68,0.06)', border:'1px solid rgba(239,68,68,0.18)', backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12 }}>
+                <div style={{ width:36, height:36, borderRadius:8, background:'rgba(239,68,68,0.12)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1.1rem' }}>🚨</div>
+                <div>
+                  <div style={{ fontWeight:800, fontSize:'0.9rem', color:'#EF4444' }}>Medical Attention Flags</div>
+                  <div style={{ fontSize:'0.72rem', color:'var(--text-muted)', marginTop:1 }}>One or more wellness metrics require attention</div>
+                </div>
+              </div>
+              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                {latestLog.soreness >= 4      && <div style={{ fontSize:'0.82rem', color:'var(--text-secondary)', display:'flex', gap:8 }}><span style={{ color:'#EF4444' }}>•</span>High soreness ({latestLog.soreness}/5) — consider active rest or physiotherapy</div>}
+                {latestLog.fatigue >= 4       && <div style={{ fontSize:'0.82rem', color:'var(--text-secondary)', display:'flex', gap:8 }}><span style={{ color:'#EF4444' }}>•</span>High fatigue ({latestLog.fatigue}/5) — reduce sprint load and prioritise recovery</div>}
+                {latestLog.sleep_quality >= 4 && <div style={{ fontSize:'0.82rem', color:'var(--text-secondary)', display:'flex', gap:8 }}><span style={{ color:'#EF4444' }}>•</span>Poor sleep quality ({latestLog.sleep_quality}/5) — notify coaching staff if persistent</div>}
+                {latestLog.is_flagged         && <div style={{ fontSize:'0.82rem', color:'var(--text-secondary)', display:'flex', gap:8 }}><span style={{ color:'#EF4444' }}>•</span>Entry flagged by system — medical review recommended</div>}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════
+          LOGS HISTORY
+      ════════════════════════════════════════════════════════ */}
+      {tab === 'Logs History' && (
+        <div style={{ animation:'tabSlideIn 0.25s ease', display:'flex', flexDirection:'column', gap:20 }}>
+
+          {/* Season hero */}
+          <div style={{ background:'linear-gradient(135deg,#0D1B3E,#1a2d5a)', borderRadius:16, padding:'22px 26px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:20 }}>
+            <div>
+              <div style={{ fontSize:'0.68rem', fontWeight:700, letterSpacing:'0.14em', textTransform:'uppercase', color:'rgba(255,255,255,0.35)', marginBottom:4 }}>Season Progress</div>
+              <div style={{ fontWeight:900, fontSize:'2.5rem', color:'white', lineHeight:1 }}>
+                {(logs||[]).length}<span style={{ fontSize:'1rem', fontWeight:400, color:'rgba(255,255,255,0.3)', marginLeft:4 }}>/ 30 logs</span>
+              </div>
+              <div style={{ marginTop:10, width:260, height:5, borderRadius:99, background:'rgba(255,255,255,0.08)' }}>
+                <div style={{ height:'100%', borderRadius:99, width:`${Math.min(100,((logs||[]).length/30)*100)}%`, background:'linear-gradient(90deg,#6366F1,#10B981)', boxShadow:'0 0 10px rgba(99,102,241,0.5)' }}/>
+              </div>
+            </div>
+            <div style={{ display:'flex', gap:20 }}>
+              {[
+                { label:'Avg Score', value: avgScore ? `${avgScore}%` : '—', color:'#6366F1' },
+                { label:'Total Entries', value: String((logs||[]).length), color:'#10B981' },
+              ].map(({ label, value, color }) => (
+                <div key={label} style={{ textAlign:'center' }}>
+                  <div style={{ fontSize:'1.6rem', fontWeight:900, color }}>{value}</div>
+                  <div style={{ fontSize:'0.62rem', color:'rgba(255,255,255,0.32)', textTransform:'uppercase', letterSpacing:'0.1em' }}>{label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 256px', gap:18 }}>
+
+            {/* Log entries list */}
+            <div style={card}>
+              <div style={cardHdr}>
+                <div>
+                  <div style={cardT}>Wellness Log History</div>
+                  <div style={cardS}>All {(logs||[]).length} recorded entries</div>
+                </div>
+              </div>
+              <div style={{ maxHeight:480, overflowY:'auto' }}>
+                {loading ? (
+                  <div style={{ textAlign:'center', padding:'40px 24px', color:'var(--text-muted)', fontSize:'0.85rem' }}>Loading entries…</div>
+                ) : !(logs||[]).length ? (
+                  <div style={{ textAlign:'center', padding:'40px 24px', color:'var(--text-muted)' }}>
+                    <div style={{ fontSize:'2rem', marginBottom:10 }}>📋</div>
+                    <div style={{ fontSize:'0.85rem' }}>No entries yet. Start logging to build your history.</div>
+                    <button onClick={() => setShowLog(true)} style={{ marginTop:14, padding:'9px 20px', borderRadius:10, border:'none', cursor:'pointer', background:'rgba(99,102,241,0.1)', color:'#7C3AED', fontWeight:700, fontSize:'0.82rem' }}>Log Now</button>
+                  </div>
+                ) : (
+                  <div style={{ padding:'10px 14px', display:'flex', flexDirection:'column', gap:8 }}>
+                    {(logs||[]).map((l, i) => {
+                      const ePct = Math.round(((5-l.fatigue)/4)*100);
+                      const rPct = Math.round(((5-l.soreness)/4)*100);
+                      const sPct = Math.round(((5-l.sleep_quality)/4)*100);
+                      const sc   = Math.round((ePct+rPct+sPct)/3);
+                      const col  = scoreColor(sc);
+                      return (
+                        <div key={l.id||i} style={{ padding:'12px 14px', borderRadius:10, background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', display:'flex', alignItems:'center', gap:14, borderLeft:`3px solid ${col}` }}>
+                          <div style={{ flexShrink:0, textAlign:'center', width:42 }}>
+                            <div style={{ fontWeight:800, fontSize:'1.1rem', color:col }}>{sc}</div>
+                            <div style={{ fontSize:'0.55rem', color:'var(--text-muted)', textTransform:'uppercase' }}>score</div>
+                          </div>
+                          <div style={{ flex:1 }}>
+                            <div style={{ fontSize:'0.82rem', fontWeight:700, color:'var(--text-primary)', marginBottom:4 }}>
+                              {new Date(l.logged_at).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}
+                            </div>
+                            <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+                              {[['Fatigue',l.fatigue,'#10B981'],['Soreness',l.soreness,'#F59E0B'],['Sleep',l.sleep_quality,'#6366F1']].map(([lb,v,c]) => (
+                                <span key={lb} style={{ fontSize:'0.62rem', fontWeight:700, padding:'1px 6px', borderRadius:99, background:`${c}12`, color:c }}>{lb}: {v}/5</span>
+                              ))}
+                              {l.is_flagged && <span style={{ fontSize:'0.62rem', fontWeight:700, padding:'1px 6px', borderRadius:99, background:'rgba(239,68,68,0.12)', color:'#EF4444' }}>⚑ Flagged</span>}
+                            </div>
+                            {l.notes && <div style={{ fontSize:'0.68rem', color:'var(--text-muted)', marginTop:4, fontStyle:'italic' }}>&ldquo;{l.notes}&rdquo;</div>}
+                          </div>
+                          {i===0 && <span style={{ padding:'2px 7px', borderRadius:99, fontSize:'0.6rem', fontWeight:700, background:'rgba(99,102,241,0.12)', color:'#7C3AED' }}>Latest</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Right: calendar + goals */}
+            <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+              <div style={card}>
+                <div style={cardHdr}><div style={cardT}>Log Calendar</div></div>
+                <div style={{ padding:'12px 14px' }}><MiniCal logs={logs||[]}/></div>
+              </div>
+              <div style={card}>
+                <div style={cardHdr}><div style={cardT}>Season Goals</div></div>
+                <div style={{ padding:'12px 14px', display:'flex', flexDirection:'column', gap:8 }}>
+                  {[
+                    { goal:'30+ wellness logs',       done:(logs||[]).length>=30,                                      color:'#6366F1' },
+                    { goal:'Zero injury flags',        done:!(logs||[]).some(l=>l.is_flagged),                          color:'#10B981' },
+                    { goal:'Avg fatigue ≤ 3',          done: latestLog ? latestLog.fatigue<=3 : false,                  color:'#F59E0B' },
+                    { goal:'Consistent sleep ≤ 2',     done: latestLog ? latestLog.sleep_quality<=2 : false,            color:'#3B82F6' },
+                  ].map(({ goal, done, color }) => (
+                    <div key={goal} style={{ display:'flex', alignItems:'center', gap:9, padding:'8px 10px', borderRadius:8, background: done ? `${color}08` : 'var(--bg-elevated)', border:`1px solid ${done ? `${color}22` : 'var(--border-subtle)'}` }}>
+                      <div style={{ width:18, height:18, borderRadius:'50%', flexShrink:0, background: done ? color : 'transparent', border:`2px solid ${done ? color : 'var(--border-default)'}`, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                        {done && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
+                      </div>
+                      <span style={{ fontSize:'0.75rem', color: done ? 'var(--text-primary)' : 'var(--text-muted)', fontWeight: done ? 600 : 400 }}>{goal}</span>
+                      {done && <span style={{ marginLeft:'auto', fontSize:'0.6rem', color, fontWeight:700 }}>✓</span>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {!todayLogged && (
+            <div style={{ borderRadius:14, padding:'18px 22px', background:'linear-gradient(135deg,rgba(99,102,241,0.08),rgba(16,185,129,0.04))', border:'1px solid rgba(99,102,241,0.16)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+              <div>
+                <div style={{ fontWeight:700, fontSize:'0.95rem', color:'var(--text-primary)' }}>Keep your streak going!</div>
+                <div style={{ fontSize:'0.78rem', color:'var(--text-muted)', marginTop:2 }}>Log today to grow your history and improve AI accuracy.</div>
+              </div>
+              <button onClick={() => setShowLog(true)} style={{ padding:'10px 20px', borderRadius:10, border:'none', cursor:'pointer', background:'linear-gradient(135deg,#6366F1,#4F46E5)', color:'white', fontWeight:700, fontSize:'0.85rem', boxShadow:'0 4px 14px rgba(99,102,241,0.3)' }}>Log Today</button>
+            </div>
+          )}
         </div>
       )}
     </div>
   );
 }
-
-// ─── Shared styles ────────────────────────────────────────────────
-const card = {
-  background: 'var(--bg-surface)',
-  border: '1px solid var(--border-subtle)',
-  borderRadius: 14, overflow: 'hidden',
-  boxShadow: 'var(--shadow-sm)',
-};
-const cardHdr = {
-  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-  padding: '14px 20px',
-  background: 'linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%)',
-};
-const cardTitle = { fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' };
-const cardSub   = { fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 2 };
