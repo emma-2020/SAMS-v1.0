@@ -107,14 +107,12 @@ function useClickOutside(ref, handler) {
   }, [ref, handler]);
 }
 
-// ─── Avatar ───────────────────────────────────────────────────
+// ─── Avatar — inline SVG initials, no external API dependency ─
 function UserAvatar({ user, size = 34 }) {
-  const name  = `${user?.first_name ?? ''} ${user?.last_name ?? ''}`.trim();
-  const seed  = encodeURIComponent(name || user?.email || 'user');
   const color = ROLE_COLOR[user?.role] ?? '#7C3AED';
-  const src   = `https://api.dicebear.com/7.x/initials/svg?seed=${seed}&backgroundColor=1e3a5f&fontFamily=Inter&fontSize=38&fontWeight=700&textColor=ffffff&size=64`;
 
   if (user?.avatar_url) {
+    const name = `${user?.first_name ?? ''} ${user?.last_name ?? ''}`.trim();
     return (
       <img
         src={user.avatar_url} alt={name}
@@ -123,24 +121,18 @@ function UserAvatar({ user, size = 34 }) {
     );
   }
 
-  return (
-    <img
-      src={src} alt={name}
-      style={{ width: size, height: size, borderRadius: '50%', border: `2px solid ${color}40`, background: '#1e3a5f' }}
-      onError={e => { e.currentTarget.style.display = 'none'; const n = e.currentTarget.nextSibling; if (n) n.style.display = 'flex'; }}
-    />
-  );
-}
+  const initials = (
+    `${user?.first_name?.[0] ?? ''}${user?.last_name?.[0] ?? ''}`
+  ).toUpperCase() || (user?.email?.[0]?.toUpperCase() ?? '?');
 
-function FallbackAvatar({ user, size = 34 }) {
-  const initials = `${user?.first_name?.[0] ?? ''}${user?.last_name?.[0] ?? ''}`.toUpperCase() || '?';
-  const color = ROLE_COLOR[user?.role] ?? '#7C3AED';
   return (
     <div style={{
-      width: size, height: size, borderRadius: '50%', display: 'flex',
-      alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-      background: `${color}18`, border: `2px solid ${color}35`,
-      fontSize: size * 0.3, fontWeight: 800, color,
+      width: size, height: size, borderRadius: '50%', flexShrink: 0,
+      background: 'linear-gradient(135deg, #1e3a5f, #0f2244)',
+      border: `2px solid ${color}40`,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: Math.round(size * 0.34), fontWeight: 800,
+      color: 'white', letterSpacing: '-0.02em', userSelect: 'none',
     }}>
       {initials}
     </div>
