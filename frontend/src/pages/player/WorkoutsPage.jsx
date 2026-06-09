@@ -180,11 +180,20 @@ export default function PlayerWorkoutsPage() {
           <div style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--text-primary)', marginBottom: 6 }}>
             {filter === 'all' ? 'No workouts assigned yet' : `No ${filter} exercises`}
           </div>
-          <p style={{ color: 'var(--text-muted)', maxWidth: 300, margin: '0 auto', fontSize: '0.875rem' }}>
-            {filter === 'all'
-              ? 'Your coach will assign training plans here. Check back soon!'
-              : 'Adjust the filter to see other exercises.'}
-          </p>
+          {filter === 'all' ? (
+            <>
+              <p style={{ color: 'var(--text-muted)', maxWidth: 300, margin: '0 auto 4px', fontSize: '0.875rem' }}>
+                Your coach will assign training plans here.
+              </p>
+              <p style={{ color: 'var(--text-muted)', maxWidth: 300, margin: '0 auto', fontSize: '0.875rem' }}>
+                Check back soon!
+              </p>
+            </>
+          ) : (
+            <p style={{ color: 'var(--text-muted)', maxWidth: 300, margin: '0 auto', fontSize: '0.875rem' }}>
+              Adjust the filter to see other exercises.
+            </p>
+          )}
         </div>
       )}
 
