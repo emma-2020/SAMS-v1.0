@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { View, Text, ScrollView, Pressable } from '@sams/ui';
+import { View, Text, ScrollView } from '@sams/ui';
 import { SectionCard } from '@sams/ui';
 import { healthApi, scheduleApi, coachApi } from '@sams/api';
 import { useAuthStore } from '@sams/store';
