@@ -258,8 +258,8 @@ export default function AdminSchedulePage() {
                       borderLeft: '1px solid var(--border-subtle)',
                       background: isToday ? 'rgba(99,102,241,0.02)' : 'transparent',
                     }}>
-                      {loading && h === 9 && (
-                        <div className="skeleton" style={{ position: 'absolute', top: 3, left: 3, right: 3, height: 20, borderRadius: 6 }} />
+                      {loading && (h === 9 || h === 14) && (
+                        <div className="skeleton" style={{ position: 'absolute', top: 3, left: 3, right: 3, height: h === 9 ? 40 : 20, borderRadius: 6 }} />
                       )}
                       {!loading && blocks.map(b => {
                         const duration = (b.endH - b.startH) + (b.endM - b.startM) / 60;
