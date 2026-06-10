@@ -89,8 +89,8 @@ export default function PlayerSchedulePage() {
 
   const upcoming      = events.filter(ev => new Date(ev.start_time) >= now);
   const past          = events.filter(ev => new Date(ev.start_time) < now);
-  const matchCount    = events.filter(ev => ev.type === 'match').length;
-  const trainingCount = events.filter(ev => ev.type === 'training').length;
+  const matchCount    = events.filter(ev => ev.type === 'Game').length;
+  const trainingCount = events.filter(ev => ev.type === 'Practice').length;
 
   function prevMonth() {
     if (calMonth === 0) { setCalYear(y => y - 1); setCalMonth(11); }
