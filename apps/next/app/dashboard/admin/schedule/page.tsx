@@ -320,20 +320,15 @@ export default function AdminSchedulePage() {
                             borderRadius: 6, padding: '3px 7px',
                             background: b.color.bg, border: `1px solid ${b.color.border}`,
                             fontSize: '0.72rem', fontWeight: 600, color: b.color.color,
-                            overflow: 'hidden', display: 'flex', alignItems: 'flex-start',
-                            justifyContent: 'space-between', gap: 4, zIndex: 2,
+                            overflow: 'hidden', display: 'flex', flexDirection: 'column',
+                            gap: 2, zIndex: 2,
                           }}>
                             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {b.label}
                             </span>
-                            {b.source === 'local' && (
-                              <button
-                                onClick={() => setLocalBlocks(p => p.filter(x => x.id !== b.id))}
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', padding: 0, flexShrink: 0 }}
-                              >
-                                <IcoX />
-                              </button>
-                            )}
+                            <span style={{ fontSize: '0.64rem', opacity: 0.75, fontWeight: 500 }}>
+                              {b.eventType} · {b.venue}
+                            </span>
                           </div>
                         );
                       })}
