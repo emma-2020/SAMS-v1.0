@@ -160,7 +160,7 @@ export default function AdminSchedulePage() {
         </div>
       </div>
 
-      {/* Add block form */}
+      {/* Add event form */}
       {showForm && (
         <div style={{
           background: 'var(--bg-surface)', border: '1px solid var(--border-default)',
@@ -168,30 +168,46 @@ export default function AdminSchedulePage() {
           padding: '22px 24px', marginBottom: 20,
         }}>
           <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)', marginBottom: 16 }}>
-            Reserve Venue Time
+            Schedule Session
           </div>
           <form onSubmit={addBlock} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12 }}>
+              <div className="field">
+                <label className="field-label">Team</label>
+                <select className="field-input" style={{ height: 42, cursor: 'pointer' }}
+                  value={newBlock.teamId} onChange={e => setNewBlock(p => ({ ...p, teamId: e.target.value }))} required>
+                  <option value="">Select team...</option>
+                  {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
+              </div>
+              <div className="field">
+                <label className="field-label">Type</label>
+                <select className="field-input" style={{ height: 42, cursor: 'pointer' }}
+                  value={newBlock.type} onChange={e => setNewBlock(p => ({ ...p, type: e.target.value as 'Practice' | 'Game' }))}>
+                  <option value="Practice">Practice</option>
+                  <option value="Game">Game</option>
+                </select>
+              </div>
               <div className="field">
                 <label className="field-label">Venue</label>
                 <select className="field-input" style={{ height: 42, cursor: 'pointer' }}
-                  value={newBlock.venue} onChange={e => setNewBlock(p => ({ ...p, venue: e.target.value }))}>
+                  value={newBlock.venue} onChange={e => setNewBlock(p => ({ ...p, venue: e.target.value }))} required>
                   <option value="">Select venue...</option>
                   {VENUES.map(v => <option key={v} value={v}>{v}</option>)}
                 </select>
               </div>
               <div className="field">
-                <label className="field-label">Date</label>
-                <input type="date" className="field-input" style={{ paddingLeft: 14, height: 42 }}
-                  value={newBlock.date} onChange={e => setNewBlock(p => ({ ...p, date: e.target.value }))} />
-              </div>
-              <div className="field">
-                <label className="field-label">Label / Team</label>
+                <label className="field-label">Title</label>
                 <input className="field-input" style={{ paddingLeft: 14, height: 42 }} placeholder="e.g. U16 Training"
-                  value={newBlock.label} onChange={e => setNewBlock(p => ({ ...p, label: e.target.value }))} />
+                  value={newBlock.label} onChange={e => setNewBlock(p => ({ ...p, label: e.target.value }))} required />
               </div>
             </div>
             <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end' }}>
+              <div className="field" style={{ flex: 1 }}>
+                <label className="field-label">Date</label>
+                <input type="date" className="field-input" style={{ paddingLeft: 14, height: 42 }}
+                  value={newBlock.date} onChange={e => setNewBlock(p => ({ ...p, date: e.target.value }))} required />
+              </div>
               <div className="field" style={{ flex: 1 }}>
                 <label className="field-label">Start Time</label>
                 <input type="time" className="field-input" style={{ paddingLeft: 14, height: 42 }}
@@ -202,8 +218,12 @@ export default function AdminSchedulePage() {
                 <input type="time" className="field-input" style={{ paddingLeft: 14, height: 42 }}
                   value={newBlock.end} onChange={e => setNewBlock(p => ({ ...p, end: e.target.value }))} />
               </div>
-              <button type="submit" className="btn btn-primary">Add Block</button>
-              <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
+              <button type="submit" className="btn btn-primary" disabled={saving} style={{ whiteSpace: 'nowrap' }}>
+                {saving ? 'Saving…' : 'Save Session'}
+              </button>
+              <button type="button" className="btn btn-secondary" onClick={() => { setShowForm(false); setNewBlock(BLANK_FORM); }}>
+                Cancel
+              </button>
             </div>
           </form>
         </div>
