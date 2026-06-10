@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { scheduleApi } from '@sams/api';
-import type { ScheduleEvent } from '@sams/api';
+import { scheduleApi, teamsApi } from '@sams/api';
+import type { ScheduleEvent, Team } from '@sams/api';
 
 const VENUES = ['Pitch A', 'Pitch B', 'Indoor Gym', 'Weights Room', 'Court 1'];
 const HOURS  = Array.from({ length: 14 }, (_, i) => i + 7);
@@ -28,27 +28,24 @@ const IcoX = () => (
 
 type ColorEntry = typeof BLOCK_COLORS[0];
 
-interface LocalBlock {
-  id: string; venue: string; label: string; date: string;
-  startH: number; startM: number; endH: number; endM: number;
-  color: ColorEntry; source: 'local';
-}
 interface EventBlock {
   id: string; venue: string; label: string; date: string;
   startH: number; startM: number; endH: number; endM: number;
-  color: ColorEntry; source: 'event';
+  color: ColorEntry; eventType: string;
 }
-type Block = LocalBlock | EventBlock;
+
+const BLANK_FORM = { teamId: '', venue: '', label: '', date: '', start: '09:00', end: '11:00', type: 'Practice' as 'Practice' | 'Game' };
 
 export default function AdminSchedulePage() {
   const today = new Date();
   const [weekOffset, setWeekOffset] = useState(0);
   const [showForm, setShowForm]     = useState(false);
-  const [localBlocks, setLocalBlocks] = useState<LocalBlock[]>([]);
-  const [newBlock, setNewBlock] = useState({ venue: '', label: '', date: '', start: '09:00', end: '11:00' });
-  const [events, setEvents]   = useState<ScheduleEvent[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState('');
+  const [newBlock, setNewBlock]     = useState(BLANK_FORM);
+  const [saving, setSaving]         = useState(false);
+  const [events, setEvents]         = useState<ScheduleEvent[]>([]);
+  const [teams, setTeams]           = useState<Team[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [error, setError]           = useState('');
 
   const weekStart = new Date(today);
   weekStart.setDate(today.getDate() + weekOffset * 7 - today.getDay() + 1);
@@ -58,6 +55,11 @@ export default function AdminSchedulePage() {
     d.setDate(weekStart.getDate() + i);
     return d;
   });
+
+  // Fetch teams once for the form selector
+  useEffect(() => {
+    teamsApi.getTeams().then(setTeams).catch(() => {});
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -70,35 +72,49 @@ export default function AdminSchedulePage() {
 
   const weekDates = new Set(DAYS.map(d => d.toDateString()));
 
-  const allBlocks: Block[] = [
-    ...(events || [])
-      .filter(ev => weekDates.has(new Date(ev.start_time).toDateString()))
-      .map((ev, i): EventBlock => ({
-        id: ev.id, venue: ev.location || 'Unassigned', label: ev.title,
-        date: new Date(ev.start_time).toDateString(),
-        startH: new Date(ev.start_time).getHours(),
-        startM: new Date(ev.start_time).getMinutes(),
-        endH:   new Date(ev.end_time).getHours(),
-        endM:   new Date(ev.end_time).getMinutes(),
-        color:  BLOCK_COLORS[i % BLOCK_COLORS.length],
-        source: 'event',
-      })),
-    ...localBlocks,
-  ];
+  const allBlocks: EventBlock[] = (events || [])
+    .filter(ev => weekDates.has(new Date(ev.start_time).toDateString()))
+    .map((ev, i): EventBlock => ({
+      id: ev.id, venue: ev.location || 'Unassigned', label: ev.title,
+      date: new Date(ev.start_time).toDateString(),
+      startH: new Date(ev.start_time).getHours(),
+      startM: new Date(ev.start_time).getMinutes(),
+      endH:   new Date(ev.end_time).getHours(),
+      endM:   new Date(ev.end_time).getMinutes(),
+      color:  BLOCK_COLORS[i % BLOCK_COLORS.length],
+      eventType: ev.type,
+    }));
 
-  function addBlock(e: React.FormEvent) {
+  async function addBlock(e: React.FormEvent) {
     e.preventDefault();
-    if (!newBlock.venue || !newBlock.label || !newBlock.date) return;
+    if (!newBlock.teamId || !newBlock.venue || !newBlock.label || !newBlock.date) return;
+
     const [sh, sm] = newBlock.start.split(':').map(Number);
     const [eh, em] = newBlock.end.split(':').map(Number);
-    setLocalBlocks(p => [...p, {
-      id: `local-${Date.now()}`, venue: newBlock.venue, label: newBlock.label,
-      date: new Date(newBlock.date).toDateString(),
-      startH: sh, startM: sm, endH: eh, endM: em,
-      color: BLOCK_COLORS[p.length % BLOCK_COLORS.length], source: 'local',
-    }]);
-    setNewBlock({ venue: '', label: '', date: '', start: '09:00', end: '11:00' });
-    setShowForm(false);
+
+    const startDt = new Date(newBlock.date);
+    startDt.setHours(sh, sm, 0, 0);
+    const endDt = new Date(newBlock.date);
+    endDt.setHours(eh, em, 0, 0);
+
+    setSaving(true);
+    try {
+      const created = await scheduleApi.createEvent({
+        team_id:    newBlock.teamId,
+        title:      newBlock.label,
+        type:       newBlock.type,
+        location:   newBlock.venue,
+        start_time: startDt.toISOString(),
+        end_time:   endDt.toISOString(),
+      });
+      setEvents(prev => [...prev, created]);
+      setNewBlock(BLANK_FORM);
+      setShowForm(false);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to save event');
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
