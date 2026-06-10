@@ -236,63 +236,66 @@ export default function AdminSchedulePage() {
               })}
             </div>
 
-            {/* Hour rows */}
-            {loading ? (
-              <div className="skeleton" style={{ height: 400, margin: 16, borderRadius: 8 }} />
-            ) : (
-              HOURS.map(h => (
-                <div key={h} style={{
-                  display: 'grid', gridTemplateColumns: '64px repeat(7, 1fr)',
-                  minHeight: 44, borderBottom: '1px solid var(--border-subtle)',
+            {/* Hour rows — always shown; event blocks appear once loaded */}
+            {HOURS.map(h => (
+              <div key={h} style={{
+                display: 'grid', gridTemplateColumns: '64px repeat(7, 1fr)',
+                minHeight: 44, borderBottom: '1px solid var(--border-subtle)',
+              }}>
+                <div style={{
+                  fontFamily: 'var(--font-mono)', fontSize: '0.68rem', color: 'var(--text-muted)',
+                  padding: '4px 10px 0 0', textAlign: 'right', flexShrink: 0,
                 }}>
-                  <div style={{
-                    fontFamily: 'var(--font-mono)', fontSize: '0.68rem', color: 'var(--text-muted)',
-                    padding: '4px 10px 0 0', textAlign: 'right', flexShrink: 0,
-                  }}>
-                    {String(h).padStart(2, '0')}:00
-                  </div>
-                  {DAYS.map(day => {
-                    const dayStr = day.toDateString();
-                    const blocks = allBlocks.filter(b => b.date === dayStr && b.startH === h);
-                    const isToday = day.toDateString() === today.toDateString();
-                    return (
-                      <div key={day.toISOString()} style={{
-                        position: 'relative', minHeight: 44,
-                        borderLeft: '1px solid var(--border-subtle)',
-                        background: isToday ? 'rgba(99,102,241,0.02)' : 'transparent',
-                      }}>
-                        {blocks.map(b => {
-                          const duration = (b.endH - b.startH) + (b.endM - b.startM) / 60;
-                          return (
-                            <div key={b.id} style={{
-                              position: 'absolute', top: 3, left: 3, right: 3,
-                              minHeight: Math.max(duration * 44 - 6, 20),
-                              borderRadius: 6, padding: '3px 7px',
-                              background: b.color.bg, border: `1px solid ${b.color.border}`,
-                              fontSize: '0.72rem', fontWeight: 600, color: b.color.color,
-                              overflow: 'hidden', display: 'flex', alignItems: 'flex-start',
-                              justifyContent: 'space-between', gap: 4, zIndex: 2,
-                            }}>
-                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {b.label}
-                              </span>
-                              {b.source === 'local' && (
-                                <button
-                                  onClick={() => setLocalBlocks(p => p.filter(x => x.id !== b.id))}
-                                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', padding: 0, flexShrink: 0 }}
-                                >
-                                  <IcoX />
-                                </button>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    );
-                  })}
+                  {String(h).padStart(2, '0')}:00
                 </div>
-              ))
-            )}
+                {DAYS.map(day => {
+                  const dayStr = day.toDateString();
+                  const blocks = allBlocks.filter(b => b.date === dayStr && b.startH === h);
+                  const isToday = day.toDateString() === today.toDateString();
+                  return (
+                    <div key={day.toISOString()} style={{
+                      position: 'relative', minHeight: 44,
+                      borderLeft: '1px solid var(--border-subtle)',
+                      background: isToday ? 'rgba(99,102,241,0.02)' : 'transparent',
+                    }}>
+                      {loading && h === 9 && isToday && (
+                        <div style={{
+                          position: 'absolute', top: 3, left: 3, right: 3, height: 20,
+                          borderRadius: 6, background: 'var(--bg-elevated)',
+                          animation: 'pulse 1.5s ease-in-out infinite',
+                        }} />
+                      )}
+                      {!loading && blocks.map(b => {
+                        const duration = (b.endH - b.startH) + (b.endM - b.startM) / 60;
+                        return (
+                          <div key={b.id} style={{
+                            position: 'absolute', top: 3, left: 3, right: 3,
+                            minHeight: Math.max(duration * 44 - 6, 20),
+                            borderRadius: 6, padding: '3px 7px',
+                            background: b.color.bg, border: `1px solid ${b.color.border}`,
+                            fontSize: '0.72rem', fontWeight: 600, color: b.color.color,
+                            overflow: 'hidden', display: 'flex', alignItems: 'flex-start',
+                            justifyContent: 'space-between', gap: 4, zIndex: 2,
+                          }}>
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {b.label}
+                            </span>
+                            {b.source === 'local' && (
+                              <button
+                                onClick={() => setLocalBlocks(p => p.filter(x => x.id !== b.id))}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', padding: 0, flexShrink: 0 }}
+                              >
+                                <IcoX />
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
           </div>
         </div>
       </div>
