@@ -96,11 +96,12 @@ export interface Exercise {
 
 export interface ScheduleEvent {
   id: string;
+  team_id: string;
   title: string;
   description?: string;
   start_time: string;
   end_time: string;
-  type: 'training' | 'match' | 'meeting' | 'other';
+  type: 'Practice' | 'Game';
   location?: string;
 }
 
