@@ -52,10 +52,11 @@ export default function ParentDashboard() {
     () => healthApi.getAlerts().catch(() => []),
     [], { fallback: [] }
   );
-  const { data: players = [], loading: playersLoading } = useApi(
-    () => coachApi.getPlayers().catch(() => []),
-    [], { fallback: [] }
+  const { data: playersRaw, loading: playersLoading } = useApi(
+    () => coachApi.getPlayers().catch(() => ({ players: [] })),
+    [], { fallback: { players: [] } }
   );
+  const players = Array.isArray(playersRaw) ? playersRaw : (playersRaw?.players ?? []);
 
   const upcoming  = events.slice(0, 5);
   const firstName = user?.first_name ?? 'there';
