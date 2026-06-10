@@ -236,6 +236,20 @@ export default function AdminSchedulePage() {
               })}
             </div>
 
+            {/* Empty state — no events this week and not loading */}
+            {!loading && allBlocks.length === 0 && (
+              <div style={{
+                gridColumn: '1 / -1', padding: '48px 24px',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10,
+              }}>
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="1.5" strokeLinecap="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+                <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>No sessions this week</div>
+                <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Use &ldquo;Block Venue&rdquo; to schedule training sessions</div>
+              </div>
+            )}
+
             {/* Hour rows — always shown; event blocks appear once loaded */}
             {HOURS.map(h => (
               <div key={h} style={{
