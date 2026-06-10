@@ -351,7 +351,11 @@ export default function WorkoutsPage() {
 
   async function load() {
     setLoading(true);
-    try { setAssignments((await workoutApi.getWorkouts()) as unknown as Assignment[]); }
+    try {
+      const raw = await workoutApi.getWorkouts();
+      const list = Array.isArray(raw) ? raw : ((raw as any)?.assignments ?? []);
+      setAssignments(list as Assignment[]);
+    }
     catch (_) {}
     setLoading(false);
   }
