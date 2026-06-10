@@ -1,8 +1,7 @@
 {
+  "/dashboard/admin/schedule/page": "app/dashboard/admin/schedule/page.js",
   "/dashboard/admin/page": "app/dashboard/admin/page.js",
-  "/dashboard/player/schedule/page": "app/dashboard/player/schedule/page.js",
-  "/dashboard/coach/page": "app/dashboard/coach/page.js",
-  "/dashboard/player/workouts/page": "app/dashboard/player/workouts/page.js",
-  "/dashboard/player/page": "app/dashboard/player/page.js",
-  "/dashboard/admin/schedule/page": "app/dashboard/admin/schedule/page.js"
+  "/dashboard/admin/invite/page": "app/dashboard/admin/invite/page.js",
+  "/dashboard/admin/teams/page": "app/dashboard/admin/teams/page.js",
+  "/dashboard/admin/chat/page": "app/dashboard/admin/chat/page.js"
 }

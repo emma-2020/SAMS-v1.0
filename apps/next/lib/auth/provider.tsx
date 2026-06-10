@@ -76,9 +76,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 /**
  * Client component that enforces auth on protected routes.
  * Redirects unauthenticated users to /login, preserving the attempted path.
+ *
+ * Renders children immediately when a cached session exists in the store so
+ * page-level data fetches start in parallel with the background /me check,
+ * eliminating the auth-gate → data-fetch sequential waterfall.
+ * If the token is stale the onUnauthorized handler in AuthProvider redirects.
  */
 export function ProtectedGuard({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isInitialised } = useAuthStore();
+  const { isAuthenticated, isInitialised, session } = useAuthStore();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -89,7 +94,12 @@ export function ProtectedGuard({ children }: { children: React.ReactNode }) {
     }
   }, [isInitialised, isAuthenticated, pathname, router]);
 
-  if (!isInitialised) {
+  // If a persisted session exists, render the app immediately instead of
+  // blocking behind the /me round-trip. The background auth check still runs;
+  // an expired token will hit onUnauthorized and redirect to /login.
+  const hasCachedSession = !!session?.access_token;
+
+  if (!isInitialised && !hasCachedSession) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F8FAFC' }}>
         <div style={{ width: 32, height: 32, borderRadius: '50%', border: '3px solid #E2E8F0', borderTopColor: '#6366F1', animation: 'spin 0.7s linear infinite' }} />
@@ -97,7 +107,7 @@ export function ProtectedGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!isAuthenticated) return null;
+  if (isInitialised && !isAuthenticated) return null;
   return <>{children}</>;
 }
 
