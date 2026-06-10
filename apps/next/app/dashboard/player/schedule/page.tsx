@@ -12,13 +12,12 @@ const DAYS = ['Su','Mo','Tu','We','Th','Fr','Sa'];
 
 // ─── Type metadata ────────────────────────────────────────────────────────────
 const TYPE_META: Record<string, { color: string; bg: string; icon: string; label: string }> = {
-  match:    { color: '#EF4444', bg: 'rgba(239,68,68,0.12)',   icon: '⚽', label: 'Match'    },
-  training: { color: '#6366F1', bg: 'rgba(99,102,241,0.12)', icon: '🏃', label: 'Training' },
-  meeting:  { color: '#7C3AED', bg: 'rgba(124,58,237,0.12)', icon: '📋', label: 'Meeting'  },
-  other:    { color: '#6366F1', bg: 'rgba(99,102,241,0.12)', icon: '📅', label: 'Session'  },
+  Practice: { color: '#6366F1', bg: 'rgba(99,102,241,0.12)',  icon: '🏃', label: 'Practice' },
+  Game:     { color: '#EF4444', bg: 'rgba(239,68,68,0.12)',   icon: '⚽', label: 'Game'     },
 };
+const DEFAULT_META = { color: '#6366F1', bg: 'rgba(99,102,241,0.12)', icon: '📅', label: 'Session' };
 function typeMeta(t: string) {
-  return TYPE_META[t?.toLowerCase()] ?? TYPE_META.other;
+  return TYPE_META[t] ?? DEFAULT_META;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
