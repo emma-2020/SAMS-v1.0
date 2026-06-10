@@ -38,11 +38,12 @@ export function ParentDashboardScreen() {
     Promise.all([
       healthApi.getHealthAlerts().catch((): HealthEntry[]   => []),
       scheduleApi.getEvents()    .catch((): ScheduleEvent[] => []),
-      coachApi.getPlayers()      .catch((): Player[]        => []),
+      coachApi.getPlayers()      .catch(() => ({ players: [] as Player[] })),
     ]).then(([a, e, p]) => {
       setAlerts(a);
       setEvents(e.slice(0, 5));
-      setPlayers(p);
+      const playerArr: Player[] = Array.isArray(p) ? p : ((p as any)?.players ?? []);
+      setPlayers(playerArr);
     }).finally(() => setLoading(false));
   }, []);
 
