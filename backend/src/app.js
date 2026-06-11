@@ -18,6 +18,8 @@ const teamsRoutes             = require('./routes/teams.routes');
 const workoutRoutes           = require('./routes/workout.routes');
 const coachRoutes             = require('./routes/coach.routes');
 const notificationsRoutes     = require('./routes/notifications.routes');
+const platformRoutes          = require('./routes/platform.routes');
+const publicRoutes            = require('./routes/public.routes');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
 
 const app = express();
