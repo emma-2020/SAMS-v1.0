@@ -1,6 +1,6 @@
 import { apiClient } from './client';
 
-const PLATFORM_TOKEN_KEY = 'sams_platform_token';
+const PLATFORM_TOKEN_KEY = 'sams-platform-admin-token';
 
 // ── Token helpers ─────────────────────────────────────────────────
 export function getPlatformToken(): string | null {
