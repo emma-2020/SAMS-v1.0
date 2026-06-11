@@ -27,6 +27,7 @@ async function login(email, password) {
     .single();
 
   if (error || !admin) {
+    console.error('[platform.login] FAIL — error:', JSON.stringify(error), '| admin:', admin);
     throw new UnauthorizedError('Invalid credentials.');
   }
 

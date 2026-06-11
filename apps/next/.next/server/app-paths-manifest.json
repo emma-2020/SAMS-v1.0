@@ -1,3 +1,6 @@
 {
-  "/platform/login/page": "app/platform/login/page.js"
+  "/platform/login/page": "app/platform/login/page.js",
+  "/platform/academies/page": "app/platform/academies/page.js",
+  "/platform/requests/page": "app/platform/requests/page.js",
+  "/platform/dashboard/page": "app/platform/dashboard/page.js"
 }
