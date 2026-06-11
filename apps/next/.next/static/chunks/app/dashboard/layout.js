@@ -8163,4 +8163,6 @@ eval(__webpack_require__.ts("__webpack_require__.r(__webpack_exports__);\n/* har
 /******/ var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId); }
 /******/ __webpack_require__.O(0, ["main-app"], function() { return __webpack_exec__("(app-pages-browser)/../../node_modules/.pnpm/next@14.2.5_@babel+core@7.29.7_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/build/webpack/loaders/next-flight-client-entry-loader.js?modules=%7B%22request%22%3A%22C%3A%5C%5CUsers%5C%5Cbenja%5C%5CSAMS-v1.0-FIXED%5C%5CSAMS-v1.0%5C%5Capps%5C%5Cnext%5C%5Capp%5C%5Cdashboard%5C%5Clayout.tsx%22%2C%22ids%22%3A%5B%5D%7D&server=false!"); });
 /******/ var __webpack_exports__ = __webpack_require__.O();
-/******/ _N_E
+/******/ _N_E = __webpack_exports__;
+/******/ }
+]);

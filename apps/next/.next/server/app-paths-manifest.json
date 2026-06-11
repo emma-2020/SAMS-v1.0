@@ -1,7 +1,7 @@
 {
-  "/dashboard/coach/workouts/page": "app/dashboard/coach/workouts/page.js",
   "/dashboard/coach/page": "app/dashboard/coach/page.js",
   "/dashboard/coach/health/page": "app/dashboard/coach/health/page.js",
+  "/dashboard/coach/workouts/page": "app/dashboard/coach/workouts/page.js",
   "/dashboard/coach/players/page": "app/dashboard/coach/players/page.js",
   "/dashboard/coach/chat/page": "app/dashboard/coach/chat/page.js"
 }
