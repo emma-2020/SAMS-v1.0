@@ -33,6 +33,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     },
     onUnauthorized: (expiredToken?: string) => {
+      // Platform routes manage their own auth — never redirect them to the tenant login.
+      if (pathname.startsWith('/platform')) return;
       // Guard against a race condition: AuthProvider.validate() fires GET /api/auth/me
       // with a stale cached token on app mount. If the user logs in with fresh credentials
       // before that background 401 resolves, the new session must not be wiped.
@@ -47,6 +49,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Revalidate persisted session on mount
   useEffect(() => {
     if (isInitialised) return;
+
+    // Platform routes use their own token (sams-platform-admin-token) and their
+    // own layout guard. Running the tenant /me check here would send the tenant
+    // JWT to /api/auth/me, get a 401, and incorrectly fire onUnauthorized.
+    if (pathname.startsWith('/platform')) {
+      setInitialised();
+      return;
+    }
 
     const validate = async () => {
       if (!session?.access_token) {
