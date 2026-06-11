@@ -20,14 +20,25 @@ async function login(email, password) {
     throw new BadRequestError('Email and password are required.');
   }
 
-  const { data: admin, error } = await supabaseAdmin
-    .from('platform_admins')
-    .select('id, name, email, password_hash, is_active')
-    .eq('email', email.toLowerCase().trim())
-    .single();
+  // Retry up to 3 times to handle transient Supabase connection issues
+  let admin = null;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    const { data, error } = await supabaseAdmin
+      .from('platform_admins')
+      .select('id, name, email, password_hash, is_active')
+      .eq('email', email.toLowerCase().trim())
+      .maybeSingle();
 
-  if (error || !admin) {
-    console.error('[platform.login] FAIL — error:', JSON.stringify(error), '| admin:', admin);
+    if (!error) { admin = data; break; }
+
+    // PGRST116 = no rows — stop retrying, it's not a transient error
+    if (error.code === 'PGRST116') break;
+
+    // Transient error — wait and retry
+    if (attempt < 3) await new Promise(r => setTimeout(r, 300 * attempt));
+  }
+
+  if (!admin) {
     throw new UnauthorizedError('Invalid credentials.');
   }
 
