@@ -36,32 +36,6 @@ const TABS = [
   },
 ];
 
-function StatusPill({ status }: { status: 'pending' | 'approved' | 'rejected' }) {
-  const map = {
-    pending:  { bg: 'rgba(245,158,11,0.12)',  border: 'rgba(245,158,11,0.25)',  color: '#FBBF24', glow: 'rgba(245,158,11,0.25)',  label: 'Pending'  },
-    approved: { bg: 'rgba(16,185,129,0.12)',  border: 'rgba(16,185,129,0.25)', color: '#34D399', glow: 'rgba(16,185,129,0.25)',  label: 'Approved' },
-    rejected: { bg: 'rgba(239,68,68,0.12)',   border: 'rgba(239,68,68,0.25)',  color: '#F87171', glow: 'rgba(239,68,68,0.25)',   label: 'Rejected' },
-  };
-  const s = map[status];
-  return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 5,
-      padding: '4px 11px', borderRadius: 99,
-      fontSize: '0.72rem', fontWeight: 700,
-      background: s.bg, color: s.color,
-      border: `1px solid ${s.border}`,
-      boxShadow: `0 0 10px ${s.glow}`,
-    }}>
-      <span style={{
-        width: 5, height: 5, borderRadius: '50%',
-        background: s.color, display: 'inline-block',
-        boxShadow: `0 0 4px ${s.color}`,
-      }} />
-      {s.label}
-    </span>
-  );
-}
-
 export default function RequestsPage() {
   const router = useRouter();
   const [tab,      setTab]      = useState<'pending' | 'approved' | 'rejected'>('pending');
