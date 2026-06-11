@@ -71,6 +71,8 @@ app.use('/api/teams',         apiLimiter,  teamsRoutes);
 app.use('/api/workouts',      apiLimiter,  workoutRoutes);
 app.use('/api/coach',         apiLimiter,  coachRoutes);
 app.use('/api/notifications', apiLimiter,  notificationsRoutes);
+app.use('/api/platform',     apiLimiter,  platformRoutes);
+app.use('/api/public',                    publicRoutes);   // has its own per-route limiter
 
 app.use(notFound);
 app.use(errorHandler);
