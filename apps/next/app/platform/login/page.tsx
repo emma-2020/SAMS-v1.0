@@ -5,8 +5,6 @@ import { useRouter } from 'next/navigation';
 import { platformApi } from '@sams/api';
 import { setPlatformToken } from '@sams/api';
 
-const NAVY = '#0D1B3E';
-
 export default function PlatformLoginPage() {
   const router = useRouter();
   const [email,    setEmail]    = useState('');
@@ -31,55 +29,100 @@ export default function PlatformLoginPage() {
 
   return (
     <div style={{
-      minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: `linear-gradient(135deg, ${NAVY} 0%, #172B5E 60%, #1E3A7F 100%)`,
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: 'radial-gradient(ellipse at 65% 30%, #1a0533 0%, #08091C 55%, #060B14 100%)',
       padding: 24,
+      position: 'relative',
+      overflow: 'hidden',
     }}>
-      {/* decorative circles */}
-      <div style={{ position: 'fixed', top: -120, right: -120, width: 400, height: 400, borderRadius: '50%', background: 'rgba(255,255,255,0.03)', pointerEvents: 'none' }} />
-      <div style={{ position: 'fixed', bottom: -80, left: -80, width: 300, height: 300, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
-
+      {/* Ambient orbs */}
       <div style={{
-        width: '100%', maxWidth: 420,
-        background: '#fff', borderRadius: 20,
-        boxShadow: '0 32px 80px rgba(0,0,0,0.35)',
+        position: 'fixed', top: '-8%', right: '-6%',
+        width: 520, height: 520, borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(124,58,237,0.22) 0%, transparent 68%)',
+        filter: 'blur(48px)', pointerEvents: 'none',
+      }} />
+      <div style={{
+        position: 'fixed', bottom: '-10%', left: '-5%',
+        width: 400, height: 400, borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(236,72,153,0.16) 0%, transparent 68%)',
+        filter: 'blur(48px)', pointerEvents: 'none',
+      }} />
+      <div style={{
+        position: 'fixed', top: '55%', left: '28%',
+        width: 260, height: 260, borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(99,102,241,0.1) 0%, transparent 68%)',
+        filter: 'blur(60px)', pointerEvents: 'none',
+      }} />
+
+      {/* Glassmorphic card */}
+      <div style={{
+        width: '100%', maxWidth: 440,
+        background: 'rgba(8,12,28,0.88)',
+        backdropFilter: 'blur(32px)',
+        WebkitBackdropFilter: 'blur(32px)',
+        borderRadius: 24,
+        border: '1px solid rgba(139,92,246,0.2)',
+        boxShadow: '0 48px 120px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.07)',
         overflow: 'hidden',
       }}>
         {/* Header */}
-        <div style={{ background: NAVY, padding: '32px 36px 28px' }}>
+        <div style={{
+          padding: '36px 40px 28px',
+          borderBottom: '1px solid rgba(255,255,255,0.06)',
+        }}>
           <div style={{
-            display: 'inline-block',
-            background: 'rgba(255,255,255,0.12)',
-            border: '1px solid rgba(255,255,255,0.2)',
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            background: 'rgba(124,58,237,0.12)',
+            border: '1px solid rgba(124,58,237,0.28)',
             borderRadius: 6, padding: '3px 10px',
-            color: 'rgba(255,255,255,0.8)',
-            fontSize: '0.62rem', fontWeight: 800,
+            color: '#A78BFA',
+            fontSize: '0.6rem', fontWeight: 800,
             letterSpacing: '0.16em', textTransform: 'uppercase',
-            marginBottom: 14,
-          }}>PLATFORM ADMIN</div>
-          <h1 style={{ color: '#fff', fontSize: '1.5rem', fontWeight: 900, margin: 0, letterSpacing: -0.5 }}>
+            marginBottom: 16,
+          }}>
+            <span style={{
+              width: 5, height: 5, borderRadius: '50%',
+              background: '#8B5CF6',
+              boxShadow: '0 0 6px #8B5CF6',
+              display: 'inline-block',
+            }} />
+            PLATFORM ADMIN
+          </div>
+          <h1 style={{
+            color: '#F1F5F9', fontSize: '1.65rem',
+            fontWeight: 900, margin: 0, letterSpacing: -0.6,
+          }}>
             SAMS Control Plane
           </h1>
-          <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem', margin: '6px 0 0' }}>
+          <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.85rem', margin: '7px 0 0' }}>
             Platform operator access only
           </p>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} style={{ padding: '32px 36px' }}>
+        <form onSubmit={handleSubmit} style={{ padding: '34px 40px 38px' }}>
           {error && (
             <div style={{
-              background: '#FEF2F2', border: '1px solid #FECACA',
+              background: 'rgba(239,68,68,0.1)',
+              border: '1px solid rgba(239,68,68,0.28)',
               borderRadius: 10, padding: '12px 16px',
-              color: '#DC2626', fontSize: '0.85rem',
-              marginBottom: 20,
+              color: '#F87171', fontSize: '0.85rem',
+              marginBottom: 22,
             }}>
               {error}
             </div>
           )}
 
-          <div style={{ marginBottom: 18 }}>
-            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#374151', marginBottom: 6, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+          <div style={{ marginBottom: 20 }}>
+            <label style={{
+              display: 'block', fontSize: '0.68rem', fontWeight: 700,
+              color: 'rgba(255,255,255,0.4)', marginBottom: 8,
+              letterSpacing: '0.1em', textTransform: 'uppercase',
+            }}>
               Email
             </label>
             <input
@@ -89,19 +132,33 @@ export default function PlatformLoginPage() {
               required
               autoFocus
               style={{
-                width: '100%', padding: '11px 14px', borderRadius: 10,
-                border: '1.5px solid #E5E7EB', fontSize: '0.9rem',
+                width: '100%', padding: '12px 16px', borderRadius: 12,
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.09)',
+                color: '#F1F5F9', fontSize: '0.9rem',
                 outline: 'none', boxSizing: 'border-box',
-                transition: 'border-color 0.15s',
+                transition: 'all 0.2s',
               }}
-              onFocus={e => { e.target.style.borderColor = NAVY; }}
-              onBlur={e =>  { e.target.style.borderColor = '#E5E7EB'; }}
+              onFocus={e => {
+                e.target.style.borderColor = 'rgba(124,58,237,0.65)';
+                e.target.style.boxShadow = '0 0 0 3px rgba(124,58,237,0.18)';
+                e.target.style.background = 'rgba(124,58,237,0.07)';
+              }}
+              onBlur={e => {
+                e.target.style.borderColor = 'rgba(255,255,255,0.09)';
+                e.target.style.boxShadow = 'none';
+                e.target.style.background = 'rgba(255,255,255,0.05)';
+              }}
               placeholder="platform@sams.io"
             />
           </div>
 
-          <div style={{ marginBottom: 28 }}>
-            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#374151', marginBottom: 6, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+          <div style={{ marginBottom: 30 }}>
+            <label style={{
+              display: 'block', fontSize: '0.68rem', fontWeight: 700,
+              color: 'rgba(255,255,255,0.4)', marginBottom: 8,
+              letterSpacing: '0.1em', textTransform: 'uppercase',
+            }}>
               Password
             </label>
             <input
@@ -110,13 +167,23 @@ export default function PlatformLoginPage() {
               onChange={e => setPassword(e.target.value)}
               required
               style={{
-                width: '100%', padding: '11px 14px', borderRadius: 10,
-                border: '1.5px solid #E5E7EB', fontSize: '0.9rem',
+                width: '100%', padding: '12px 16px', borderRadius: 12,
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.09)',
+                color: '#F1F5F9', fontSize: '0.9rem',
                 outline: 'none', boxSizing: 'border-box',
-                transition: 'border-color 0.15s',
+                transition: 'all 0.2s',
               }}
-              onFocus={e => { e.target.style.borderColor = NAVY; }}
-              onBlur={e =>  { e.target.style.borderColor = '#E5E7EB'; }}
+              onFocus={e => {
+                e.target.style.borderColor = 'rgba(124,58,237,0.65)';
+                e.target.style.boxShadow = '0 0 0 3px rgba(124,58,237,0.18)';
+                e.target.style.background = 'rgba(124,58,237,0.07)';
+              }}
+              onBlur={e => {
+                e.target.style.borderColor = 'rgba(255,255,255,0.09)';
+                e.target.style.boxShadow = 'none';
+                e.target.style.background = 'rgba(255,255,255,0.05)';
+              }}
               placeholder="••••••••"
             />
           </div>
@@ -125,18 +192,40 @@ export default function PlatformLoginPage() {
             type="submit"
             disabled={loading}
             style={{
-              width: '100%', padding: '13px',
-              background: loading ? '#6B7280' : NAVY,
-              color: '#fff', border: 'none', borderRadius: 10,
-              fontSize: '0.95rem', fontWeight: 800,
+              width: '100%', padding: '14px',
+              background: loading
+                ? 'rgba(255,255,255,0.07)'
+                : 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 45%, #BE185D 100%)',
+              color: loading ? 'rgba(255,255,255,0.3)' : '#fff',
+              border: 'none', borderRadius: 12,
+              fontSize: '0.92rem', fontWeight: 800,
               cursor: loading ? 'not-allowed' : 'pointer',
-              letterSpacing: '0.02em', transition: 'background 0.15s',
+              letterSpacing: '0.04em',
+              transition: 'all 0.2s',
+              boxShadow: loading ? 'none' : '0 8px 36px rgba(109,40,217,0.45)',
+              transform: 'translateY(0)',
+            }}
+            onMouseEnter={e => {
+              if (!loading) {
+                (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-2px) scale(1.01)';
+                (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 14px 44px rgba(109,40,217,0.6)';
+              }
+            }}
+            onMouseLeave={e => {
+              if (!loading) {
+                (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0) scale(1)';
+                (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 8px 36px rgba(109,40,217,0.45)';
+              }
             }}
           >
-            {loading ? 'Signing in…' : 'Sign in to Control Plane'}
+            {loading ? 'Authenticating…' : 'Sign in to Control Plane'}
           </button>
 
-          <p style={{ textAlign: 'center', fontSize: '0.78rem', color: '#9CA3AF', marginTop: 20 }}>
+          <p style={{
+            textAlign: 'center', fontSize: '0.72rem',
+            color: 'rgba(255,255,255,0.2)', marginTop: 22,
+            letterSpacing: '0.02em',
+          }}>
             This portal is restricted to authorised SAMS operators.
           </p>
         </form>
