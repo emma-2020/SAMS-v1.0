@@ -5,17 +5,66 @@ import { useRouter } from 'next/navigation';
 import { platformApi } from '@sams/api';
 import type { EnrollmentRequest } from '@sams/api';
 
-const NAVY = '#0D1B3E';
+const DARK_CARD: React.CSSProperties = {
+  background: 'rgba(255,255,255,0.03)',
+  borderRadius: 18,
+  border: '1px solid rgba(255,255,255,0.07)',
+  boxShadow: '0 4px 24px rgba(0,0,0,0.35)',
+};
 
 const TABS = [
-  { key: 'pending',  label: 'Pending',  color: '#D97706', bg: '#FEF3C7' },
-  { key: 'approved', label: 'Approved', color: '#059669', bg: '#ECFDF5' },
-  { key: 'rejected', label: 'Rejected', color: '#EF4444', bg: '#FEF2F2' },
+  {
+    key: 'pending',
+    label: 'Pending',
+    activeBg:     'rgba(245,158,11,0.1)',
+    activeBorder: 'rgba(245,158,11,0.25)',
+    activeColor:  '#FBBF24',
+  },
+  {
+    key: 'approved',
+    label: 'Approved',
+    activeBg:     'rgba(16,185,129,0.1)',
+    activeBorder: 'rgba(16,185,129,0.25)',
+    activeColor:  '#34D399',
+  },
+  {
+    key: 'rejected',
+    label: 'Rejected',
+    activeBg:     'rgba(239,68,68,0.1)',
+    activeBorder: 'rgba(239,68,68,0.25)',
+    activeColor:  '#F87171',
+  },
 ];
+
+function StatusPill({ status }: { status: 'pending' | 'approved' | 'rejected' }) {
+  const map = {
+    pending:  { bg: 'rgba(245,158,11,0.12)',  border: 'rgba(245,158,11,0.25)',  color: '#FBBF24', glow: 'rgba(245,158,11,0.25)',  label: 'Pending'  },
+    approved: { bg: 'rgba(16,185,129,0.12)',  border: 'rgba(16,185,129,0.25)', color: '#34D399', glow: 'rgba(16,185,129,0.25)',  label: 'Approved' },
+    rejected: { bg: 'rgba(239,68,68,0.12)',   border: 'rgba(239,68,68,0.25)',  color: '#F87171', glow: 'rgba(239,68,68,0.25)',   label: 'Rejected' },
+  };
+  const s = map[status];
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 5,
+      padding: '4px 11px', borderRadius: 99,
+      fontSize: '0.72rem', fontWeight: 700,
+      background: s.bg, color: s.color,
+      border: `1px solid ${s.border}`,
+      boxShadow: `0 0 10px ${s.glow}`,
+    }}>
+      <span style={{
+        width: 5, height: 5, borderRadius: '50%',
+        background: s.color, display: 'inline-block',
+        boxShadow: `0 0 4px ${s.color}`,
+      }} />
+      {s.label}
+    </span>
+  );
+}
 
 export default function RequestsPage() {
   const router = useRouter();
-  const [tab,      setTab]      = useState<'pending'|'approved'|'rejected'>('pending');
+  const [tab,      setTab]      = useState<'pending' | 'approved' | 'rejected'>('pending');
   const [requests, setRequests] = useState<EnrollmentRequest[]>([]);
   const [loading,  setLoading]  = useState(true);
 
@@ -27,66 +76,94 @@ export default function RequestsPage() {
       .finally(() => setLoading(false));
   }, [tab]);
 
-  const activeTab = TABS.find(t => t.key === tab)!;
+  const emptyIcons: Record<string, string> = {
+    pending:  '📋',
+    approved: '✓',
+    rejected: '✕',
+  };
 
   return (
     <div>
       {/* Header */}
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 900, color: NAVY, margin: 0, letterSpacing: -0.5 }}>
+      <div style={{ marginBottom: 28 }}>
+        <h1 style={{ fontSize: '1.75rem', fontWeight: 900, color: '#F1F5F9', margin: 0, letterSpacing: -0.8 }}>
           Enrollment Requests
         </h1>
-        <p style={{ color: '#64748B', fontSize: '0.875rem', marginTop: 4 }}>
+        <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.875rem', marginTop: 5 }}>
           Review, approve, or reject academy enrollment requests.
         </p>
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-        {TABS.map(t => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key as any)}
-            style={{
-              padding: '8px 18px', borderRadius: 99, border: 'none',
-              cursor: 'pointer', fontSize: '0.82rem', fontWeight: 700,
-              transition: 'all 0.15s',
-              background: tab === t.key ? t.bg : '#F1F5F9',
-              color:      tab === t.key ? t.color : '#64748B',
-            }}
-          >
-            {t.label}
-          </button>
-        ))}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 22 }}>
+        {TABS.map(t => {
+          const active = tab === t.key;
+          return (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key as any)}
+              style={{
+                padding: '8px 20px', borderRadius: 99,
+                cursor: 'pointer', fontSize: '0.82rem', fontWeight: 700,
+                transition: 'all 0.15s',
+                background: active ? t.activeBg : 'rgba(255,255,255,0.05)',
+                color:      active ? t.activeColor : 'rgba(255,255,255,0.38)',
+                border:     active ? `1px solid ${t.activeBorder}` : '1px solid rgba(255,255,255,0.08)',
+                boxShadow:  active ? `0 0 12px ${t.activeBg}` : 'none',
+              }}
+            >
+              {t.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Table */}
-      <div style={{
-        background: '#fff', borderRadius: 16,
-        border: '1px solid #F1F5F9',
-        boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
-        overflow: 'hidden',
-      }}>
+      <div style={{ ...DARK_CARD, padding: 0, overflow: 'hidden' }}>
         {/* Column headers */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: tab === 'pending' ? '2fr 1.5fr 1fr 1fr 1fr' : '2fr 1.5fr 1fr 1fr 1.2fr',
-          padding: '10px 24px', background: '#F8FAFC',
-          borderBottom: '1px solid #F1F5F9',
+          padding: '11px 26px',
+          background: 'rgba(255,255,255,0.02)',
+          borderBottom: '1px solid rgba(255,255,255,0.05)',
         }}>
           {['ACADEMY', 'CONTACT', 'SPORT', 'SUBMITTED',
-            tab === 'pending' ? 'ACTIONS' : tab === 'approved' ? 'PROVISIONED' : 'REASON'
+            tab === 'pending' ? 'ACTIONS' : tab === 'approved' ? 'PROVISIONED' : 'REASON',
           ].map(h => (
-            <span key={h} style={{ fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.1em', color: '#94A3B8', textTransform: 'uppercase' }}>{h}</span>
+            <span key={h} style={{
+              fontSize: '0.6rem', fontWeight: 800,
+              letterSpacing: '0.12em',
+              color: 'rgba(255,255,255,0.28)',
+              textTransform: 'uppercase',
+            }}>{h}</span>
           ))}
         </div>
 
         {loading ? (
-          <div style={{ padding: '28px 24px', color: '#94A3B8', fontSize: '0.875rem' }}>Loading…</div>
+          <div style={{ padding: '28px 26px', color: 'rgba(255,255,255,0.35)', fontSize: '0.875rem' }}>
+            Loading…
+          </div>
         ) : requests.length === 0 ? (
-          <div style={{ padding: '48px 24px', textAlign: 'center' }}>
-            <p style={{ fontWeight: 700, color: '#475569', fontSize: '0.9rem', margin: 0 }}>
+          <div style={{ padding: '70px 26px', textAlign: 'center' }}>
+            <div style={{
+              width: 60, height: 60, borderRadius: 18,
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '1.4rem', margin: '0 auto 16px',
+            }}>
+              {emptyIcons[tab]}
+            </div>
+            <p style={{ fontWeight: 700, color: '#F1F5F9', fontSize: '0.9rem', margin: 0 }}>
               No {tab} requests
+            </p>
+            <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.32)', marginTop: 6 }}>
+              {tab === 'pending'
+                ? 'New enrollment submissions will appear here.'
+                : tab === 'approved'
+                ? 'Approved academies will be listed here.'
+                : 'Rejected requests will be listed here.'}
             </p>
           </div>
         ) : (
@@ -96,54 +173,73 @@ export default function RequestsPage() {
               style={{
                 display: 'grid',
                 gridTemplateColumns: tab === 'pending' ? '2fr 1.5fr 1fr 1fr 1fr' : '2fr 1.5fr 1fr 1fr 1.2fr',
-                padding: '14px 24px', borderBottom: '1px solid #F1F5F9',
-                alignItems: 'center', transition: 'background 0.12s',
+                padding: '14px 26px',
+                borderBottom: '1px solid rgba(255,255,255,0.04)',
+                alignItems: 'center',
+                transition: 'background 0.12s',
               }}
-              onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = '#F8FAFC'; }}
+              onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.03)'; }}
               onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
             >
               {/* Academy */}
               <div>
-                <p style={{ fontSize: '0.875rem', fontWeight: 700, color: NAVY, margin: 0 }}>
+                <p style={{ fontSize: '0.875rem', fontWeight: 700, color: '#F1F5F9', margin: 0 }}>
                   {req.academy_name}
                 </p>
-                <p style={{ fontSize: '0.72rem', color: '#94A3B8', marginTop: 1 }}>
+                <p style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.32)', marginTop: 2 }}>
                   {req.contact_email}
                 </p>
               </div>
 
               {/* Contact */}
-              <p style={{ fontSize: '0.85rem', color: '#475569', margin: 0 }}>{req.contact_name}</p>
+              <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.55)', margin: 0 }}>
+                {req.contact_name}
+              </p>
 
               {/* Sport */}
-              <p style={{ fontSize: '0.85rem', color: '#475569', margin: 0 }}>{req.sport || '—'}</p>
+              <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.55)', margin: 0 }}>
+                {req.sport || '—'}
+              </p>
 
               {/* Date */}
-              <p style={{ fontSize: '0.78rem', color: '#94A3B8', margin: 0 }}>
+              <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.32)', margin: 0 }}>
                 {new Date(req.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
               </p>
 
-              {/* Last col */}
+              {/* Last column */}
               {tab === 'pending' ? (
                 <button
                   onClick={() => router.push(`/platform/requests/${req.id}`)}
                   style={{
-                    padding: '7px 14px', borderRadius: 8, border: 'none',
-                    background: NAVY, color: '#fff',
-                    fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer',
+                    padding: '7px 14px', borderRadius: 9, border: 'none',
+                    background: 'linear-gradient(135deg, #7C3AED, #6D28D9)',
+                    color: '#fff', fontSize: '0.78rem', fontWeight: 700,
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 14px rgba(109,40,217,0.45)',
+                    transition: 'all 0.15s',
                   }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 6px 20px rgba(109,40,217,0.6)'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 4px 14px rgba(109,40,217,0.45)'; }}
                 >
                   Review →
                 </button>
               ) : tab === 'approved' ? (
                 <span style={{
-                  display: 'inline-block', padding: '4px 10px', borderRadius: 99,
-                  background: '#ECFDF5', color: '#059669',
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  padding: '4px 11px', borderRadius: 99,
+                  background: 'rgba(16,185,129,0.12)',
+                  color: '#34D399',
+                  border: '1px solid rgba(16,185,129,0.25)',
                   fontSize: '0.72rem', fontWeight: 700,
-                }}>Provisioned ✓</span>
+                  boxShadow: '0 0 10px rgba(16,185,129,0.25)',
+                }}>
+                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#34D399', display: 'inline-block', boxShadow: '0 0 4px #34D399' }} />
+                  Provisioned
+                </span>
               ) : (
                 <span style={{
-                  fontSize: '0.78rem', color: '#64748B',
+                  fontSize: '0.78rem',
+                  color: 'rgba(255,255,255,0.38)',
                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 }}>
                   {req.rejection_reason || '—'}
