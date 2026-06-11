@@ -26,7 +26,6 @@ async function login(email, password) {
     .eq('email', email.toLowerCase().trim())
     .single();
 
-  console.log('[platform.login] data:', JSON.stringify(admin), '| error:', JSON.stringify(error));
   if (error || !admin) {
     throw new UnauthorizedError('Invalid credentials.');
   }
