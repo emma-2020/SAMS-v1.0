@@ -13,3 +13,4 @@ export * as workoutApi from './workout';
 export * as notificationsApi from './notifications';
 export * as platformApi from './platform';
 export type { PlatformAdmin, EnrollmentRequest, PlatformAcademy, PlatformStats } from './platform';
+export { getPlatformToken, setPlatformToken, clearPlatformToken } from './platform';
