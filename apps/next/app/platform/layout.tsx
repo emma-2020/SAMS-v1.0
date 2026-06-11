@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { getPlatformToken, clearPlatformToken } from '@sams/api/src/platform';
+import { getPlatformToken, clearPlatformToken } from '@sams/api';
 
 const NAVY     = '#0D1B3E';
 const NAVY_MID = '#172B5E';
