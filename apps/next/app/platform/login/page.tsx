@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { platformApi } from '@sams/api';
-import { setPlatformToken } from '@sams/api/src/platform';
+import { setPlatformToken } from '@sams/api';
 
 const NAVY = '#0D1B3E';
 
