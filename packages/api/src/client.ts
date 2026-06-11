@@ -35,10 +35,11 @@ export const apiClient = axios.create({
   timeout: 15_000,
 });
 
-// Attach bearer token on every request
+// Attach bearer token on every request — but only when the caller hasn't
+// already supplied its own Authorization header (e.g. platform API calls).
 apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = _getToken();
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+  if (token && !config.headers.Authorization) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
