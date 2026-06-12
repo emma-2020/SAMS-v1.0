@@ -748,7 +748,7 @@ export default function PlayerHealthPage() {
             </div>
           </div>
 
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 256px', gap:18 }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(240px,1fr))', gap:18 }}>
             {/* Log list */}
             <div style={card}>
               <div style={cardHdr}>
