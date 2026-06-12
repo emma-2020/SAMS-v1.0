@@ -360,7 +360,7 @@ export default function PlayerWorkoutsPage() {
 
       {/* ── Stats row — shown when workouts exist ───────────────────────────── */}
       {!loading && totalExercises > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: 14, marginBottom: 24 }}>
           {([
             { label: 'Total Exercises', value: totalExercises,                         color: '#6366F1', icon: '📋' },
             { label: 'Completed',       value: completedExercises,                     color: '#10B981', icon: '✅' },

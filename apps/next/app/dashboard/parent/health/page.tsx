@@ -192,7 +192,7 @@ export default function ParentHealthPage() {
 
       {/* KPI summary row */}
       {!loading && allLogs.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 12, marginBottom: 24 }}>
           {[
             { label: 'Wellness Score', value: latestScore > 0 ? `${latestScore}%` : '—', icon: '💚', color: latestScore >= 70 ? '#10B981' : latestScore >= 40 ? '#F59E0B' : '#EF4444' },
             { label: 'Total Check-ins', value: allLogs.length,   icon: '📊', color: ROLE_COLOR.Parent },
