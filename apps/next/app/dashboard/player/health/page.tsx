@@ -390,7 +390,7 @@ export default function PlayerHealthPage() {
         <div style={{ animation:'tabSlideIn 0.25s ease', display:'flex', flexDirection:'column', gap:20 }}>
 
           {/* Row 1 */}
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:18 }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(280px,1fr))', gap:18 }}>
 
             {/* Health Metrics */}
             <div style={card}>
