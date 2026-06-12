@@ -524,7 +524,7 @@ export default function PlayerHealthPage() {
             ))}
           </div>
 
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 260px', gap:18 }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(240px,1fr))', gap:18 }}>
             <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
 
               {/* Detailed breakdown */}
