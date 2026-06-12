@@ -316,7 +316,7 @@ export default function CoachHealthPage() {
       </div>
 
       {/* Player Wellness Table */}
-      <div style={{ background: '#FFFFFF', borderRadius: 20, border: '1px solid #E2E8F0', boxShadow: '0 2px 16px rgba(15,23,42,0.05)', overflow: 'hidden', marginBottom: 16 }}>
+      <div style={{ background: '#FFFFFF', borderRadius: 20, border: '1px solid #E2E8F0', boxShadow: '0 2px 16px rgba(15,23,42,0.05)', overflow: 'auto', marginBottom: 16 }}>
         <div style={{ padding: '15px 20px', background: 'linear-gradient(90deg, rgba(99,102,241,0.04), transparent)', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-primary)', letterSpacing: '-0.015em' }}>Player Wellness</div>
