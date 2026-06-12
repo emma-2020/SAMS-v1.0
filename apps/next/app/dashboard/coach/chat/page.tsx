@@ -265,8 +265,23 @@ function InputBar({ onSend, disabled }: { onSend: (text: string) => void; disabl
   );
 }
 
+// ─── Mobile breakpoint hook ──────────────────────────────────────────
+function useIsMobile(bp = 768) {
+  const [mobile, setMobile] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia(`(max-width: ${bp}px)`);
+    setMobile(mq.matches);
+    const h = (e: MediaQueryListEvent) => setMobile(e.matches);
+    mq.addEventListener('change', h);
+    return () => mq.removeEventListener('change', h);
+  }, [bp]);
+  return mobile;
+}
+
 // ─── MAIN CHAT PAGE ───────────────────────────────────────────────────
 export default function ChatPage() {
+  const mobile = useIsMobile();
   const user = useAuthStore(s => s.user);
 
   const [teams,        setTeams]        = useState<Team[]>([]);

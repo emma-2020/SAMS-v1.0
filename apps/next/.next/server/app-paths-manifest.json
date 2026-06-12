@@ -1,7 +1,8 @@
 {
-  "/dashboard/player/workouts/page": "app/dashboard/player/workouts/page.js",
   "/platform/login/page": "app/platform/login/page.js",
+  "/dashboard/player/workouts/page": "app/dashboard/player/workouts/page.js",
+  "/dashboard/player/health/page": "app/dashboard/player/health/page.js",
   "/dashboard/player/chat/page": "app/dashboard/player/chat/page.js",
   "/dashboard/parent/page": "app/dashboard/parent/page.js",
-  "/dashboard/player/health/page": "app/dashboard/player/health/page.js"
+  "/(auth)/login/page": "app/(auth)/login/page.js"
 }
