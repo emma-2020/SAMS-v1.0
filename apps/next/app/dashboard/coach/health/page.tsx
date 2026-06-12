@@ -347,22 +347,24 @@ export default function CoachHealthPage() {
             </div>
           </div>
         ) : (
-          <table className="table">
-            <thead>
-              <tr>
-                <th style={{ paddingLeft: 20 }}>Player</th>
-                <th>Teams</th>
-                <th>Last Check-in</th>
-                <th style={{ textAlign: 'center' }}>Energy</th>
-                <th style={{ textAlign: 'center' }}>Soreness</th>
-                <th style={{ textAlign: 'center' }}>Sleep</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map(p => <PlayerRow key={p.id} player={p} />)}
-            </tbody>
-          </table>
+          <div style={{ overflowX: 'auto' }}>
+            <table className="table" style={{ minWidth: 620 }}>
+              <thead>
+                <tr>
+                  <th style={{ paddingLeft: 20 }}>Player</th>
+                  <th>Teams</th>
+                  <th>Last Check-in</th>
+                  <th style={{ textAlign: 'center' }}>Energy</th>
+                  <th style={{ textAlign: 'center' }}>Soreness</th>
+                  <th style={{ textAlign: 'center' }}>Sleep</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map(p => <PlayerRow key={p.id} player={p} />)}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
