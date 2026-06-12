@@ -431,7 +431,7 @@ export default function PlayerHealthPage() {
           </div>
 
           {/* Row 2 */}
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 196px', gap:18 }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:18 }}>
 
             {/* Wellness Trend */}
             <div style={card}>
