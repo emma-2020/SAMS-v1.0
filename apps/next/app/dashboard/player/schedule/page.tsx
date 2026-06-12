@@ -111,6 +111,7 @@ export default function PlayerSchedulePage() {
         background: 'linear-gradient(135deg, #0D1B3E, #1a2d5a)',
         borderRadius: 16, padding: '24px 28px', marginBottom: 24,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        flexWrap: 'wrap', gap: 12,
         overflow: 'hidden', position: 'relative',
       }}>
         {/* Decorative orb */}
