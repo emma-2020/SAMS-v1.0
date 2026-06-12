@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import Link from 'next/link';
 import { platformApi } from '@sams/api';
 
 const SPORTS = [
@@ -42,12 +41,6 @@ const IcoUsers = () => (
     <circle cx="9" cy="7" r="4"/>
     <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
     <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-  </svg>
-);
-const IcoArrowLeft = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25">
-    <line x1="19" y1="12" x2="5" y2="12"/>
-    <polyline points="12 19 5 12 12 5"/>
   </svg>
 );
 const IcoArrowRight = () => (
@@ -165,54 +158,7 @@ export default function EnrollPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#060B14', fontFamily: 'Inter, sans-serif' }}>
-
-      {/* ── Floating header ── */}
-      <header style={{
-        position: 'fixed', inset: '0 0 auto 0', zIndex: 100,
-        height: 64,
-        background: 'rgba(6,11,20,0.82)',
-        backdropFilter: 'blur(14px)',
-        WebkitBackdropFilter: 'blur(14px)',
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 clamp(20px, 4vw, 40px)',
-      }}>
-        {/* Logo */}
-        <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{
-            width: 34, height: 34, borderRadius: 9, flexShrink: 0,
-            background: 'linear-gradient(135deg, #7C3AED, #6D28D9)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 6px 20px rgba(124,58,237,0.45)',
-          }}>
-            <span style={{ fontWeight: 900, fontSize: '0.88rem', color: '#fff' }}>S</span>
-          </div>
-          <div>
-            <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#F1F5F9', letterSpacing: '0.09em' }}>SAMS</div>
-            <div style={{ fontSize: '0.58rem', color: 'rgba(255,255,255,0.28)', letterSpacing: '0.05em', marginTop: 1 }}>
-              Sports Academy Management
-            </div>
-          </div>
-        </Link>
-
-        {/* Back link */}
-        <Link href="/" style={{
-          display: 'flex', alignItems: 'center', gap: 6,
-          fontSize: '0.78rem', fontWeight: 600,
-          color: 'rgba(255,255,255,0.42)',
-          textDecoration: 'none',
-          padding: '7px 15px', borderRadius: 99,
-          border: '1px solid rgba(255,255,255,0.09)',
-          background: 'rgba(255,255,255,0.04)',
-          letterSpacing: '0.01em',
-          transition: 'color 0.15s',
-        }}>
-          <IcoArrowLeft /> Back to home
-        </Link>
-      </header>
-
-      {/* ── Body ── */}
+    <>
       <div style={{
         minHeight: '100vh',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -246,18 +192,10 @@ export default function EnrollPage() {
                 </div>
 
                 <div>
-                  <h2 style={{
-                    fontSize: '1.55rem', fontWeight: 900,
-                    color: '#F1F5F9', margin: '0 0 14px',
-                    letterSpacing: '-0.025em',
-                  }}>
+                  <h2 style={{ fontSize: '1.55rem', fontWeight: 900, color: '#F1F5F9', margin: '0 0 14px', letterSpacing: '-0.025em' }}>
                     Application Received
                   </h2>
-                  <p style={{
-                    fontSize: '0.9rem', lineHeight: 1.75,
-                    color: 'rgba(255,255,255,0.48)',
-                    margin: 0, maxWidth: 370,
-                  }}>
+                  <p style={{ fontSize: '0.9rem', lineHeight: 1.75, color: 'rgba(255,255,255,0.48)', margin: 0, maxWidth: 370 }}>
                     Thank you! Your academy request has been logged. Our platform team will review your application and email your owner activation link shortly.
                   </p>
                 </div>
@@ -296,15 +234,12 @@ export default function EnrollPage() {
                   <h1 style={{
                     fontSize: 'clamp(1.55rem, 3vw, 1.85rem)', fontWeight: 900,
                     lineHeight: 1.15, letterSpacing: '-0.03em',
-                    margin: '0 0 10px',
-                    color: '#F1F5F9',
+                    margin: '0 0 10px', color: '#F1F5F9',
                   }}>
                     Launch Your Academy<br />
                     <span style={{
                       background: 'linear-gradient(135deg, #C4B5FD 20%, #7C3AED)',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent',
-                      backgroundClip: 'text',
+                      WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
                     }}>
                       on the Platform
                     </span>
@@ -487,6 +422,6 @@ export default function EnrollPage() {
       </div>
 
       <style>{`@keyframes enroll-spin { to { transform: rotate(360deg); } }`}</style>
-    </div>
+    </>
   );
 }
