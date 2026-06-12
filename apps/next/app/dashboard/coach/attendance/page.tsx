@@ -141,8 +141,23 @@ function SelectPlaceholder() {
   );
 }
 
+// ─── Mobile breakpoint hook ──────────────────────────────────────────
+function useIsMobile(bp = 768) {
+  const [mobile, setMobile] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia(`(max-width: ${bp}px)`);
+    setMobile(mq.matches);
+    const h = (e: MediaQueryListEvent) => setMobile(e.matches);
+    mq.addEventListener('change', h);
+    return () => mq.removeEventListener('change', h);
+  }, [bp]);
+  return mobile;
+}
+
 // ─── Attendance Inner (uses useSearchParams) ─────────────────────────
 function AttendanceInner() {
+  const mobile       = useIsMobile();
   const searchParams = useSearchParams();
   const router       = useRouter();
   const [selectedEventId, setSelectedEventId] = useState<string | null>(searchParams.get('event'));
@@ -223,7 +238,7 @@ function AttendanceInner() {
         <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: 6 }}>Select a session to mark player attendance</p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '360px 1fr', gap: 20, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '360px 1fr', gap: 20, alignItems: 'start' }}>
         {/* Sidebar */}
         <div style={{ background: '#F8FAFC', borderRadius: 20, border: '1px solid #E2E8F0', padding: '16px 14px', boxShadow: '0 2px 10px rgba(15,23,42,0.04)' }}>
           <div style={{ fontSize: '0.67rem', fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#94A3B8', marginBottom: 12, paddingLeft: 4 }}>Sessions</div>
