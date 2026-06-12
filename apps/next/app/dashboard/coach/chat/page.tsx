@@ -415,49 +415,71 @@ export default function ChatPage() {
   }
 
   return (
-    <div style={{ animation: 'fadeIn 0.3s ease', display: 'flex', height: 'calc(100vh - 118px)', minHeight: 0, gap: 0, background: '#F8FAFC', borderRadius: 20, overflow: 'hidden', border: '1.5px solid #F1F5F9', boxShadow: '0 4px 24px rgba(15,23,42,0.07)' }}>
+    <div style={{ animation: 'fadeIn 0.3s ease', display: 'flex', flexDirection: mobile ? 'column' : 'row', height: 'calc(100vh - 118px)', minHeight: 0, gap: 0, background: '#F8FAFC', borderRadius: 20, overflow: 'hidden', border: '1.5px solid #F1F5F9', boxShadow: '0 4px 24px rgba(15,23,42,0.07)' }}>
 
-      {/* Left: Channels panel */}
-      <div style={{ width: 268, flexShrink: 0, background: '#FFFFFF', borderRight: '1px solid #F1F5F9', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div style={{ padding: '20px 18px 14px', borderBottom: '1px solid #F5F7FA' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-            <div style={{ width: 28, height: 28, borderRadius: 8, background: 'linear-gradient(135deg, #6366F1, #8B5CF6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', boxShadow: '0 2px 8px rgba(99,102,241,0.3)' }}>
-              <IcoHash />
-            </div>
-            <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#0F172A', letterSpacing: '-0.01em' }}>Channels</span>
-          </div>
-          <div style={{ fontSize: '0.72rem', color: '#94A3B8', paddingLeft: 36, fontWeight: 500 }}>
-            {teams.length} team{teams.length !== 1 ? 's' : ''}
-          </div>
-        </div>
-
-        <div style={{ flex: 1, overflowY: 'auto', padding: '10px' }}>
+      {mobile ? (
+        /* Mobile: horizontal scrollable team tabs */
+        <div style={{ display: 'flex', overflowX: 'auto', padding: '8px 12px', background: '#FFFFFF', borderBottom: '1px solid #F1F5F9', flexShrink: 0, gap: 4, scrollbarWidth: 'none' }}>
           {teams.map(t => {
             const isActive = t.id === activeTeamId;
             const pal      = avatarPalette(t.name || '');
             const inits    = (t.name || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
             return (
-              <button key={t.id} onClick={() => switchTeam(t)} style={{ display: 'flex', alignItems: 'center', gap: 11, width: '100%', padding: '10px 12px', background: isActive ? '#EEF2FF' : 'none', border: 'none', borderLeft: isActive ? '3px solid #6366F1' : '3px solid transparent', borderRadius: '0 10px 10px 0', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s', marginBottom: 3 }}
-                onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = '#F8FAFC'; }}
-                onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'none'; }}>
-                <div style={{ width: 36, height: 36, borderRadius: '50%', flexShrink: 0, background: isActive ? '#EEF2FF' : pal.bg, border: `2px solid ${isActive ? '#C7D2FE' : pal.ring}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', fontWeight: 800, color: isActive ? '#4338CA' : pal.text, boxShadow: isActive ? '0 2px 6px rgba(99,102,241,0.20)' : 'none' }}>
+              <button key={t.id} onClick={() => switchTeam(t)}
+                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '6px 10px', border: 'none', background: isActive ? '#EEF2FF' : 'none', borderBottom: `2px solid ${isActive ? '#6366F1' : 'transparent'}`, borderRadius: '8px 8px 0 0', cursor: 'pointer', flexShrink: 0, transition: 'all 0.15s' }}>
+                <div style={{ width: 34, height: 34, borderRadius: '50%', background: isActive ? '#EEF2FF' : pal.bg, border: `2px solid ${isActive ? '#C7D2FE' : pal.ring}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 800, color: isActive ? '#4338CA' : pal.text }}>
                   {inits}
                 </div>
-                <div style={{ overflow: 'hidden', minWidth: 0 }}>
-                  <div style={{ fontWeight: isActive ? 700 : 500, fontSize: '0.85rem', color: isActive ? '#4338CA' : '#1E293B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {t.name}
-                  </div>
-                  <div style={{ fontSize: '0.7rem', color: isActive ? '#6366F1' : '#94A3B8', marginTop: 1, fontWeight: isActive ? 500 : 400 }}>
-                    {t.sport || t.division || 'Team channel'}
-                  </div>
+                <div style={{ fontSize: '0.58rem', fontWeight: isActive ? 700 : 400, color: isActive ? '#4338CA' : '#94A3B8', maxWidth: 56, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {t.name}
                 </div>
               </button>
             );
           })}
         </div>
-      </div>
+      ) : (
+        /* Desktop: Left Channels panel */
+        <div style={{ width: 268, flexShrink: 0, background: '#FFFFFF', borderRight: '1px solid #F1F5F9', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div style={{ padding: '20px 18px 14px', borderBottom: '1px solid #F5F7FA' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+              <div style={{ width: 28, height: 28, borderRadius: 8, background: 'linear-gradient(135deg, #6366F1, #8B5CF6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', boxShadow: '0 2px 8px rgba(99,102,241,0.3)' }}>
+                <IcoHash />
+              </div>
+              <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#0F172A', letterSpacing: '-0.01em' }}>Channels</span>
+            </div>
+            <div style={{ fontSize: '0.72rem', color: '#94A3B8', paddingLeft: 36, fontWeight: 500 }}>
+              {teams.length} team{teams.length !== 1 ? 's' : ''}
+            </div>
+          </div>
 
-      {/* Right: Chat window */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '10px' }}>
+            {teams.map(t => {
+              const isActive = t.id === activeTeamId;
+              const pal      = avatarPalette(t.name || '');
+              const inits    = (t.name || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+              return (
+                <button key={t.id} onClick={() => switchTeam(t)} style={{ display: 'flex', alignItems: 'center', gap: 11, width: '100%', padding: '10px 12px', background: isActive ? '#EEF2FF' : 'none', border: 'none', borderLeft: isActive ? '3px solid #6366F1' : '3px solid transparent', borderRadius: '0 10px 10px 0', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s', marginBottom: 3 }}
+                  onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = '#F8FAFC'; }}
+                  onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'none'; }}>
+                  <div style={{ width: 36, height: 36, borderRadius: '50%', flexShrink: 0, background: isActive ? '#EEF2FF' : pal.bg, border: `2px solid ${isActive ? '#C7D2FE' : pal.ring}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', fontWeight: 800, color: isActive ? '#4338CA' : pal.text, boxShadow: isActive ? '0 2px 6px rgba(99,102,241,0.20)' : 'none' }}>
+                    {inits}
+                  </div>
+                  <div style={{ overflow: 'hidden', minWidth: 0 }}>
+                    <div style={{ fontWeight: isActive ? 700 : 500, fontSize: '0.85rem', color: isActive ? '#4338CA' : '#1E293B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {t.name}
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: isActive ? '#6366F1' : '#94A3B8', marginTop: 1, fontWeight: isActive ? 500 : 400 }}>
+                      {t.sport || t.division || 'Team channel'}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Chat window — same on mobile and desktop */}
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', background: '#FFFFFF', overflow: 'hidden' }}>
         {/* Channel header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 22px', borderBottom: '1px solid #F5F7FA', background: '#FFFFFF', flexShrink: 0 }}>
