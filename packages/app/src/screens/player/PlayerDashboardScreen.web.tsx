@@ -96,7 +96,7 @@ export function PlayerDashboardScreen() {
   ];
 
   return (
-    <div style={{ animation: 'fadeIn 0.3s ease' }}>
+    <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 40, animation: 'fadeIn 0.3s ease' }}>
 
       {/* ── Hero banner ─────────────────────────────────────────────── */}
       <div style={{
