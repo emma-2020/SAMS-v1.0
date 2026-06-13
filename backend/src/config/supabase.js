@@ -2,6 +2,7 @@
 'use strict';
 
 const { createClient } = require('@supabase/supabase-js');
+const ws = require('ws');
 const env = require('./env');
 
 /**
