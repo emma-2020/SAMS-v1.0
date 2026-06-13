@@ -25,5 +25,16 @@ config.resolver.unstable_enableSymlinks = true;
 // Content-Type: application/json, which browsers refuse to execute.
 // @sams/* workspace packages are already resolved via nodeModulesPaths.
 
+// ── next/navigation shim ──────────────────────────────────────────────────────
+// Solito's useRouter (used in LoginScreen.web.tsx) internally imports
+// `next/navigation` on the web platform target. In an Expo Router context
+// there is no Next.js App Router, so the real hooks throw. Re-route the
+// import to a local shim that re-exports the equivalent expo-router hooks.
+// This alias only affects Metro — Next.js webpack sees the real package.
+config.resolver.extraNodeModules = {
+  ...config.resolver.extraNodeModules,
+  'next/navigation': path.resolve(projectRoot, 'shims/next-navigation.js'),
+};
+
 // ── NativeWind v4 ─────────────────────────────────────────────────────────────
 module.exports = withNativeWind(config, { input: './global.css' });
