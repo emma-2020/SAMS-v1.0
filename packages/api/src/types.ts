@@ -110,8 +110,12 @@ export interface ChatMessage {
   team_id: string;
   sender_id: string;
   sender?: TeamMember;
-  body: string;
+  body: string | null;
   created_at: string;
+  attachment_url?: string | null;
+  file_name?: string | null;
+  mime_type?: string | null;
+  file_size?: number | null;
 }
 
 export interface InvitationRecord {
