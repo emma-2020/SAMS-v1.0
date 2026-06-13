@@ -12,6 +12,7 @@ const { authenticate, extractTenant, requireRole } = require('../middleware/auth
 const {
   validateScheduleQuery,
   validateCreateEventBody,
+  validateUpdateEventBody,
 } = require('../middleware/validate');
 
 const router = Router();
