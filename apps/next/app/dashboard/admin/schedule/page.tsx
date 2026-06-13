@@ -97,6 +97,65 @@ export default function AdminSchedulePage() {
       eventType: ev.type,
     }));
 
+  function openEdit(block: EventBlock) {
+    const ev = events.find(e => e.id === block.id);
+    if (!ev) return;
+    const st = new Date(ev.start_time);
+    const et = new Date(ev.end_time);
+    setEditForm({
+      teamId: ev.team_id,
+      venue:  ev.location || '',
+      label:  ev.title,
+      date:   st.toISOString().slice(0, 10),
+      start:  `${String(st.getHours()).padStart(2, '0')}:${String(st.getMinutes()).padStart(2, '0')}`,
+      end:    `${String(et.getHours()).padStart(2, '0')}:${String(et.getMinutes()).padStart(2, '0')}`,
+      type:   ev.type,
+    });
+    setEditingId(ev.id);
+    setConfirmDel(false);
+  }
+
+  async function saveEdit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingId) return;
+
+    const [sh, sm] = editForm.start.split(':').map(Number);
+    const [eh, em] = editForm.end.split(':').map(Number);
+    const startDt  = new Date(editForm.date); startDt.setHours(sh, sm, 0, 0);
+    const endDt    = new Date(editForm.date); endDt.setHours(eh, em, 0, 0);
+
+    setEditSaving(true);
+    try {
+      const updated = await scheduleApi.updateEvent(editingId, {
+        title:      editForm.label,
+        type:       editForm.type,
+        location:   editForm.venue,
+        start_time: startDt.toISOString(),
+        end_time:   endDt.toISOString(),
+      });
+      setEvents(prev => prev.map(ev => ev.id === editingId ? updated : ev));
+      setEditingId(null);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to update event');
+    } finally {
+      setEditSaving(false);
+    }
+  }
+
+  async function doDelete() {
+    if (!editingId) return;
+    setEditDeleting(true);
+    try {
+      await scheduleApi.deleteEvent(editingId);
+      setEvents(prev => prev.filter(ev => ev.id !== editingId));
+      setEditingId(null);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to delete event');
+    } finally {
+      setEditDeleting(false);
+    }
+  }
+
   async function addBlock(e: React.FormEvent) {
     e.preventDefault();
     if (!newBlock.teamId || !newBlock.venue || !newBlock.label || !newBlock.date) return;
