@@ -83,11 +83,30 @@ export async function sendMessage(
 }
 
 // Backend:  POST /chat/upload  multipart: { file, team_id }
+//
+// The apiClient instance defaults to Content-Type: application/json.
+// Axios 1.x sees that default + FormData data and converts FormData to
+// JSON via formDataToJSON(), sending application/json to the server.
+// Multer never parses a JSON body, so req.file is always undefined.
+//
+// Fix: delete Content-Type inside transformRequest (runs after header
+// merging) so the browser's XHR sets multipart/form-data; boundary=…
+// automatically when it receives a FormData body.
 export async function uploadChatAttachment(teamId: string, file: File): Promise<ChatAttachment> {
   const fd = new FormData();
   fd.append('file', file);
   fd.append('team_id', teamId);
-  const res = (await apiClient.post('/chat/upload', fd)) as {
+  const res = (await apiClient.post('/chat/upload', fd, {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    transformRequest: [(data: FormData, headers: any) => {
+      if (headers?.delete) {
+        headers.delete('Content-Type');
+      } else if (headers) {
+        delete headers['Content-Type'];
+      }
+      return data;
+    }],
+  })) as {
     success: boolean;
     data: ChatAttachment;
   };
