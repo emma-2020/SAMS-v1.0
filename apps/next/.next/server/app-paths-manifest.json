@@ -1,8 +1,0 @@
-{
-  "/dashboard/coach/chat/page": "app/dashboard/coach/chat/page.js",
-  "/platform/login/page": "app/platform/login/page.js",
-  "/dashboard/settings/page": "app/dashboard/settings/page.js",
-  "/(marketing)/page": "app/(marketing)/page.js",
-  "/(marketing)/enroll/page": "app/(marketing)/enroll/page.js",
-  "/(auth)/login/page": "app/(auth)/login/page.js"
-}
