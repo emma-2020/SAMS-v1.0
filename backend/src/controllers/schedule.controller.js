@@ -46,4 +46,29 @@ async function createEvent(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { getEvents, getEventById, createEvent };
+async function updateEvent(req, res, next) {
+  try {
+    const event = await scheduleService.updateEvent({
+      eventId:   req.params.id,
+      userId:    req.user.id,
+      academyId: req.academyId,
+      role:      req.user.role,
+      payload:   req.body,
+    });
+    return res.status(200).json({ success: true, message: 'Event updated successfully.', data: { event } });
+  } catch (err) { next(err); }
+}
+
+async function deleteEvent(req, res, next) {
+  try {
+    await scheduleService.deleteEvent({
+      eventId:   req.params.id,
+      userId:    req.user.id,
+      academyId: req.academyId,
+      role:      req.user.role,
+    });
+    return res.status(200).json({ success: true, message: 'Event deleted successfully.' });
+  } catch (err) { next(err); }
+}
+
+module.exports = { getEvents, getEventById, createEvent, updateEvent, deleteEvent };
