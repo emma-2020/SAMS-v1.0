@@ -226,9 +226,38 @@ const validateCreateEventBody = runChecks([
   },
 ]);
 
+const validateUpdateEventBody = runChecks([
+  ({ body }) => {
+    if (body.title !== undefined && (typeof body.title !== 'string' || body.title.trim().length < 1)) {
+      return '"title" must be a non-empty string.';
+    }
+  },
+  ({ body }) => {
+    if (body.type !== undefined && !['Practice', 'Game'].includes(body.type)) {
+      return '"type" must be "Practice" or "Game".';
+    }
+  },
+  ({ body }) => {
+    if (body.start_time !== undefined && isNaN(Date.parse(body.start_time))) {
+      return '"start_time" must be a valid ISO 8601 datetime.';
+    }
+  },
+  ({ body }) => {
+    if (body.end_time !== undefined && isNaN(Date.parse(body.end_time))) {
+      return '"end_time" must be a valid ISO 8601 datetime.';
+    }
+  },
+  ({ body }) => {
+    if (body.start_time && body.end_time && new Date(body.end_time) <= new Date(body.start_time)) {
+      return '"end_time" must be after "start_time".';
+    }
+  },
+]);
+
 module.exports = {
   validateScheduleQuery,
   validateCreateEventBody,
+  validateUpdateEventBody,
   validateAttendanceBody,
   validateAttendanceQuery,
   validateHealthBody,
