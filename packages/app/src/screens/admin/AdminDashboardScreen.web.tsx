@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import { Link } from 'solito/link';
 import { adminApi } from '@sams/api';
 import { useAuthStore } from '@sams/store';
 import { ROLE_COLOR } from '@sams/ui';
