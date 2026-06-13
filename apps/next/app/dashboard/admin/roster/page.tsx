@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { adminApi } from '@sams/api';
+import { useAuthStore } from '@sams/store';
 import type { UserProfile } from '@sams/api';
 
 const IcoSearch = () => (
@@ -52,8 +53,7 @@ function RoleBadge({ role }: { role: string }) {
   );
 }
 
-function StatusPill({ status }: { status: string }) {
-  const isActive = status === 'Active';
+function StatusPill({ isActive }: { isActive: boolean }) {
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 5,
@@ -64,17 +64,21 @@ function StatusPill({ status }: { status: string }) {
       color: isActive ? '#059669' : '#94A3B8',
     }}>
       <span style={{ width: 5, height: 5, borderRadius: '50%', background: isActive ? '#059669' : '#94A3B8', flexShrink: 0 }} />
-      {status}
+      {isActive ? 'Active' : 'Inactive'}
     </span>
   );
 }
 
 export default function RosterPage() {
-  const [members,   setMembers]   = useState<UserProfile[]>([]);
-  const [loading,   setLoading]   = useState(true);
-  const [error,     setError]     = useState('');
-  const [search,    setSearch]    = useState('');
-  const [roleFilter, setRole]     = useState('All');
+  const [members,       setMembers]       = useState<UserProfile[]>([]);
+  const [loading,       setLoading]       = useState(true);
+  const [error,         setError]         = useState('');
+  const [search,        setSearch]        = useState('');
+  const [roleFilter,    setRole]          = useState('All');
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [confirmId,     setConfirmId]     = useState<string | null>(null);
+
+  const currentUserId = useAuthStore.getState().user?.id;
 
   async function load() {
     setLoading(true);
@@ -85,6 +89,19 @@ export default function RosterPage() {
   }
 
   useEffect(() => { load(); }, []);
+
+  async function toggleStatus(member: UserProfile) {
+    setActionLoading(member.id);
+    setConfirmId(null);
+    try {
+      const updated = await adminApi.setMemberStatus(member.id, !member.is_active);
+      setMembers(prev => prev.map(m => m.id === updated.id ? updated : m));
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to update member status');
+    } finally {
+      setActionLoading(null);
+    }
+  }
 
   const filtered = members.filter(m => {
     const matchRole   = roleFilter === 'All' || m.role === roleFilter;
@@ -101,7 +118,7 @@ export default function RosterPage() {
   }, {});
 
   return (
-    <div style={{ animation: 'fadeIn 0.3s ease' }}>
+    <div style={{ animation: 'fadeIn 0.3s ease' }} onClick={() => setConfirmId(null)}>
 
       {/* Page header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28, gap: 16 }}>
@@ -115,14 +132,14 @@ export default function RosterPage() {
         </div>
       </div>
 
-      {/* Card — no outer padding, edge-to-edge content */}
+      {/* Card */}
       <div style={{
         background: 'var(--bg-surface)', border: '1px solid var(--border-default)',
         borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)',
         overflow: 'hidden',
       }}>
 
-        {/* Toolbar — right-aligned, matching SectionCard action pattern */}
+        {/* Toolbar */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
           padding: '12px 20px', borderBottom: '1px solid var(--border-subtle)', flexWrap: 'wrap', gap: 8,
@@ -186,31 +203,73 @@ export default function RosterPage() {
                 <th>Email</th>
                 <th>Status</th>
                 <th>Joined</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map(m => (
-                <tr key={m.id}>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <Avatar name={`${m.first_name} ${m.last_name}`} role={m.role} size={34} />
-                      <span style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)' }}>
-                        {m.first_name} {m.last_name}
-                      </span>
-                    </div>
-                  </td>
-                  <td><RoleBadge role={m.role} /></td>
-                  <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                    {m.email}
-                  </td>
-                  <td>
-                    <StatusPill status={(m as UserProfile & { is_active?: boolean }).is_active !== false ? 'Active' : 'Inactive'} />
-                  </td>
-                  <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                    {fmtDate((m as UserProfile & { created_at?: string }).created_at)}
-                  </td>
-                </tr>
-              ))}
+              {filtered.map(m => {
+                const isSelf       = m.id === currentUserId;
+                const isLoading    = actionLoading === m.id;
+                const isConfirming = confirmId === m.id;
+                const isActive     = m.is_active !== false;
+
+                return (
+                  <tr key={m.id}>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <Avatar name={`${m.first_name} ${m.last_name}`} role={m.role} size={34} />
+                        <span style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+                          {m.first_name} {m.last_name}
+                        </span>
+                      </div>
+                    </td>
+                    <td><RoleBadge role={m.role} /></td>
+                    <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                      {m.email}
+                    </td>
+                    <td><StatusPill isActive={isActive} /></td>
+                    <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                      {fmtDate(m.created_at)}
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      {isSelf ? (
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>You</span>
+                      ) : isActive ? (
+                        isConfirming ? (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }} onClick={e => e.stopPropagation()}>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Deactivate?</span>
+                            <button
+                              disabled={isLoading}
+                              onClick={e => { e.stopPropagation(); toggleStatus(m); }}
+                              style={{ background: '#DC2626', color: '#fff', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: '0.75rem', fontWeight: 700, cursor: isLoading ? 'not-allowed' : 'pointer', opacity: isLoading ? 0.7 : 1 }}>
+                              {isLoading ? '…' : 'Confirm'}
+                            </button>
+                            <button
+                              onClick={e => { e.stopPropagation(); setConfirmId(null); }}
+                              style={{ background: 'none', border: '1px solid var(--border-default)', borderRadius: 6, padding: '4px 10px', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', cursor: 'pointer' }}>
+                              Cancel
+                            </button>
+                          </span>
+                        ) : (
+                          <button
+                            disabled={isLoading}
+                            onClick={e => { e.stopPropagation(); setConfirmId(m.id); }}
+                            style={{ background: 'none', border: '1px solid #FECACA', color: '#DC2626', borderRadius: 6, padding: '4px 12px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}>
+                            Deactivate
+                          </button>
+                        )
+                      ) : (
+                        <button
+                          disabled={isLoading}
+                          onClick={e => { e.stopPropagation(); toggleStatus(m); }}
+                          style={{ background: 'none', border: '1px solid #A7F3D0', color: '#059669', borderRadius: 6, padding: '4px 12px', fontSize: '0.75rem', fontWeight: 600, cursor: isLoading ? 'not-allowed' : 'pointer', opacity: isLoading ? 0.7 : 1 }}>
+                          {isLoading ? '…' : 'Reactivate'}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
