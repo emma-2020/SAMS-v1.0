@@ -477,19 +477,23 @@ export default function ChatPage() {
   }, [activeTeamId, loadingMsgs]);
 
   // Send
-  const handleSend = useCallback(async (text: string) => {
+  const handleSend = useCallback(async (text: string, attachment?: ChatAttachment) => {
     if (!activeTeamId || !user) return;
     setSendError(''); setSending(true);
     const tempId = `opt-${Date.now()}`;
     const optimistic: OptMsg = {
       id: tempId, team_id: activeTeamId, sender_id: user.id,
-      body: text, created_at: new Date().toISOString(), _opt: true,
+      body: text || null, created_at: new Date().toISOString(), _opt: true,
+      attachment_url: attachment?.url ?? null,
+      file_name:      attachment?.file_name ?? null,
+      mime_type:      attachment?.mime_type ?? null,
+      file_size:      attachment?.file_size ?? null,
       sender: { id: user.id, first_name: user.first_name, last_name: user.last_name, role: user.role, email: user.email },
     };
     dispatch({ type: 'ADD_OPT', message: optimistic });
     setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
     try {
-      const confirmed = await chatApi.sendMessage(activeTeamId, text);
+      const confirmed = await chatApi.sendMessage(activeTeamId, text, attachment);
       dispatch({ type: 'CONFIRM', tempId, confirmed });
       latestRef.current = confirmed.id;
     } catch (err: unknown) {
