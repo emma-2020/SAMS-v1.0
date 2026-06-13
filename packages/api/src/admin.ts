@@ -62,3 +62,12 @@ export async function sendInvitation(payload: {
 export async function revokeInvitation(id: string): Promise<void> {
   await apiClient.delete(`/admin/invite/${id}`);
 }
+
+// Backend: PATCH /admin/roster/:id/status
+export async function setMemberStatus(id: string, isActive: boolean): Promise<UserProfile> {
+  const res = (await apiClient.patch(`/admin/roster/${id}/status`, { is_active: isActive })) as {
+    success: boolean;
+    data: { member: UserProfile };
+  };
+  return res.data.member;
+}
