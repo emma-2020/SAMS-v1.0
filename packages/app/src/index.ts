@@ -1,4 +1,4 @@
-// Screens
+// Screens — .web.tsx variants are resolved first on Next.js (see next.config.js resolve.extensions)
 export { LoginScreen } from './screens/LoginScreen';
 export { AdminDashboardScreen } from './screens/admin/AdminDashboardScreen';
 export { CoachDashboardScreen } from './screens/coach/CoachDashboardScreen';
