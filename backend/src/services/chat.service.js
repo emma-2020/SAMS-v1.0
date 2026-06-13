@@ -78,28 +78,66 @@ async function getMessages({ teamId, userId, academyId, role, limit, before }) {
 }
 
 // ─────────────────────────────────────────────────────────────────
+// UPLOAD ATTACHMENT
+// Uploads a file buffer to Supabase Storage and returns metadata.
+// The caller is responsible for then sending a message with the URL.
+// ─────────────────────────────────────────────────────────────────
+
+async function uploadAttachment({ teamId, userId, academyId, role, fileBuffer, mimetype, originalname, fileSize }) {
+  await fetchTeamOrThrow(teamId, academyId);
+  await assertTeamMembership({ teamId, userId, academyId, role });
+
+  const ext      = (originalname.split('.').pop() || 'bin').toLowerCase();
+  const safeName = originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const storagePath = `${academyId}/${teamId}/${Date.now()}_${crypto.randomBytes(4).toString('hex')}_${safeName}`;
+
+  const { error: uploadError } = await supabaseAdmin
+    .storage
+    .from(ATTACHMENT_BUCKET)
+    .upload(storagePath, fileBuffer, { contentType: mimetype, upsert: false });
+
+  if (uploadError) {
+    console.error('[ChatService.uploadAttachment] storage upload failed:', uploadError.message);
+    throw new InternalError('File upload failed. Please try again.');
+  }
+
+  const { data: { publicUrl } } = supabaseAdmin
+    .storage
+    .from(ATTACHMENT_BUCKET)
+    .getPublicUrl(storagePath);
+
+  return { url: publicUrl, file_name: originalname, mime_type: mimetype, file_size: fileSize };
+}
+
+// ─────────────────────────────────────────────────────────────────
 // SEND MESSAGE
 // ─────────────────────────────────────────────────────────────────
 
-async function sendMessage({ teamId, senderId, academyId, role, messageText }) {
+async function sendMessage({ teamId, senderId, academyId, role, messageText, attachmentUrl, fileName, mimeType, fileSize }) {
   await fetchTeamOrThrow(teamId, academyId);
   await assertTeamMembership({ teamId, userId: senderId, academyId, role });
 
-  const cleanText = messageText.trim();
-  if (cleanText.length === 0) {
-    throw new BadRequestError('Message text cannot be blank after trimming.');
+  const cleanText = messageText ? messageText.trim() : null;
+  if (!cleanText && !attachmentUrl) {
+    throw new BadRequestError('Message must contain text or an attachment.');
   }
 
   const { data, error } = await supabaseAdmin
     .from('messages')
     .insert({
-      academy_id:   academyId,                // tenant isolation on insert
-      team_id:      teamId,
-      sender_id:    senderId,
-      message_text: cleanText,
+      academy_id:     academyId,
+      team_id:        teamId,
+      sender_id:      senderId,
+      message_text:   cleanText   || null,
+      attachment_url: attachmentUrl || null,
+      file_name:      fileName    || null,
+      mime_type:      mimeType    || null,
+      file_size:      fileSize    || null,
     })
     .select(`
-      id, team_id, sender_id, message_text, created_at,
+      id, team_id, sender_id, message_text,
+      attachment_url, file_name, mime_type, file_size,
+      created_at,
       users!messages_sender_id_fkey ( id, first_name, last_name, role )
     `)
     .single();
