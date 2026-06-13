@@ -36,7 +36,9 @@ async function getMessages({ teamId, userId, academyId, role, limit, before }) {
   let query = supabaseAdmin
     .from('messages')
     .select(`
-      id, team_id, sender_id, message_text, created_at,
+      id, team_id, sender_id, message_text,
+      attachment_url, file_name, mime_type, file_size,
+      created_at,
       users!messages_sender_id_fkey ( id, first_name, last_name, role )
     `)
     .eq('academy_id', academyId)              // tenant isolation
