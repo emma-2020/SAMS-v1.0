@@ -686,7 +686,7 @@ export default function ChatPage() {
           </div>
         )}
 
-        <InputBar onSend={handleSend} disabled={sending} />
+        <InputBar onSend={handleSend} disabled={sending} activeTeamId={activeTeamId} />
       </div>
     </div>
   );
