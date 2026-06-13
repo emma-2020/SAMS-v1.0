@@ -228,4 +228,4 @@ async function assertTeamMembership({ teamId, userId, academyId, role }) {
   throw new ForbiddenError('Unrecognised role. Access denied.');
 }
 
-module.exports = { getMessages, sendMessage };
+module.exports = { getMessages, sendMessage, uploadAttachment };
