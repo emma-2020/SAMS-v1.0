@@ -2,6 +2,7 @@
 
 const { supabaseAdmin } = require('../config/supabase');
 const { BadRequestError, ConflictError, InternalError } = require('../utils/errors');
+const { sendEnrollmentConfirmationEmail } = require('../services/email.service');
 
 // Strips all HTML tags and normalises whitespace
 function sanitize(str) {
@@ -67,6 +68,15 @@ async function submitEnrollment(req, res, next) {
       .insert(payload);
 
     if (error) throw new InternalError('Failed to submit enrollment request.');
+
+    // Non-blocking: send receipt confirmation to the applicant
+    sendEnrollmentConfirmationEmail({
+      to:          contact_email.toLowerCase().trim(),
+      contactName: sanitize(contact_name),
+      academyName: sanitize(academy_name),
+    }).catch(err =>
+      console.error('[PublicController.submitEnrollment] Confirmation email failed:', err.message)
+    );
 
     return res.status(201).json({
       success: true,

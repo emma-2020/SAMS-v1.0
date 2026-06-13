@@ -10,6 +10,11 @@ const {
   InternalError,
   BadRequestError,
 } = require('../utils/errors');
+const env = require('../config/env');
+const {
+  sendAcademyApprovalEmail,
+  sendAcademyRejectionEmail,
+} = require('./email.service');
 
 // ─────────────────────────────────────────────────────────────────
 // LOGIN
@@ -196,10 +201,23 @@ async function approveRequest(requestId, platformAdminId) {
 
   if (updateErr) throw new InternalError('Provisioning succeeded but failed to update request status.');
 
+  // ── Step 5: Send custom SAMS onboarding email (non-blocking) ──
+  // Supabase already dispatches its own account-confirmation email because
+  // email_confirm was set to false above. This complementary email from SAMS
+  // explains the approval, the next steps, and provides the login URL.
+  sendAcademyApprovalEmail({
+    to:          request.contact_email,
+    contactName: request.contact_name,
+    academyName: academy.name,
+    loginUrl:    `${env.FRONTEND_URL}/login`,
+  }).catch(err =>
+    console.error('[PlatformService.approveRequest] Approval email failed:', err.message)
+  );
+
   return {
     academy,
     admin_email: request.contact_email,
-    message:     'Academy provisioned. Confirmation email sent to academy admin.',
+    message:     'Academy provisioned. Onboarding email dispatched to academy admin.',
   };
 }
 
@@ -225,6 +243,17 @@ async function rejectRequest(requestId, platformAdminId, reason) {
     .eq('id', requestId);
 
   if (error) throw new InternalError('Failed to reject request.');
+
+  // Non-blocking: notify the applicant of the outcome
+  sendAcademyRejectionEmail({
+    to:          request.contact_email,
+    contactName: request.contact_name,
+    academyName: request.academy_name,
+    reason:      reason || null,
+    enrollUrl:   `${env.FRONTEND_URL}/enroll`,
+  }).catch(err =>
+    console.error('[PlatformService.rejectRequest] Rejection email failed:', err.message)
+  );
 
   return { message: 'Request rejected.' };
 }

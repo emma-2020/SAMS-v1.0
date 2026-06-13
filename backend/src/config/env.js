@@ -25,11 +25,9 @@ module.exports = {
   SUPABASE_SERVICE_KEY: process.env.SUPABASE_SERVICE_KEY,
   SUPABASE_ANON_KEY:    process.env.SUPABASE_ANON_KEY,
   SUPABASE_JWT_SECRET:  process.env.SUPABASE_JWT_SECRET,
-  FRONTEND_URL:         process.env.FRONTEND_URL || 'http://localhost:3000',
-  // Email / SMTP
-  SMTP_HOST:  process.env.SMTP_HOST  || '',
-  SMTP_PORT:  parseInt(process.env.SMTP_PORT, 10) || 587,
-  SMTP_USER:  process.env.SMTP_USER  || '',
-  SMTP_PASS:  process.env.SMTP_PASS  || '',
-  EMAIL_FROM: process.env.EMAIL_FROM || 'SAMS Platform <noreply@sams.local>',
+  FRONTEND_URL:  process.env.FRONTEND_URL  || 'http://localhost:3001',
+  MARKETING_URL: process.env.MARKETING_URL || 'http://localhost:3000',
+  // Email — Resend
+  RESEND_API_KEY: process.env.RESEND_API_KEY || '',
+  EMAIL_FROM:     process.env.EMAIL_FROM     || 'SAMS Platform <onboarding@resend.dev>',
 };

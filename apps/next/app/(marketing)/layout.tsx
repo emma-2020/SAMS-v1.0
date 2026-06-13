@@ -27,7 +27,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
         background: 'rgba(6,11,20,0.85)',
         backdropFilter: 'blur(18px)',
         WebkitBackdropFilter: 'blur(18px)',
-        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        borderBottom: '1px solid rgba(255,255,255,0.055)',
         display: 'flex', alignItems: 'center',
         padding: '0 clamp(20px, 5vw, 64px)',
         gap: 32,
@@ -84,7 +84,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
           <Link href="/" style={{
             display: 'flex', alignItems: 'center', gap: 6,
             padding: '8px 18px', borderRadius: 99, flexShrink: 0,
-            border: '1px solid rgba(255,255,255,0.1)',
+            border: '1px solid rgba(255,255,255,0.08)',
             background: 'rgba(255,255,255,0.04)',
             color: 'rgba(255,255,255,0.45)',
             fontSize: '0.8rem', fontWeight: 600,

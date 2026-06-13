@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { Layers, CalendarDays, LayoutDashboard } from 'lucide-react';
 
 // ── Static data ──────────────────────────────────────────────────────
 
@@ -9,13 +10,8 @@ const FEATURES = [
   {
     gradient: 'linear-gradient(135deg, #7C3AED, #4F46E5)',
     glow:     'rgba(124,58,237,0.35)',
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-        <path d="M2 17l10 5 10-5"/>
-        <path d="M2 12l10 5 10-5"/>
-      </svg>
-    ),
+    glowBorder: 'rgba(124,58,237,0.32)',
+    icon:     <Layers size={22} strokeWidth={1.6} />,
     title: 'Automated Multi-Tenant Provisioning',
     desc:  'Each academy gets a fully isolated, dedicated workspace automatically provisioned. Zero manual setup — from enrollment request to live platform in under 60 seconds.',
     tags:  ['Instant setup', 'Isolated data', 'Zero config'],
@@ -23,14 +19,8 @@ const FEATURES = [
   {
     gradient: 'linear-gradient(135deg, #2563EB, #1D4ED8)',
     glow:     'rgba(37,99,235,0.35)',
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-        <rect x="3" y="4" width="18" height="18" rx="2"/>
-        <line x1="16" y1="2" x2="16" y2="6"/>
-        <line x1="8" y1="2" x2="8" y2="6"/>
-        <line x1="3" y1="10" x2="21" y2="10"/>
-      </svg>
-    ),
+    glowBorder: 'rgba(37,99,235,0.32)',
+    icon:     <CalendarDays size={22} strokeWidth={1.6} />,
     title: 'Smart Scheduling Sync',
     desc:  'Training sessions, fixtures, and recovery windows coordinated seamlessly across your entire roster. Conflicts detected and resolved automatically in real time.',
     tags:  ['Calendar sync', 'Conflict detection', 'Multi-team'],
@@ -38,12 +28,8 @@ const FEATURES = [
   {
     gradient: 'linear-gradient(135deg, #059669, #047857)',
     glow:     'rgba(5,150,105,0.35)',
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-        <path d="M3 3h7v7H3z"/><path d="M14 3h7v7h-7z"/>
-        <path d="M14 14h7v7h-7z"/><path d="M3 14h7v7H3z"/>
-      </svg>
-    ),
+    glowBorder: 'rgba(5,150,105,0.32)',
+    icon:     <LayoutDashboard size={22} strokeWidth={1.6} />,
     title: 'Centralized Operational Command',
     desc:  'Admin, coach, player, and parent dashboards unified under one platform. Every role sees exactly what they need — purpose-built, nothing bloated.',
     tags:  ['4 role dashboards', 'Real-time data', 'RBAC'],
@@ -215,7 +201,7 @@ const SEC_SUB: React.CSSProperties = {
 
 const GLASS: React.CSSProperties = {
   background: 'rgba(255,255,255,0.025)',
-  border: '1px solid rgba(255,255,255,0.08)',
+  border: '1px solid rgba(255,255,255,0.06)',
   borderRadius: 22,
 };
 
@@ -238,10 +224,19 @@ export default function HomePage() {
         padding: 'clamp(80px, 12vh, 120px) clamp(20px, 5vw, 80px) clamp(60px, 8vh, 100px)',
         position: 'relative', overflow: 'hidden',
       }}>
-        {/* Ambient orbs */}
-        <div style={{ position: 'absolute', top: '8%', right: '6%', width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle, rgba(124,58,237,0.22) 0%, transparent 70%)', filter: 'blur(48px)', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', bottom: '10%', left: '4%', width: 420, height: 420, borderRadius: '50%', background: 'radial-gradient(circle, rgba(37,99,235,0.18) 0%, transparent 70%)', filter: 'blur(56px)', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 760, height: 760, borderRadius: '50%', background: 'radial-gradient(circle, rgba(124,58,237,0.07) 0%, transparent 65%)', filter: 'blur(64px)', pointerEvents: 'none' }} />
+        {/* Dot-grid texture — ultra-faint, edge-vignette masked */}
+        <div style={{
+          position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none',
+          backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.028) 1px, transparent 1px)',
+          backgroundSize: '28px 28px',
+          WebkitMaskImage: 'radial-gradient(ellipse 85% 75% at 50% 50%, black 25%, transparent 100%)',
+          maskImage:       'radial-gradient(ellipse 85% 75% at 50% 50%, black 25%, transparent 100%)',
+        }} />
+
+        {/* Ambient orbs — slow-pulsing */}
+        <div style={{ position: 'absolute', top: '8%', right: '6%', width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle, rgba(124,58,237,0.22) 0%, transparent 70%)', filter: 'blur(48px)', pointerEvents: 'none', animation: 'orb-a 9s ease-in-out infinite' }} />
+        <div style={{ position: 'absolute', bottom: '10%', left: '4%', width: 420, height: 420, borderRadius: '50%', background: 'radial-gradient(circle, rgba(37,99,235,0.18) 0%, transparent 70%)', filter: 'blur(56px)', pointerEvents: 'none', animation: 'orb-b 13s ease-in-out infinite 2s' }} />
+        <div style={{ position: 'absolute', top: '50%', left: '50%', width: 760, height: 760, borderRadius: '50%', background: 'radial-gradient(circle, rgba(124,58,237,0.07) 0%, transparent 65%)', filter: 'blur(64px)', pointerEvents: 'none', transform: 'translate(-50%,-50%)', animation: 'orb-c 11s ease-in-out infinite 4s' }} />
 
         {/* Content */}
         <div style={{ position: 'relative', zIndex: 1, maxWidth: 840 }}>
@@ -346,7 +341,7 @@ export default function HomePage() {
             padding: '22px clamp(20px, 4vw, 48px)',
             borderRadius: 18,
             background: 'rgba(255,255,255,0.025)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            border: '1px solid rgba(255,255,255,0.06)',
             flexWrap: 'wrap', justifyContent: 'center',
           }}>
             {STATS.flatMap(({ value, label }, i) => {
@@ -361,7 +356,7 @@ export default function HomePage() {
                 </div>
               );
               if (i < STATS.length - 1) {
-                return [stat, <div key={`d${i}`} style={{ width: 1, height: 34, background: 'rgba(255,255,255,0.09)', flexShrink: 0 }} />];
+                return [stat, <div key={`d${i}`} style={{ width: 1, height: 34, background: 'rgba(255,255,255,0.07)', flexShrink: 0 }} />];
               }
               return [stat];
             })}
@@ -404,24 +399,28 @@ export default function HomePage() {
                 style={{
                   ...GLASS,
                   padding: '32px 28px',
-                  transition: 'transform 0.22s, box-shadow 0.22s',
+                  transition: 'transform 0.25s, box-shadow 0.25s, border-color 0.25s',
                 }}
                 onMouseEnter={e => {
-                  (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-5px)';
-                  (e.currentTarget as HTMLDivElement).style.boxShadow = `0 28px 64px ${f.glow}`;
+                  const el = e.currentTarget as HTMLDivElement;
+                  el.style.transform = 'translateY(-6px)';
+                  el.style.boxShadow = `0 32px 72px ${f.glow}`;
+                  el.style.borderColor = f.glowBorder;
                 }}
                 onMouseLeave={e => {
-                  (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)';
-                  (e.currentTarget as HTMLDivElement).style.boxShadow = 'none';
+                  const el = e.currentTarget as HTMLDivElement;
+                  el.style.transform = 'translateY(0)';
+                  el.style.boxShadow = 'none';
+                  el.style.borderColor = 'rgba(255,255,255,0.06)';
                 }}
               >
-                {/* Icon container */}
+                {/* Lucide icon inside gradient + glass container */}
                 <div style={{
                   width: 52, height: 52, borderRadius: 14, marginBottom: 22,
                   background: f.gradient,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   color: '#fff',
-                  boxShadow: `0 8px 24px ${f.glow}`,
+                  boxShadow: `0 8px 28px ${f.glow}, inset 0 1px 0 rgba(255,255,255,0.18)`,
                 }}>
                   {f.icon}
                 </div>
@@ -503,8 +502,8 @@ export default function HomePage() {
             })}
           </div>
 
-          {/* Role detail panel */}
-          <div style={{
+          {/* Role detail panel — key remounts on change so role-in fires every time */}
+          <div key={activeRole} style={{
             ...GLASS,
             border: `1px solid ${role.border}`,
             borderRadius: 24,
@@ -513,7 +512,7 @@ export default function HomePage() {
             gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
             gap: 44, alignItems: 'center',
             boxShadow: `0 24px 64px ${role.bg}`,
-            transition: 'border-color 0.25s, box-shadow 0.25s',
+            animation: 'role-in 0.28s ease both',
           }}>
             {/* Left: role description */}
             <div>
@@ -598,15 +597,19 @@ export default function HomePage() {
                   borderRadius: 24,
                   padding: `${plan.highlight ? 40 : 32}px 28px 28px`,
                   position: 'relative',
-                  transition: 'transform 0.22s, box-shadow 0.22s',
+                  transition: 'transform 0.25s, box-shadow 0.25s, border-color 0.25s',
                 }}
                 onMouseEnter={e => {
-                  (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-5px)';
-                  (e.currentTarget as HTMLDivElement).style.boxShadow = `0 28px 64px ${plan.glow}`;
+                  const el = e.currentTarget as HTMLDivElement;
+                  el.style.transform = 'translateY(-6px)';
+                  el.style.boxShadow = `0 32px 72px ${plan.glow}`;
+                  if (!plan.highlight) el.style.borderColor = plan.border;
                 }}
                 onMouseLeave={e => {
-                  (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)';
-                  (e.currentTarget as HTMLDivElement).style.boxShadow = 'none';
+                  const el = e.currentTarget as HTMLDivElement;
+                  el.style.transform = 'translateY(0)';
+                  el.style.boxShadow = 'none';
+                  el.style.borderColor = plan.border;
                 }}
               >
                 {/* Most Popular badge */}
@@ -646,7 +649,7 @@ export default function HomePage() {
                 <div style={{
                   display: 'flex', alignItems: 'baseline', gap: 6,
                   paddingBottom: 22, marginBottom: 22,
-                  borderBottom: '1px solid rgba(255,255,255,0.07)',
+                  borderBottom: '1px solid rgba(255,255,255,0.06)',
                 }}>
                   <span style={{ fontSize: '2.4rem', fontWeight: 900, color: '#F1F5F9', letterSpacing: '-0.04em', lineHeight: 1 }}>
                     {plan.price}
@@ -714,9 +717,29 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ── Animation keyframes ── */}
+      <style>{`
+        @keyframes orb-a {
+          0%,100% { transform: scale(1);    opacity: .80; }
+          50%      { transform: scale(1.14); opacity: 1;   }
+        }
+        @keyframes orb-b {
+          0%,100% { transform: scale(1.04); opacity: .58; }
+          50%      { transform: scale(.91);  opacity: .88; }
+        }
+        @keyframes orb-c {
+          0%,100% { transform: translate(-50%,-50%) scale(1);    opacity: .48; }
+          50%      { transform: translate(-50%,-50%) scale(1.09); opacity: .72; }
+        }
+        @keyframes role-in {
+          from { opacity: 0; transform: translateY(12px); }
+          to   { opacity: 1; transform: translateY(0);    }
+        }
+      `}</style>
+
       {/* ── Footer ── */}
       <footer style={{
-        borderTop: '1px solid rgba(255,255,255,0.06)',
+        borderTop: '1px solid rgba(255,255,255,0.05)',
         padding: '32px clamp(20px, 5vw, 80px)',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         flexWrap: 'wrap', gap: 16,

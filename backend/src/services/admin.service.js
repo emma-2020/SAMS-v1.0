@@ -20,7 +20,6 @@
  */
 
 const crypto      = require('crypto');
-const nodemailer  = require('nodemailer');
 const { supabaseAdmin } = require('../config/supabase');
 const env         = require('../config/env');
 const {
@@ -29,6 +28,7 @@ const {
   ForbiddenError,
   InternalError,
 } = require('../utils/errors');
+const { sendInvitationEmail } = require('./email.service');
 
 const INVITE_EXPIRY_HOURS = 72;     // invitations expire after 3 days
 const INVITABLE_ROLES     = ['Coach', 'Player', 'Parent'];
@@ -223,155 +223,6 @@ async function revokeInvitation({ invitationId, academyId }) {
   }
 
   return data;
-}
-
-// ─────────────────────────────────────────────────────────────────
-// EMAIL DISPATCH
-// ─────────────────────────────────────────────────────────────────
-
-/**
- * sendInvitationEmail
- * Sends a styled HTML invitation email via nodemailer.
- * Requires SMTP_HOST, SMTP_USER, SMTP_PASS in .env.
- * Falls back to console logging in development if SMTP is not configured.
- */
-async function sendInvitationEmail({ to, firstName, role, academyName, registrationUrl, expiresAt }) {
-
-  const roleColors = { Admin:'#7C3AED', Coach:'#2563EB', Player:'#059669', Parent:'#D97706' };
-  const roleColor  = roleColors[role] || '#6366F1';
-  const expiryDate = new Date(expiresAt).toLocaleDateString('en-GB', {
-    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-  });
-
-  const html = `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>You've been invited to ${academyName}</title>
-</head>
-<body style="margin:0;padding:0;background:#F4F6FA;font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#F4F6FA;padding:40px 16px;">
-    <tr><td align="center">
-      <table width="560" cellpadding="0" cellspacing="0" style="background:#FFFFFF;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
-
-        <!-- Header -->
-        <tr>
-          <td style="background:#0D1B3E;padding:32px 40px;text-align:center;">
-            <table cellpadding="0" cellspacing="0" style="margin:0 auto;">
-              <tr>
-                <td style="background:linear-gradient(135deg,#6366F1,#4F46E5);width:44px;height:44px;border-radius:10px;text-align:center;vertical-align:middle;">
-                  <span style="font-size:1.2rem;font-weight:900;color:white;line-height:44px;">S</span>
-                </td>
-                <td style="padding-left:12px;vertical-align:middle;">
-                  <div style="font-weight:800;font-size:1rem;color:white;letter-spacing:0.1em;">SAMS</div>
-                  <div style="font-size:0.65rem;color:rgba(255,255,255,0.45);letter-spacing:0.04em;">Sports Academy</div>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-
-        <!-- Body -->
-        <tr>
-          <td style="padding:40px 40px 32px;">
-            <div style="display:inline-block;background:${roleColor}15;border:1px solid ${roleColor}30;border-radius:99px;padding:4px 14px;font-size:0.72rem;font-weight:700;color:${roleColor};letter-spacing:0.1em;text-transform:uppercase;margin-bottom:20px;">
-              ${role} Invitation
-            </div>
-
-            <h1 style="margin:0 0 8px;font-size:1.6rem;font-weight:800;color:#0F172A;letter-spacing:-0.02em;">
-              Hi ${firstName},
-            </h1>
-            <p style="margin:0 0 24px;font-size:1rem;color:#475569;line-height:1.65;">
-              You've been invited to join <strong style="color:#0F172A;">${academyName}</strong> on SAMS as a <strong style="color:${roleColor};">${role}</strong>.
-            </p>
-
-            <!-- CTA Button -->
-            <table cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
-              <tr>
-                <td style="background:#6366F1;border-radius:10px;text-align:center;">
-                  <a href="${registrationUrl}" style="display:inline-block;padding:14px 32px;font-size:0.95rem;font-weight:700;color:white;text-decoration:none;letter-spacing:0.01em;">
-                    Accept Invitation →
-                  </a>
-                </td>
-              </tr>
-            </table>
-
-            <p style="margin:0 0 16px;font-size:0.85rem;color:#94A3B8;">
-              Or copy and paste this link into your browser:
-            </p>
-            <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:12px 16px;font-family:monospace;font-size:0.78rem;color:#475569;word-break:break-all;margin-bottom:28px;">
-              ${registrationUrl}
-            </div>
-
-            <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:12px 16px;font-size:0.82rem;color:#92400E;">
-              ⏰ This invitation expires on <strong>${expiryDate}</strong>
-            </div>
-          </td>
-        </tr>
-
-        <!-- Footer -->
-        <tr>
-          <td style="padding:20px 40px 32px;border-top:1px solid #F1F5F9;">
-            <p style="margin:0;font-size:0.75rem;color:#94A3B8;line-height:1.6;">
-              If you didn't expect this invitation, you can safely ignore this email.<br>
-              Questions? Contact your academy administrator.
-            </p>
-          </td>
-        </tr>
-
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`;
-
-  const PLACEHOLDER_HOSTS = ['smtp.example.com', 'your-smtp-host', 'mail.example.com'];
-  const smtpConfigured = (
-    env.SMTP_HOST &&
-    !PLACEHOLDER_HOSTS.includes(env.SMTP_HOST) &&
-    env.SMTP_USER &&
-    !env.SMTP_USER.includes('@youracademy.com') &&
-    env.SMTP_PASS &&
-    env.SMTP_PASS !== 'your-smtp-password'
-  );
-
-  if (smtpConfigured) {
-    const transporter = nodemailer.createTransport({
-      host:   env.SMTP_HOST,
-      port:   env.SMTP_PORT,
-      secure: env.SMTP_PORT === 465,
-      auth: {
-        user: env.SMTP_USER,
-        pass: env.SMTP_PASS,
-      },
-      tls: { rejectUnauthorized: false },
-    });
-
-    await transporter.sendMail({
-      from:    env.EMAIL_FROM,
-      to,
-      subject: `You've been invited to ${academyName} — SAMS`,
-      html,
-      text: `Hi ${firstName},\n\nYou've been invited to join ${academyName} as a ${role}.\n\nAccept your invitation here: ${registrationUrl}\n\nThis link expires on ${expiryDate}.\n\n— SAMS Platform`,
-    });
-
-    console.info(`[EMAIL] ✓ Invitation sent to ${to} via ${env.SMTP_HOST}`);
-  } else {
-    // SMTP not configured — log to console for dev/testing
-    console.info('');
-    console.info('─────────────────────────────────────────────');
-    console.info('[EMAIL] SMTP not configured — printing to console');
-    console.info(`  To:      ${to}`);
-    console.info(`  Name:    ${firstName} (${role})`);
-    console.info(`  Academy: ${academyName}`);
-    console.info(`  Link:    ${registrationUrl}`);
-    console.info(`  Expires: ${expiryDate}`);
-    console.info('  ↑ Configure SMTP_HOST/USER/PASS in backend/.env to send real emails');
-    console.info('─────────────────────────────────────────────');
-    console.info('');
-  }
 }
 
 // ─────────────────────────────────────────────────────────────────

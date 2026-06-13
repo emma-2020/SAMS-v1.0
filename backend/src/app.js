@@ -26,10 +26,11 @@ const app = express();
 
 app.use(helmet());
 
-// In production use the configured URL only; in dev allow both local ports
+// Production: whitelist both the web app subdomain and the marketing root.
+// Development: allow all local dev ports in addition to the configured URLs.
 const allowedOrigins = env.NODE_ENV === 'production'
-  ? [env.FRONTEND_URL]
-  : [...new Set([env.FRONTEND_URL, 'http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:8081'])];
+  ? [env.FRONTEND_URL, env.MARKETING_URL].filter(Boolean)
+  : [...new Set([env.FRONTEND_URL, env.MARKETING_URL, 'http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:8081'])];
 
 app.use(cors({
   origin:         allowedOrigins,
