@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from 'solito/navigation';
 import { healthApi, scheduleApi, coachApi } from '@sams/api';
 import { useAuthStore } from '@sams/store';
 import { NAVY_DARK } from '@sams/ui';
