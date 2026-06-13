@@ -20,10 +20,11 @@
   },
   "pnpm": {
     "overrides": {
-      "react": "18.2.0",
-      "react-dom": "18.2.0",
-      "@types/react": "^18.2.0",
-      "@types/react-dom": "^18.2.0"
+      "@sams/ui>react": "18.2.0",
+      "@sams/ui>react-dom": "18.2.0",
+      "@sams/store>react": "18.2.0",
+      "@sams/app>react": "18.2.0",
+      "@sams/app>react-dom": "18.2.0"
     }
   },
   "engines": {
