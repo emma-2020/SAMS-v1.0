@@ -307,6 +307,101 @@ export default function AdminSchedulePage() {
         </div>
       )}
 
+      {/* Edit event modal */}
+      {editingId !== null && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
+          onClick={() => { setEditingId(null); setConfirmDel(false); }}
+        >
+          <div
+            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-lg)', boxShadow: '0 20px 60px rgba(15,23,42,0.2)', padding: '22px 24px', width: '100%', maxWidth: 640 }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>Edit Session</div>
+              <button onClick={() => { setEditingId(null); setConfirmDel(false); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4, borderRadius: 6 }}>
+                <IcoX />
+              </button>
+            </div>
+            <form onSubmit={saveEdit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12 }}>
+                <div className="field">
+                  <label className="field-label">Team</label>
+                  <select className="field-input" style={{ height: 42, cursor: 'pointer' }}
+                    value={editForm.teamId} onChange={e => setEditForm(p => ({ ...p, teamId: e.target.value }))} required>
+                    <option value="">Select team...</option>
+                    {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                  </select>
+                </div>
+                <div className="field">
+                  <label className="field-label">Type</label>
+                  <select className="field-input" style={{ height: 42, cursor: 'pointer' }}
+                    value={editForm.type} onChange={e => setEditForm(p => ({ ...p, type: e.target.value as 'Practice' | 'Game' }))}>
+                    <option value="Practice">Practice</option>
+                    <option value="Game">Game</option>
+                  </select>
+                </div>
+                <div className="field">
+                  <label className="field-label">Venue</label>
+                  <select className="field-input" style={{ height: 42, cursor: 'pointer' }}
+                    value={editForm.venue} onChange={e => setEditForm(p => ({ ...p, venue: e.target.value }))} required>
+                    <option value="">Select venue...</option>
+                    {VENUES.map(v => <option key={v} value={v}>{v}</option>)}
+                  </select>
+                </div>
+                <div className="field">
+                  <label className="field-label">Title</label>
+                  <input className="field-input" style={{ paddingLeft: 14, height: 42 }} placeholder="e.g. U16 Training"
+                    value={editForm.label} onChange={e => setEditForm(p => ({ ...p, label: e.target.value }))} required />
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end' }}>
+                <div className="field" style={{ flex: 1 }}>
+                  <label className="field-label">Date</label>
+                  <input type="date" className="field-input" style={{ paddingLeft: 14, height: 42 }}
+                    value={editForm.date} onChange={e => setEditForm(p => ({ ...p, date: e.target.value }))} required />
+                </div>
+                <div className="field" style={{ flex: 1 }}>
+                  <label className="field-label">Start</label>
+                  <input type="time" className="field-input" style={{ paddingLeft: 14, height: 42 }}
+                    value={editForm.start} onChange={e => setEditForm(p => ({ ...p, start: e.target.value }))} />
+                </div>
+                <div className="field" style={{ flex: 1 }}>
+                  <label className="field-label">End</label>
+                  <input type="time" className="field-input" style={{ paddingLeft: 14, height: 42 }}
+                    value={editForm.end} onChange={e => setEditForm(p => ({ ...p, end: e.target.value }))} />
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', paddingTop: 4, borderTop: '1px solid var(--border-subtle)' }}>
+                {confirmDel ? (
+                  <>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', alignSelf: 'center', marginRight: 4 }}>Delete this session?</span>
+                    <button type="button" className="btn btn-secondary" onClick={() => setConfirmDel(false)}>Cancel</button>
+                    <button type="button" disabled={editDeleting}
+                      style={{ background: '#DC2626', color: '#fff', border: 'none', borderRadius: 8, padding: '0 16px', height: 38, fontWeight: 600, cursor: editDeleting ? 'not-allowed' : 'pointer', fontSize: '0.875rem', opacity: editDeleting ? 0.7 : 1 }}
+                      onClick={doDelete}>
+                      {editDeleting ? 'Deleting…' : 'Yes, Delete'}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button type="button"
+                      style={{ background: 'none', border: '1px solid #FECACA', color: '#DC2626', borderRadius: 8, padding: '0 14px', height: 38, fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem' }}
+                      onClick={() => setConfirmDel(true)}>
+                      Delete
+                    </button>
+                    <button type="button" className="btn btn-secondary" onClick={() => setEditingId(null)}>Cancel</button>
+                    <button type="submit" className="btn btn-primary" disabled={editSaving} style={{ whiteSpace: 'nowrap' }}>
+                      {editSaving ? 'Saving…' : 'Save Changes'}
+                    </button>
+                  </>
+                )}
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Calendar grid */}
       <div style={{
         background: 'var(--bg-surface)', border: '1px solid var(--border-default)',
