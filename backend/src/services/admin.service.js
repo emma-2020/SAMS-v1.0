@@ -235,4 +235,60 @@ function computeInviteStatus(invitation) {
   return 'pending';
 }
 
-module.exports = { createInvitation, listInvitations, revokeInvitation };
+// ─────────────────────────────────────────────────────────────────
+// SET MEMBER STATUS (deactivate / reactivate)
+// ─────────────────────────────────────────────────────────────────
+
+/**
+ * setMemberStatus
+ * Toggles is_active on a user record within the academy.
+ * Guards:
+ *   - Admin cannot change their own status (self-lockout prevention)
+ *   - Cannot deactivate the last active Admin (orphan-academy prevention)
+ */
+async function setMemberStatus({ memberId, academyId, requestingAdminId, isActive }) {
+  if (memberId === requestingAdminId) {
+    throw new ForbiddenError('You cannot change your own account status.');
+  }
+
+  const { data: member, error: fetchErr } = await supabaseAdmin
+    .from('users')
+    .select('id, role, is_active')
+    .eq('id', memberId)
+    .eq('academy_id', academyId)
+    .single();
+
+  if (fetchErr || !member) throw new NotFoundError('Member not found in this academy.');
+
+  // Prevent deactivating the last active Admin
+  if (!isActive && member.role === 'Admin') {
+    const { count, error: countErr } = await supabaseAdmin
+      .from('users')
+      .select('id', { count: 'exact', head: true })
+      .eq('academy_id', academyId)
+      .eq('role', 'Admin')
+      .eq('is_active', true);
+
+    if (countErr) throw new InternalError('Failed to verify admin count.');
+    if ((count ?? 0) <= 1) {
+      throw new ForbiddenError('Cannot deactivate the only active Admin in this academy.');
+    }
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from('users')
+    .update({ is_active: isActive })
+    .eq('id', memberId)
+    .eq('academy_id', academyId)
+    .select('id, first_name, last_name, email, role, is_active, created_at')
+    .single();
+
+  if (error) {
+    console.error('[AdminService.setMemberStatus]', error.message);
+    throw new InternalError('Failed to update member status. Please try again.');
+  }
+
+  return data;
+}
+
+module.exports = { createInvitation, listInvitations, revokeInvitation, setMemberStatus };
