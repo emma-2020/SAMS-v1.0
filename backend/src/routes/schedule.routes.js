@@ -42,4 +42,19 @@ router.post(
   controller.createEvent
 );
 
+// PUT — Admin and Coach may update events
+router.put(
+  '/:id',
+  requireRole('Admin', 'Coach'),
+  validateUpdateEventBody,
+  controller.updateEvent
+);
+
+// DELETE — Admin and Coach may delete events
+router.delete(
+  '/:id',
+  requireRole('Admin', 'Coach'),
+  controller.deleteEvent
+);
+
 module.exports = router;
