@@ -1,12 +1,6 @@
 import { apiClient } from './client';
-import type { ChatMessage } from './types';
-
-export interface ChatAttachment {
-  url: string;
-  file_name: string;
-  mime_type: string;
-  file_size: number;
-}
+import type { ChatMessage, ChatAttachment } from './types';
+export type { ChatAttachment };
 
 // Backend:  GET /chat?team_id=:uuid&limit=50
 // Response: { success, data: { team, messages: [...], page } }
