@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useReducer } from 'react';
 import { chatApi, teamsApi } from '@sams/api';
-import type { Team, ChatMessage, TeamMember } from '@sams/api';
+import type { Team, ChatMessage, TeamMember, ChatAttachment } from '@sams/api';
 import { useAuthStore } from '@sams/store';
 
 // ─── Constants ─────────────────────────────────────────────────────
