@@ -242,4 +242,85 @@ async function resolveAllowedTeamIds({ userId, academyId, role }) {
   return [];
 }
 
-module.exports = { getEvents, getEventById, createEvent, resolveAllowedTeamIds };
+// ─────────────────────────────────────────────────────────────────
+// UPDATE EVENT
+// Admin may update any academy event; Coach may only update their teams' events.
+// ─────────────────────────────────────────────────────────────────
+
+async function updateEvent({ eventId, userId, academyId, role, payload }) {
+  const { data: existing, error: fetchErr } = await supabaseAdmin
+    .from('events')
+    .select('id, team_id')
+    .eq('id', eventId)
+    .eq('academy_id', academyId)
+    .single();
+
+  if (fetchErr || !existing) throw new NotFoundError('Event not found or access denied.');
+
+  if (role === 'Coach') {
+    const allowedTeamIds = await resolveAllowedTeamIds({ userId, academyId, role });
+    if (!allowedTeamIds.includes(existing.team_id)) {
+      throw new ForbiddenError('You can only update events for teams you are assigned to.');
+    }
+  }
+
+  const { title, type, location, start_time, end_time, description } = payload;
+  const updates = {};
+  if (title       !== undefined) updates.title       = title.trim();
+  if (type        !== undefined) updates.type        = type;
+  if (location    !== undefined) updates.location    = location?.trim() || null;
+  if (start_time  !== undefined) updates.start_time  = new Date(start_time).toISOString();
+  if (end_time    !== undefined) updates.end_time    = new Date(end_time).toISOString();
+  if (description !== undefined) updates.description = description?.trim() || null;
+
+  const { data, error } = await supabaseAdmin
+    .from('events')
+    .update(updates)
+    .eq('id', eventId)
+    .eq('academy_id', academyId)
+    .select('id, academy_id, team_id, title, description, type, location, start_time, end_time')
+    .single();
+
+  if (error) {
+    console.error('[ScheduleService.updateEvent]', error.message);
+    throw new InternalError('Failed to update event. Please try again.');
+  }
+
+  return data;
+}
+
+// ─────────────────────────────────────────────────────────────────
+// DELETE EVENT
+// Admin may delete any academy event; Coach may only delete their teams' events.
+// ─────────────────────────────────────────────────────────────────
+
+async function deleteEvent({ eventId, userId, academyId, role }) {
+  const { data: existing, error: fetchErr } = await supabaseAdmin
+    .from('events')
+    .select('id, team_id')
+    .eq('id', eventId)
+    .eq('academy_id', academyId)
+    .single();
+
+  if (fetchErr || !existing) throw new NotFoundError('Event not found or access denied.');
+
+  if (role === 'Coach') {
+    const allowedTeamIds = await resolveAllowedTeamIds({ userId, academyId, role });
+    if (!allowedTeamIds.includes(existing.team_id)) {
+      throw new ForbiddenError('You can only delete events for teams you are assigned to.');
+    }
+  }
+
+  const { error } = await supabaseAdmin
+    .from('events')
+    .delete()
+    .eq('id', eventId)
+    .eq('academy_id', academyId);
+
+  if (error) {
+    console.error('[ScheduleService.deleteEvent]', error.message);
+    throw new InternalError('Failed to delete event. Please try again.');
+  }
+}
+
+module.exports = { getEvents, getEventById, createEvent, updateEvent, deleteEvent, resolveAllowedTeamIds };
