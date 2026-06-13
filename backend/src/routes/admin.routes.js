@@ -20,7 +20,7 @@
 const { Router }       = require('express');
 const controller       = require('../controllers/admin.controller');
 const { authenticate, extractTenant, requireRole } = require('../middleware/auth.middleware');
-const { validateInviteBody } = require('../middleware/validate');
+const { validateInviteBody, validateMemberStatusBody } = require('../middleware/validate');
 
 const router = Router();
 
