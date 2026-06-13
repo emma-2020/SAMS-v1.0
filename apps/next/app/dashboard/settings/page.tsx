@@ -224,7 +224,7 @@ export default function SettingsPage() {
     try {
       const fd = new FormData();
       fd.append('avatar', avatarFile);
-      const res = (await apiClient.patch('/auth/me/avatar', fd, { headers: { 'Content-Type': 'multipart/form-data' } })) as { data?: { profile?: { avatar_url?: string } } };
+      const res = (await apiClient.post('/auth/avatar', fd)) as { data?: { profile?: { avatar_url?: string } } };
       const newUrl = (res as any)?.data?.profile?.avatar_url ?? (res as any)?.avatar_url;
       if (user) setUser({ ...user, avatar_url: newUrl });
       setAvatarSuccess(true); setAvatarFile(null);
