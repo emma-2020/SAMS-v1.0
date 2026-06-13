@@ -247,19 +247,33 @@ function MessageBubble({ msg, isSelf, showHeader, isLast }: { msg: OptMsg; isSel
 }
 
 // ─── Input bar ───────────────────────────────────────────────────────
-function InputBar({ onSend, disabled }: { onSend: (text: string) => void; disabled: boolean }) {
-  const [text, setText]       = useState('');
-  const [focused, setFocused] = useState(false);
-  const [clipHover, setClipHover] = useState(false);
-  const ref = useRef<HTMLTextAreaElement>(null);
-  const canSend = text.trim().length > 0 && !disabled && text.length <= MAX_CHARS;
+function InputBar({
+  onSend,
+  disabled,
+  activeTeamId,
+}: {
+  onSend: (text: string, attachment?: ChatAttachment) => void;
+  disabled: boolean;
+  activeTeamId: string | null;
+}) {
+  const [text,       setText]       = useState('');
+  const [focused,    setFocused]    = useState(false);
+  const [clipHover,  setClipHover]  = useState(false);
+  const [attachment, setAttachment] = useState<ChatAttachment | null>(null);
+  const [uploading,  setUploading]  = useState(false);
+  const [uploadErr,  setUploadErr]  = useState('');
+  const ref     = useRef<HTMLTextAreaElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const canSend = (text.trim().length > 0 || attachment !== null) && !disabled && !uploading && text.length <= MAX_CHARS;
 
   const doSend = useCallback(() => {
     if (!canSend) return;
-    onSend(text.trim());
+    onSend(text.trim(), attachment ?? undefined);
     setText('');
+    setAttachment(null);
     ref.current?.focus();
-  }, [canSend, onSend, text]);
+  }, [canSend, onSend, text, attachment]);
 
   function onKey(e: React.KeyboardEvent) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); doSend(); }
@@ -271,12 +285,84 @@ function InputBar({ onSend, disabled }: { onSend: (text: string) => void; disabl
     ref.current.style.height = `${Math.min(ref.current.scrollHeight, 120)}px`;
   }, [text]);
 
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !activeTeamId) return;
+    e.target.value = '';
+    setUploadErr('');
+    setUploading(true);
+    try {
+      const info = await chatApi.uploadChatAttachment(activeTeamId, file);
+      setAttachment(info);
+    } catch (err: unknown) {
+      setUploadErr(err instanceof Error ? err.message : 'Upload failed.');
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  const isImage = attachment?.mime_type?.startsWith('image/');
+
   return (
     <div style={{ padding: '10px 20px 14px', borderTop: '1px solid #F1F5F9', background: '#FFFFFF', flexShrink: 0 }}>
+
+      {/* Attachment preview chip */}
+      {(attachment || uploading) && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, padding: '6px 10px', background: '#F1F5F9', borderRadius: 10, border: '1px solid #E2E8F0' }}>
+          {uploading ? (
+            <>
+              <span className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />
+              <span style={{ fontSize: '0.78rem', color: '#64748B' }}>Uploading…</span>
+            </>
+          ) : attachment && (
+            <>
+              {isImage ? (
+                <img src={attachment.url} alt="" style={{ width: 28, height: 28, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
+              ) : (
+                <span style={{ color: '#6366F1', flexShrink: 0 }}><IcoFile /></span>
+              )}
+              <span style={{ fontSize: '0.78rem', color: '#1E293B', fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {attachment.file_name}
+              </span>
+              <span style={{ fontSize: '0.65rem', color: '#94A3B8', flexShrink: 0 }}>
+                {(attachment.file_size / 1024).toFixed(0)} KB
+              </span>
+              <button onClick={() => setAttachment(null)} type="button"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', display: 'flex', alignItems: 'center', padding: 2 }}>
+                <IcoX14 />
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Upload error */}
+      {uploadErr && (
+        <div style={{ fontSize: '0.75rem', color: '#DC2626', marginBottom: 6, paddingLeft: 4 }}>
+          {uploadErr}
+          <button onClick={() => setUploadErr('')} type="button"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', marginLeft: 6, fontWeight: 700 }}>✕</button>
+        </div>
+      )}
+
+      {/* Hidden file input */}
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/jpeg,image/png,image/gif,image/webp,application/pdf"
+        style={{ display: 'none' }}
+        onChange={handleFileChange}
+      />
+
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, padding: '6px 6px 6px 14px', background: focused ? '#FFFFFF' : '#F8FAFC', borderRadius: 9999, border: `1.5px solid ${focused ? '#6366F1' : '#E2E8F0'}`, boxShadow: focused ? '0 0 0 3px rgba(99,102,241,0.10), 0 2px 10px rgba(15,23,42,0.07)' : '0 1px 4px rgba(15,23,42,0.06)', transition: 'all 0.2s cubic-bezier(0.4,0,0.2,1)' }}>
-        <button onMouseEnter={() => setClipHover(true)} onMouseLeave={() => setClipHover(false)}
-          style={{ width: 34, height: 34, borderRadius: '50%', flexShrink: 0, background: clipHover ? '#EEF2FF' : 'none', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', color: clipHover ? '#6366F1' : '#94A3B8', cursor: 'pointer', alignSelf: 'flex-end', marginBottom: 2, transition: 'all 0.15s' }}
-          title="Attach file (coming soon)" type="button">
+        <button
+          type="button"
+          disabled={!activeTeamId || uploading}
+          onClick={() => fileRef.current?.click()}
+          onMouseEnter={() => setClipHover(true)}
+          onMouseLeave={() => setClipHover(false)}
+          title="Attach image or PDF (max 10 MB)"
+          style={{ width: 34, height: 34, borderRadius: '50%', flexShrink: 0, background: attachment ? '#EEF2FF' : (clipHover ? '#EEF2FF' : 'none'), border: attachment ? '1.5px solid #C7D2FE' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', color: attachment ? '#6366F1' : (clipHover ? '#6366F1' : '#94A3B8'), cursor: activeTeamId && !uploading ? 'pointer' : 'not-allowed', alignSelf: 'flex-end', marginBottom: 2, transition: 'all 0.15s', opacity: uploading ? 0.5 : 1 }}>
           <IcoPaperclip />
         </button>
 
@@ -299,7 +385,7 @@ function InputBar({ onSend, disabled }: { onSend: (text: string) => void; disabl
         </button>
       </div>
       <div style={{ fontSize: '0.62rem', color: '#94A3B8', fontFamily: 'var(--font-mono)', marginTop: 7, textAlign: 'center', letterSpacing: '0.04em' }}>
-        Enter ↵ to send · Shift+Enter for new line
+        Enter ↵ to send · Shift+Enter for new line · 📎 images & PDF up to 10 MB
       </div>
     </div>
   );
