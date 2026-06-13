@@ -1,13 +1,14 @@
 import { Stack, Redirect } from 'expo-router';
 import { useAuthStore } from '@sams/store';
-import { ROLE_DASHBOARD } from '@sams/app';
 
 export default function AuthLayout() {
   const { isAuthenticated, isInitialised, user } = useAuthStore();
 
   if (isInitialised && isAuthenticated && user) {
-    const dest = ROLE_DASHBOARD[user.role] ?? '/(tabs)';
-    return <Redirect href={dest as never} />;
+    // ROLE_DASHBOARD from @sams/app holds Next.js paths (/dashboard/admin).
+    // On Expo, all roles share the same tab navigator at '/' — the tabs layout
+    // shows the role-appropriate dashboard based on the user's role in Zustand.
+    return <Redirect href="/" />;
   }
 
   return (
