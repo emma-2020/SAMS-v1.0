@@ -20,6 +20,14 @@ export async function createEvent(payload: Omit<ScheduleEvent, 'id'>): Promise<S
   return res.data.event;
 }
 
+export async function updateEvent(id: string, payload: Partial<Omit<ScheduleEvent, 'id'>>): Promise<ScheduleEvent> {
+  const res = (await apiClient.put(`/schedule/${id}`, payload)) as {
+    success: boolean;
+    data: { event: ScheduleEvent };
+  };
+  return res.data.event;
+}
+
 export async function deleteEvent(id: string): Promise<void> {
   await apiClient.delete(`/schedule/${id}`);
 }
