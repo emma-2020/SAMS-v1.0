@@ -31,5 +31,6 @@ router.post(   '/invite',     validateInviteBody,  controller.createInvitation);
 router.get(    '/invite',                          controller.listInvitations);
 router.delete( '/invite/:id',                      controller.revokeInvitation);
 router.get(    '/roster',                          controller.listRoster);
+router.patch(  '/roster/:id/status', validateMemberStatusBody, controller.setMemberStatus);
 
 module.exports = router;
