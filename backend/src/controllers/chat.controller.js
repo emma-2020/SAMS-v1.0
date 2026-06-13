@@ -22,14 +22,18 @@ async function getMessages(req, res, next) {
 
 async function sendMessage(req, res, next) {
   try {
-    const { team_id, message_text } = req.body;
+    const { team_id, message_text, attachment_url, file_name, mime_type, file_size } = req.body;
 
     const message = await chatService.sendMessage({
-      teamId:      team_id,
-      senderId:    req.user.id,
-      academyId:   req.academyId,
-      role:        req.user.role,
-      messageText: message_text,
+      teamId:        team_id,
+      senderId:      req.user.id,
+      academyId:     req.academyId,
+      role:          req.user.role,
+      messageText:   message_text,
+      attachmentUrl: attachment_url,
+      fileName:      file_name,
+      mimeType:      mime_type,
+      fileSize:      file_size,
     });
 
     return res.status(201).json({
@@ -40,4 +44,29 @@ async function sendMessage(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { getMessages, sendMessage };
+async function uploadAttachment(req, res, next) {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: 'No file provided.' });
+    }
+    const { team_id } = req.body;
+    if (!team_id) {
+      return res.status(400).json({ success: false, error: '"team_id" is required.' });
+    }
+
+    const result = await chatService.uploadAttachment({
+      teamId:       team_id,
+      userId:       req.user.id,
+      academyId:    req.academyId,
+      role:         req.user.role,
+      fileBuffer:   req.file.buffer,
+      mimetype:     req.file.mimetype,
+      originalname: req.file.originalname,
+      fileSize:     req.file.size,
+    });
+
+    return res.status(200).json({ success: true, data: result });
+  } catch (err) { next(err); }
+}
+
+module.exports = { getMessages, sendMessage, uploadAttachment };
