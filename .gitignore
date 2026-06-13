@@ -9,9 +9,14 @@
 **/.env.staging
 
 # Node modules
+node_modules/
 **/node_modules/
 
 # Build outputs
+.next/
+**/.next/
+.expo/
+**/.expo/
 frontend/build/
 frontend/.cache/
 apps/next/.next/
