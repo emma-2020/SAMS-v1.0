@@ -19,8 +19,11 @@ config.resolver.nodeModulesPaths = [
 // Resolve pnpm junction links (Windows) and Unix symlinks inside workspace pkgs
 config.resolver.unstable_enableSymlinks = true;
 
-// Honour the "exports" field in @sams/* package.json entries
-config.resolver.unstable_enablePackageExports = true;
+// NOTE: unstable_enablePackageExports is intentionally disabled.
+// Enabling it causes Metro to follow pnpm's virtual store symlinks
+// (.pnpm/expo-router@.../...) and serve package.json files with
+// Content-Type: application/json, which browsers refuse to execute.
+// @sams/* workspace packages are already resolved via nodeModulesPaths.
 
 // ── NativeWind v4 ─────────────────────────────────────────────────────────────
 module.exports = withNativeWind(config, { input: './global.css' });
