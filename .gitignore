@@ -14,6 +14,9 @@
 # Build outputs
 frontend/build/
 frontend/.cache/
+apps/next/.next/
+apps/next/tsconfig.tsbuildinfo
+apps/expo/.expo/
 
 # Backend compiled output (if added later)
 backend/dist/
