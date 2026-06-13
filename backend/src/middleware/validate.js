@@ -254,6 +254,14 @@ const validateUpdateEventBody = runChecks([
   },
 ]);
 
+const validateMemberStatusBody = runChecks([
+  ({ body }) => {
+    if (typeof body.is_active !== 'boolean') {
+      return '"is_active" must be a boolean (true or false).';
+    }
+  },
+]);
+
 module.exports = {
   validateScheduleQuery,
   validateCreateEventBody,
@@ -264,4 +272,5 @@ module.exports = {
   validateChatQuery,
   validateChatBody,
   validateInviteBody,
+  validateMemberStatusBody,
 };
