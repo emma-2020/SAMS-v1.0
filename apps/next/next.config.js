@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 
 const nextConfig = {
+  output: 'export',
+
   // Transpile workspace packages and react-native-web
   transpilePackages: [
     'react-native',

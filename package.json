@@ -5,9 +5,8 @@
   "scripts": {
     "dev": "concurrently -n \"backend,next\" -c \"yellow,cyan\" \"npm run dev:backend\" \"npm run dev:next\"",
     "dev:next": "turbo dev --filter=@sams/next",
-    "dev:expo": "turbo dev --filter=@sams/expo",
     "dev:backend": "cd backend && npm run dev",
-    "dev:all": "concurrently -n \"backend,next,expo\" -c \"yellow,cyan,green\" \"npm run dev:backend\" \"npm run dev:next\" \"npm run dev:expo\"",
+    "dev:all": "concurrently -n \"backend,next\" -c \"yellow,cyan\" \"npm run dev:backend\" \"npm run dev:next\"",
     "build": "turbo build",
     "build:next": "turbo build --filter=@sams/next",
     "lint": "turbo lint",
