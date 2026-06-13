@@ -33,7 +33,10 @@ const supabaseAdmin = createClient(
  */
 const supabaseAnon = createClient(
   env.SUPABASE_URL,
-  env.SUPABASE_ANON_KEY
+  env.SUPABASE_ANON_KEY,
+  {
+    realtime: { transport: ws },
+  }
 );
 
 module.exports = { supabaseAdmin, supabaseAnon };
