@@ -480,17 +480,21 @@ export default function AdminSchedulePage() {
                       {!loading && blocks.map(b => {
                         const duration = (b.endH - b.startH) + (b.endM - b.startM) / 60;
                         return (
-                          <div key={b.id} style={{
-                            position: 'absolute', top: 3, left: 3, right: 3,
-                            minHeight: Math.max(duration * 44 - 6, 20),
-                            borderRadius: 6, padding: '3px 7px',
-                            background: b.color.bg, border: `1px solid ${b.color.border}`,
-                            fontSize: '0.72rem', fontWeight: 600, color: b.color.color,
-                            overflow: 'hidden', display: 'flex', flexDirection: 'column',
-                            gap: 2, zIndex: 2,
-                          }}>
-                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <div key={b.id}
+                            onClick={() => openEdit(b)}
+                            title="Click to edit"
+                            style={{
+                              position: 'absolute', top: 3, left: 3, right: 3,
+                              minHeight: Math.max(duration * 44 - 6, 20),
+                              borderRadius: 6, padding: '3px 7px',
+                              background: b.color.bg, border: `1px solid ${b.color.border}`,
+                              fontSize: '0.72rem', fontWeight: 600, color: b.color.color,
+                              overflow: 'hidden', display: 'flex', flexDirection: 'column',
+                              gap: 2, zIndex: 2, cursor: 'pointer',
+                            }}>
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                               {b.label}
+                              <span style={{ opacity: 0.5, flexShrink: 0, marginLeft: 4 }}><IcoPencil /></span>
                             </span>
                             <span style={{ fontSize: '0.64rem', opacity: 0.75, fontWeight: 500 }}>
                               {b.eventType} · {b.venue}
