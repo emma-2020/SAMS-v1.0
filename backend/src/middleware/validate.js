@@ -144,13 +144,12 @@ const validateChatBody = runChecks([
     }
   },
   ({ body }) => {
-    if (!body.message_text || typeof body.message_text !== 'string') {
-      return '"message_text" (string) is required.';
+    const hasText       = body.message_text && typeof body.message_text === 'string' && body.message_text.trim().length > 0;
+    const hasAttachment = body.attachment_url && typeof body.attachment_url === 'string';
+    if (!hasText && !hasAttachment) {
+      return 'Message must include "message_text", "attachment_url", or both.';
     }
-    if (body.message_text.trim().length === 0) {
-      return '"message_text" cannot be blank.';
-    }
-    if (body.message_text.length > MAX_MESSAGE_LENGTH) {
+    if (body.message_text && body.message_text.length > MAX_MESSAGE_LENGTH) {
       return `"message_text" cannot exceed ${MAX_MESSAGE_LENGTH} characters.`;
     }
   },
