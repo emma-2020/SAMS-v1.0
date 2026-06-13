@@ -22,6 +22,7 @@ const supabaseAdmin = createClient(
       autoRefreshToken: false,
       persistSession:   false,
     },
+    realtime: { transport: ws },
   }
 );
 
