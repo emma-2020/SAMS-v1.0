@@ -53,6 +53,12 @@ export default function AdminSchedulePage() {
   const [loading, setLoading]       = useState(true);
   const [error, setError]           = useState('');
 
+  const [editingId, setEditingId]   = useState<string | null>(null);
+  const [editForm, setEditForm]     = useState(BLANK_FORM);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editDeleting, setEditDeleting] = useState(false);
+  const [confirmDel, setConfirmDel] = useState(false);
+
   const weekStart = new Date(today);
   weekStart.setDate(today.getDate() + weekOffset * 7 - today.getDay() + 1);
 
