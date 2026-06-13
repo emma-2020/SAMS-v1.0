@@ -412,7 +412,7 @@ export function AdminDashboardScreen() {
   ];
 
   return (
-    <div style={{ animation: 'fadeIn 0.3s ease' }}>
+    <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 40, animation: 'fadeIn 0.3s ease' }}>
 
       {/* ── Hero Banner ── */}
       <div style={{
