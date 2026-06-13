@@ -68,4 +68,21 @@ async function listRoster(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { createInvitation, listInvitations, revokeInvitation, listRoster };
+async function setMemberStatus(req, res, next) {
+  try {
+    const member = await adminService.setMemberStatus({
+      memberId:           req.params.id,
+      academyId:          req.academyId,
+      requestingAdminId:  req.user.id,
+      isActive:           req.body.is_active,
+    });
+    const action = member.is_active ? 'reactivated' : 'deactivated';
+    return res.status(200).json({
+      success: true,
+      message: `Member ${action} successfully.`,
+      data:    { member },
+    });
+  } catch (err) { next(err); }
+}
+
+module.exports = { createInvitation, listInvitations, revokeInvitation, listRoster, setMemberStatus };
