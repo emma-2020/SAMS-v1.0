@@ -137,4 +137,5 @@ SAMS-v1.0/
 - API client configured via `configureApiClient()` — must be called once on app mount (done in `AuthProvider` and Expo `_layout.tsx`).
 
 ## V1.0 Scope Constraint
-Stripe, file uploads, PDF generation, video tools, Apple Health sync, and AI scheduling are explicitly out of scope. Do not introduce these.
+Stripe, PDF generation, video tools, Apple Health sync, and AI scheduling are explicitly out of scope. Do not introduce these.
+Chat file attachments (images and PDF, max 10 MB) are in scope — see `POST /api/chat/upload` and `database/migrations/004_chat_attachments.sql`.
