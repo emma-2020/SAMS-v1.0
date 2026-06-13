@@ -9,6 +9,7 @@
  *   F-07  Raw Supabase error strings replaced with safe logged messages.
  */
 
+const crypto        = require('crypto');
 const { supabaseAdmin } = require('../config/supabase');
 const {
   ForbiddenError,
@@ -16,6 +17,8 @@ const {
   BadRequestError,
   InternalError,
 } = require('../utils/errors');
+
+const ATTACHMENT_BUCKET = 'chat-attachments';
 
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT     = 100;
