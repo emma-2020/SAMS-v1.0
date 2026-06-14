@@ -79,49 +79,88 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
           ))}
         </nav>
 
-        {/* Right CTA — swaps on /enroll */}
-        {isEnroll ? (
-          <Link href="/" style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            padding: '8px 18px', borderRadius: 99, flexShrink: 0,
-            border: '1px solid rgba(255,255,255,0.08)',
-            background: 'rgba(255,255,255,0.04)',
-            color: 'rgba(255,255,255,0.45)',
-            fontSize: '0.8rem', fontWeight: 600,
-            textDecoration: 'none', letterSpacing: '0.01em',
-          }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25">
-              <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
-            </svg>
-            Back to home
-          </Link>
-        ) : (
-          <Link
-            href="/enroll"
-            style={{
-              display: 'flex', alignItems: 'center', gap: 8,
-              padding: '9px 22px', borderRadius: 99, flexShrink: 0,
-              background: 'linear-gradient(135deg, #7C3AED, #6D28D9)',
-              color: '#fff', fontSize: '0.83rem', fontWeight: 700,
+        {/* Right CTAs */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+          {isEnroll ? (
+            <Link href="/" style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '8px 18px', borderRadius: 99,
+              border: '1px solid rgba(255,255,255,0.08)',
+              background: 'rgba(255,255,255,0.04)',
+              color: 'rgba(255,255,255,0.45)',
+              fontSize: '0.8rem', fontWeight: 600,
               textDecoration: 'none', letterSpacing: '0.01em',
-              boxShadow: '0 4px 18px rgba(109,40,217,0.52)',
-              transition: 'transform 0.15s, box-shadow 0.15s',
-            }}
-            onMouseEnter={e => {
-              (e.currentTarget as HTMLAnchorElement).style.transform = 'scale(1.04)';
-              (e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 8px 30px rgba(109,40,217,0.72)';
-            }}
-            onMouseLeave={e => {
-              (e.currentTarget as HTMLAnchorElement).style.transform = 'scale(1)';
-              (e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 4px 18px rgba(109,40,217,0.52)';
-            }}
-          >
-            Enroll Academy
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25">
-              <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
-            </svg>
-          </Link>
-        )}
+            }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25">
+                <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+              </svg>
+              Back to home
+            </Link>
+          ) : (
+            <>
+              {/* Sign In — ghost button */}
+              <Link
+                href="/login"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 7,
+                  padding: '9px 20px', borderRadius: 99,
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  background: 'rgba(255,255,255,0.05)',
+                  color: 'rgba(255,255,255,0.75)',
+                  fontSize: '0.83rem', fontWeight: 600,
+                  textDecoration: 'none', letterSpacing: '0.01em',
+                  transition: 'background 0.15s, border-color 0.15s, color 0.15s',
+                }}
+                onMouseEnter={e => {
+                  const el = e.currentTarget as HTMLAnchorElement;
+                  el.style.background = 'rgba(255,255,255,0.1)';
+                  el.style.borderColor = 'rgba(255,255,255,0.22)';
+                  el.style.color = '#F1F5F9';
+                }}
+                onMouseLeave={e => {
+                  const el = e.currentTarget as HTMLAnchorElement;
+                  el.style.background = 'rgba(255,255,255,0.05)';
+                  el.style.borderColor = 'rgba(255,255,255,0.12)';
+                  el.style.color = 'rgba(255,255,255,0.75)';
+                }}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25">
+                  <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                  <polyline points="10 17 15 12 10 7"/>
+                  <line x1="15" y1="12" x2="3" y2="12"/>
+                </svg>
+                Sign In
+              </Link>
+
+              {/* Enroll — primary button */}
+              <Link
+                href="/enroll"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '9px 22px', borderRadius: 99,
+                  background: 'linear-gradient(135deg, #7C3AED, #6D28D9)',
+                  color: '#fff', fontSize: '0.83rem', fontWeight: 700,
+                  textDecoration: 'none', letterSpacing: '0.01em',
+                  boxShadow: '0 4px 18px rgba(109,40,217,0.52)',
+                  transition: 'transform 0.15s, box-shadow 0.15s',
+                }}
+                onMouseEnter={e => {
+                  (e.currentTarget as HTMLAnchorElement).style.transform = 'scale(1.04)';
+                  (e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 8px 30px rgba(109,40,217,0.72)';
+                }}
+                onMouseLeave={e => {
+                  (e.currentTarget as HTMLAnchorElement).style.transform = 'scale(1)';
+                  (e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 4px 18px rgba(109,40,217,0.52)';
+                }}
+              >
+                Enroll Academy
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25">
+                  <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+                </svg>
+              </Link>
+            </>
+          )}
+        </div>
       </header>
 
       <main>{children}</main>

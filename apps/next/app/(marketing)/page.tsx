@@ -756,9 +756,30 @@ export default function HomePage() {
             SAMS v1.0 · Sports Academy Management System
           </span>
         </div>
-        <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.18)', fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.03em' }}>
-          Built for elite athletic performance
-        </span>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+          <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.18)', fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.03em' }}>
+            Built for elite athletic performance
+          </span>
+          <Link
+            href="/platform/login"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              fontSize: '0.72rem', color: 'rgba(255,255,255,0.22)',
+              textDecoration: 'none', letterSpacing: '0.04em',
+              fontFamily: 'JetBrains Mono, monospace',
+              transition: 'color 0.15s',
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.55)'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.22)'; }}
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="11" width="18" height="11" rx="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            Platform Admin
+          </Link>
+        </div>
       </footer>
     </>
   );
