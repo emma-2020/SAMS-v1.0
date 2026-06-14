@@ -24,9 +24,18 @@ const { supabaseAdmin } = require('../config/supabase');
  * @param {object}  [entry.meta]       - arbitrary extra context
  * @param {string}  [entry.ip_address]
  */
+function sanitizeIp(ip) {
+  if (!ip) return null;
+  // Strip IPv4-mapped IPv6 prefix (::ffff:x.x.x.x) — PostgreSQL inet accepts both
+  // but Railway proxies sometimes emit formats that fail validation
+  const stripped = ip.startsWith('::ffff:') ? ip.slice(7) : ip;
+  // Basic sanity check — must look like an IP
+  return /^[\d.:a-fA-F]+$/.test(stripped) ? stripped : null;
+}
+
 async function log(entry) {
   try {
-    await supabaseAdmin.from('audit_logs').insert({
+    const { error } = await supabaseAdmin.from('audit_logs').insert({
       event:       entry.event,
       academy_id:  entry.academy_id  ?? null,
       actor_id:    entry.actor_id    ?? null,
@@ -35,10 +44,10 @@ async function log(entry) {
       resource:    entry.resource    ?? null,
       resource_id: entry.resource_id ?? null,
       meta:        entry.meta        ?? {},
-      ip_address:  entry.ip_address  ?? null,
+      ip_address:  sanitizeIp(entry.ip_address),
     });
+    if (error) console.error('[AuditService] write failed:', error.message);
   } catch (err) {
-    // Log internally but never surface to caller
     console.error('[AuditService] write failed:', err?.message);
   }
 }
