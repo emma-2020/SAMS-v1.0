@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { authApi } from '@sams/api';
 import { useAuthStore } from '@sams/store';
@@ -36,6 +36,20 @@ export default function LoginPage() {
 
   const [form, setForm]           = useState({ email: '', password: '', academy_id: '' });
   const [showPassword, setShowPw] = useState(false);
+
+  // Pre-fill from URL search params (?academy_id=...&email=...)
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    const aid = p.get('academy_id');
+    const em  = p.get('email');
+    if (aid || em) {
+      setForm(prev => ({
+        ...prev,
+        ...(aid ? { academy_id: aid } : {}),
+        ...(em  ? { email: em }       : {}),
+      }));
+    }
+  }, []);
   const [errors, setErrors]       = useState<Record<string, string>>({});
   const [apiError, setApiError]   = useState('');
   const [loading, setLoading]     = useState(false);
@@ -80,12 +94,78 @@ export default function LoginPage() {
   }, [form, loginStore, router]);
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#F4F6FA' }}>
+    <div className="login-root" style={{ display: 'flex', minHeight: '100vh', background: '#F4F6FA' }}>
+
+      {/* ── Responsive styles ── */}
+      <style>{`
+        .login-brand-panel {
+          flex: 0 0 42%;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+        }
+        .login-form-panel {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .login-input {
+          width: 100%;
+          height: 48px;
+          padding: 0 14px 0 46px;
+          background: #FFFFFF;
+          border: 1.5px solid #E2E8F0;
+          border-radius: 10px;
+          color: #0F172A;
+          font-family: inherit;
+          font-size: 0.9rem;
+          transition: border-color 120ms ease, box-shadow 120ms ease;
+          outline: none;
+          appearance: none;
+        }
+        .login-input::placeholder { color: #94A3B8; }
+        .login-input:hover { border-color: #CBD5E1; }
+        .login-input:focus {
+          border-color: #6366F1;
+          box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+        }
+        .login-input:disabled { background: #F8FAFC; opacity: 0.65; cursor: not-allowed; }
+        .login-input.error { border-color: #EF4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.1); }
+        .login-input-pw { padding-right: 48px; }
+        .login-icon {
+          position: absolute;
+          left: 14px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: #94A3B8;
+          display: flex;
+          pointer-events: none;
+        }
+        @media (max-width: 767px) {
+          .login-brand-panel {
+            flex: none !important;
+            width: 100% !important;
+            padding: 40px 28px 36px !important;
+          }
+          .login-brand-headline { font-size: 1.8rem !important; }
+          .login-form-panel {
+            flex: none !important;
+            width: 100% !important;
+            padding: 36px 24px 48px !important;
+            align-items: flex-start !important;
+          }
+          .login-root {
+            flex-direction: column !important;
+          }
+          .login-role-list { display: none !important; }
+          .login-version-bar { display: none !important; }
+        }
+      `}</style>
 
       {/* ── Left: Brand panel (dark navy) ── */}
-      <div style={{
-        flex: '0 0 42%', background: '#0D1B3E',
-        display: 'flex', flexDirection: 'column', justifyContent: 'center',
+      <div className="login-brand-panel" style={{
+        background: '#0D1B3E',
         padding: 'clamp(32px, 5vw, 72px)',
         position: 'relative', overflow: 'hidden',
       }}>
@@ -105,7 +185,7 @@ export default function LoginPage() {
         </div>
 
         {/* Headline */}
-        <h1 style={{ fontFamily: 'Inter, sans-serif', fontSize: 'clamp(2rem, 3.5vw, 3rem)', fontWeight: 900, lineHeight: 1.1, color: 'white', marginBottom: 20, letterSpacing: '-0.02em' }}>
+        <h1 className="login-brand-headline" style={{ fontFamily: 'Inter, sans-serif', fontSize: 'clamp(2rem, 3.5vw, 3rem)', fontWeight: 900, lineHeight: 1.1, color: 'white', marginBottom: 20, letterSpacing: '-0.02em' }}>
           The Command<br />Centre for<br />
           <span style={{ color: '#818CF8' }}>Elite Academies.</span>
         </h1>
@@ -115,7 +195,7 @@ export default function LoginPage() {
         </p>
 
         {/* Role list */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div className="login-role-list" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {ROLES.map(({ role, color, desc }) => (
             <div key={role} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{ width: 32, height: 32, borderRadius: 8, flexShrink: 0, background: `${color}25`, border: `1px solid ${color}40`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -129,13 +209,13 @@ export default function LoginPage() {
           ))}
         </div>
 
-        <div style={{ marginTop: 52, paddingTop: 20, borderTop: '1px solid rgba(255,255,255,0.08)', fontFamily: 'JetBrains Mono, monospace', fontSize: '0.68rem', color: 'rgba(255,255,255,0.25)' }}>
+        <div className="login-version-bar" style={{ marginTop: 52, paddingTop: 20, borderTop: '1px solid rgba(255,255,255,0.08)', fontFamily: 'JetBrains Mono, monospace', fontSize: '0.68rem', color: 'rgba(255,255,255,0.25)' }}>
           SAMS v1.0 · Base Model MVP
         </div>
       </div>
 
       {/* ── Right: Login form panel ── */}
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'clamp(24px, 4vw, 64px)', background: '#F4F6FA' }}>
+      <div className="login-form-panel" style={{ padding: 'clamp(24px, 4vw, 64px)', background: '#F4F6FA' }}>
         <div style={{ width: '100%', maxWidth: 420 }}>
 
           {/* Header */}
@@ -161,60 +241,63 @@ export default function LoginPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
             {/* Academy ID */}
-            <div className="field">
-              <label className="field-label" htmlFor="academy_id">Academy ID</label>
-              <div className="input-wrapper">
-                <span className="input-icon"><IconBuilding /></span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', letterSpacing: '0.01em' }} htmlFor="academy_id">Academy ID</label>
+              <div style={{ position: 'relative' }}>
+                <span className="login-icon"><IconBuilding /></span>
                 <input id="academy_id" name="academy_id" type="text"
                   value={form.academy_id} onChange={handleChange}
                   placeholder="Your academy UUID"
-                  className={`field-input${errors.academy_id ? ' error' : ''}`}
+                  className={`login-input${errors.academy_id ? ' error' : ''}`}
                   disabled={loading} autoComplete="off" />
               </div>
-              {errors.academy_id && <span className="field-error">{errors.academy_id}</span>}
+              {errors.academy_id && <span style={{ fontSize: '0.75rem', color: '#EF4444', fontWeight: 500 }}>{errors.academy_id}</span>}
             </div>
 
             {/* Email */}
-            <div className="field">
-              <label className="field-label" htmlFor="email">Email Address</label>
-              <div className="input-wrapper">
-                <span className="input-icon"><IconMail /></span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', letterSpacing: '0.01em' }} htmlFor="email">Email Address</label>
+              <div style={{ position: 'relative' }}>
+                <span className="login-icon"><IconMail /></span>
                 <input id="email" name="email" type="email"
                   value={form.email} onChange={handleChange}
                   placeholder="you@academy.com"
-                  className={`field-input${errors.email ? ' error' : ''}`}
+                  className={`login-input${errors.email ? ' error' : ''}`}
                   disabled={loading} autoComplete="email" />
               </div>
-              {errors.email && <span className="field-error">{errors.email}</span>}
+              {errors.email && <span style={{ fontSize: '0.75rem', color: '#EF4444', fontWeight: 500 }}>{errors.email}</span>}
             </div>
 
             {/* Password */}
-            <div className="field">
-              <label className="field-label" htmlFor="password">Password</label>
-              <div className="input-wrapper">
-                <span className="input-icon"><IconLock /></span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', letterSpacing: '0.01em' }} htmlFor="password">Password</label>
+              <div style={{ position: 'relative' }}>
+                <span className="login-icon"><IconLock /></span>
                 <input id="password" name="password"
                   type={showPassword ? 'text' : 'password'}
                   value={form.password} onChange={handleChange}
                   placeholder="••••••••"
-                  className={`field-input${errors.password ? ' error' : ''}`}
-                  style={{ paddingRight: 48 }}
+                  className={`login-input login-input-pw${errors.password ? ' error' : ''}`}
                   disabled={loading} autoComplete="current-password" />
-                <button type="button" className="input-action" onClick={() => setShowPw(p => !p)}>
+                <button
+                  type="button"
+                  onClick={() => setShowPw(p => !p)}
+                  style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', display: 'flex', padding: 4, borderRadius: 4 }}
+                >
                   {showPassword ? <IconEyeOff /> : <IconEyeOn />}
                 </button>
               </div>
-              {errors.password && <span className="field-error">{errors.password}</span>}
+              {errors.password && <span style={{ fontSize: '0.75rem', color: '#EF4444', fontWeight: 500 }}>{errors.password}</span>}
             </div>
 
             <button
               type="submit"
               className={`btn btn-primary btn-xl btn-full${loading ? ' btn-loading' : ''}`}
               disabled={loading}
-              style={{ marginTop: 4 }}
+              style={{ marginTop: 6, height: 52, fontSize: '0.96rem', borderRadius: 12 }}
             >
               {!loading && (
                 <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

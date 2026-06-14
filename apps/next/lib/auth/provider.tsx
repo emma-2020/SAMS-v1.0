@@ -67,9 +67,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { profile } = await authApi.me();
         login(session, profile);
       } catch (err: unknown) {
-        if (err instanceof Error && err.message.includes('401')) {
-          logout();
-        }
+        const msg = err instanceof Error ? err.message.toLowerCase() : '';
+        // Treat any auth-rejection as a sign the token is dead.
+        // The backend sends "Token is invalid or has expired.", "Authorization
+        // header missing or malformed.", or "Not authenticated." — none contain
+        // the literal string "401", so we match on keywords instead.
+        const isAuthError = msg.includes('401') || msg.includes('invalid') ||
+          msg.includes('expired') || msg.includes('unauthorized') ||
+          msg.includes('unauthorised') || msg.includes('not authenticated') ||
+          msg.includes('authorization') || msg.includes('session expired');
+        if (isAuthError) logout();
         // Network/500 errors: keep the cached session, don't force logout
       } finally {
         setInitialised();
@@ -127,7 +134,7 @@ export function ProtectedGuard({ children }: { children: React.ReactNode }) {
  * If an existing session is valid, the redirect fires once isInitialised flips.
  */
 export function PublicOnlyGuard({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isInitialised, user } = useAuthStore();
+  const { isAuthenticated, isInitialised, user, session } = useAuthStore();
   const router = useRouter();
 
   useEffect(() => {
@@ -136,7 +143,9 @@ export function PublicOnlyGuard({ children }: { children: React.ReactNode }) {
     router.replace(ROLE_DASHBOARD[user.role] ?? '/dashboard');
   }, [isInitialised, isAuthenticated, user, router]);
 
-  // Hide the form only when we know for certain the user is already signed in.
+  // Suppress the login form while a cached session is being validated to prevent
+  // a flash of the login UI before the redirect fires.
+  if (!isInitialised && session?.access_token) return null;
   if (isInitialised && isAuthenticated) return null;
 
   return <>{children}</>;

@@ -345,17 +345,25 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const active        = allItems.find(i => pathname === i.path || pathname.startsWith(i.path + '/'));
   const pageTitle     = active?.label ?? 'Dashboard';
 
+  const BOTTOM_NAV_ICONS = ['LayoutDashboard', 'CalendarDays', 'MessageSquare', 'Settings'];
+  const bottomNavItems = BOTTOM_NAV_ICONS
+    .map(icon => allItems.find(i => i.icon === icon))
+    .filter((item): item is NavItem => Boolean(item));
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-base)' }}>
 
       {/* Mobile overlay */}
       {sidebarOpen && (
-        <div onClick={() => setSidebarOpen(false)}
-          style={{ position: 'fixed', inset: 0, zIndex: 99, background: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(4px)' }} />
+        <div
+          onClick={() => setSidebarOpen(false)}
+          onTouchStart={() => setSidebarOpen(false)}
+          style={{ position: 'fixed', inset: 0, zIndex: 99, background: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(4px)' }}
+        />
       )}
 
       {/* Sidebar */}
-      <aside style={{
+      <aside className={`sams-sidebar${sidebarOpen ? ' sams-sidebar--open' : ''}`} style={{
         width: 'var(--sidebar-width)', flexShrink: 0,
         background: 'var(--bg-surface)', borderRight: '1px solid var(--border-subtle)',
         position: 'fixed', top: 0, left: 0, height: '100vh',
@@ -508,14 +516,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main content */}
-      <div style={{ marginLeft: 'var(--sidebar-width)', flex: 1, display: 'flex', flexDirection: 'column', minHeight: '100vh', minWidth: 0 }}>
+      <div className="sams-main-content" style={{ marginLeft: 'var(--sidebar-width)', flex: 1, display: 'flex', flexDirection: 'column', minHeight: '100vh', minWidth: 0 }}>
 
         {/* Topbar */}
         <header style={{ height: 62, background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', padding: '0 28px', position: 'sticky', top: 0, zIndex: 50, gap: 14 }}>
           <button
             onClick={() => setSidebarOpen(true)}
+            onTouchStart={() => setSidebarOpen(true)}
             className="topbar-mobile"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: 6, borderRadius: 8 }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: 6, borderRadius: 8, touchAction: 'manipulation' }}
           >
             <Menu size={20} />
           </button>
@@ -657,10 +666,88 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Page content */}
-        <main style={{ flex: 1, padding: 'var(--density-py) var(--density-px)', maxWidth: 1440, width: '100%', margin: '0 auto' }}>
+        <main className="sams-page-main" style={{ flex: 1, padding: 'var(--density-py) var(--density-px)', maxWidth: 1440, width: '100%', margin: '0 auto' }}>
           {children}
         </main>
       </div>
+
+      {/* ── Mobile Bottom Navigation Bar ─────────────────────────────────────── */}
+      <nav className="sams-bottom-nav" style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0, height: 64,
+        background: 'rgba(8,12,22,0.95)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        borderTop: '1px solid rgba(255,255,255,0.07)',
+        display: 'none',
+        alignItems: 'center', justifyContent: 'space-around',
+        zIndex: 50, padding: '0 4px',
+      }}>
+        {bottomNavItems.map(item => {
+          const isActive = pathname === item.path || pathname.startsWith(item.path + '/');
+          return (
+            <button
+              key={item.path}
+              onClick={() => router.push(item.path)}
+              onTouchStart={e => {
+                (e.currentTarget as HTMLButtonElement).style.opacity = '0.65';
+              }}
+              onTouchEnd={e => {
+                (e.currentTarget as HTMLButtonElement).style.opacity = '1';
+                router.push(item.path);
+              }}
+              onTouchCancel={e => {
+                (e.currentTarget as HTMLButtonElement).style.opacity = '1';
+              }}
+              style={{
+                flex: 1, display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center', gap: 3,
+                background: 'none', border: 'none', cursor: 'pointer',
+                padding: '8px 4px', minHeight: 52, position: 'relative',
+                color: isActive ? '#A78BFA' : 'rgba(255,255,255,0.4)',
+                touchAction: 'manipulation',
+                transition: 'color 0.15s, opacity 0.12s',
+              }}
+            >
+              {isActive && (
+                <div style={{
+                  position: 'absolute', top: 0, left: '25%', right: '25%',
+                  height: 2, borderRadius: '0 0 3px 3px',
+                  background: 'linear-gradient(90deg, #EC4899, #8B5CF6)',
+                }} />
+              )}
+              <NavIcon name={item.icon} size={20} strokeWidth={isActive ? 2.25 : 1.75} />
+              <span style={{
+                fontSize: '0.58rem', fontWeight: isActive ? 700 : 500,
+                letterSpacing: '0.04em', textTransform: 'uppercase',
+              }}>
+                {item.label}
+              </span>
+            </button>
+          );
+        })}
+      </nav>
+
+      <style>{`
+        @media (max-width: 767px) {
+          .sams-sidebar {
+            transform: translateX(-100%);
+            box-shadow: none;
+          }
+          .sams-sidebar--open {
+            transform: translateX(0) !important;
+            box-shadow: 24px 0 60px rgba(0,0,0,0.35);
+          }
+          .sams-main-content {
+            margin-left: 0 !important;
+          }
+          .sams-page-main {
+            padding-bottom: calc(var(--density-py) + 64px) !important;
+          }
+          .sams-bottom-nav {
+            display: flex !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

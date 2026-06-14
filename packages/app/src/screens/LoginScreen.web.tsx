@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react';
 import { useAuthStore } from '@sams/store';
 import { authApi } from '@sams/api';
-import { useRouter } from 'solito/navigation';
+import { useRouter } from 'next/navigation';
 import { ROLE_COLOR, ACCENT, NAVY_DARK } from '@sams/ui';
 import { ROLE_DASHBOARD } from '../navigation/config';
 

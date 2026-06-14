@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useRouter } from 'solito/navigation';
+import { useRouter } from 'next/navigation';
 import {
   Users, Mail, CalendarDays, Shield, ArrowRight,
   CheckCircle2, Clock, UserPlus, TrendingUp,

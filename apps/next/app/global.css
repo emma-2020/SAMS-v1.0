@@ -278,10 +278,10 @@ code, pre { font-family: var(--font-mono); font-size: 0.875em; }
 }
 
 /* ── Responsive sidebar ─────────────────────────────────────── */
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .topbar-mobile { display: flex !important; }
 }
-@media (min-width: 769px) {
+@media (min-width: 768px) {
   .topbar-mobile { display: none !important; }
 }
 

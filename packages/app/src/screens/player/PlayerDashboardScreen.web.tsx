@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'solito/navigation';
+import { useRouter } from 'next/navigation';
 import { healthApi, scheduleApi, workoutApi } from '@sams/api';
 import { useAuthStore } from '@sams/store';
 import type { HealthEntry, ScheduleEvent, WorkoutPlan } from '@sams/api';
