@@ -29,7 +29,7 @@ ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 -- Admins can read audit logs for their own academy only
 CREATE POLICY "Admins read own academy audit logs"
   ON audit_logs FOR SELECT
-  USING (academy_id = auth.jwt() ->> 'academy_id'::text AND (auth.jwt() ->> 'role') = 'Admin');
+  USING (academy_id = (auth.jwt() ->> 'academy_id')::uuid AND (auth.jwt() ->> 'role') = 'Admin');
 
 -- No one can update or delete audit log rows (immutability enforced at DB level)
 -- Inserts are done via supabaseAdmin (service-role) which bypasses RLS.
