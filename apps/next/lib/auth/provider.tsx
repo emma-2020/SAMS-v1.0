@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@sams/store';
 import { authApi, configureApiClient } from '@sams/api';
 import { ROLE_DASHBOARD } from '@sams/app';
+import { useInactivityLogout } from './useInactivityLogout';
 
 /**
  * Mounts at the root layout. On every app load:
@@ -16,6 +17,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { session, isInitialised, login, logout, refreshSession, setInitialised } = useAuthStore();
   const router = useRouter();
   const pathname = usePathname();
+
+  useInactivityLogout();
 
   // Wire API client synchronously on every render so it survives Fast Refresh
   // in development and is always ready before child effects fire API calls.

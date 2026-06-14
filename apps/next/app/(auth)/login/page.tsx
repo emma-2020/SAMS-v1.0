@@ -36,8 +36,9 @@ export default function LoginPage() {
 
   const [form, setForm]           = useState({ email: '', password: '', academy_id: '' });
   const [showPassword, setShowPw] = useState(false);
+  const [inactiveBanner, setInactiveBanner] = useState(false);
 
-  // Pre-fill from URL search params (?academy_id=...&email=...)
+  // Pre-fill from URL search params; detect inactivity logout reason
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
     const aid = p.get('academy_id');
@@ -49,6 +50,7 @@ export default function LoginPage() {
         ...(em  ? { email: em }       : {}),
       }));
     }
+    if (p.get('reason') === 'inactive') setInactiveBanner(true);
   }, []);
   const [errors, setErrors]       = useState<Record<string, string>>({});
   const [apiError, setApiError]   = useState('');
@@ -230,6 +232,18 @@ export default function LoginPage() {
               Enter your credentials and Academy ID to access your workspace.
             </p>
           </div>
+
+          {/* Inactivity logout notice */}
+          {inactiveBanner && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#FFF7ED', border: '1.5px solid #FED7AA', borderRadius: 10, padding: '12px 14px', marginBottom: 20 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F97316" strokeWidth="2" style={{ flexShrink: 0 }}>
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              <span style={{ fontSize: '0.875rem', color: '#9A3412', fontWeight: 500 }}>
+                You were logged out after 30 minutes of inactivity.
+              </span>
+            </div>
+          )}
 
           {/* API error */}
           {apiError && (
