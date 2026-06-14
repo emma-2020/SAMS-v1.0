@@ -24,7 +24,24 @@ const { errorHandler, notFound } = require('./middleware/errorHandler');
 
 const app = express();
 
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc:  ["'self'"],
+      scriptSrc:   ["'self'"],
+      styleSrc:    ["'self'", "'unsafe-inline'"],
+      imgSrc:      ["'self'", 'data:', 'https:'],
+      connectSrc:  ["'self'"],
+      fontSrc:     ["'self'", 'https:'],
+      objectSrc:   ["'none'"],
+      frameSrc:    ["'none'"],
+      upgradeInsecureRequests: [],
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+  hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+}));
 
 // Production: whitelist both the web app subdomain and the marketing root.
 // Development: allow all local dev ports in addition to the configured URLs.
@@ -46,12 +63,21 @@ if (env.NODE_ENV !== 'test') {
   app.use(morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 }
 
+// Login: 5 attempts per 15 min per IP (per-account lockout is in auth.service.js)
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, max: 5,
+  message: { success: false, error: 'Too many login attempts from this IP. Try again in 15 minutes.' },
+  standardHeaders: true, legacyHeaders: false,
+});
+
+// Other auth endpoints (signup, refresh, invite): 15 per 15 min
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, max: 20,
+  windowMs: 15 * 60 * 1000, max: 15,
   message: { success: false, error: 'Too many requests. Try again in 15 minutes.' },
   standardHeaders: true, legacyHeaders: false,
 });
 
+// General API: 120 per minute
 const apiLimiter = rateLimit({
   windowMs: 60 * 1000, max: 120,
   message: { success: false, error: 'Rate limit exceeded.' },
@@ -62,7 +88,9 @@ app.get('/healthz', (req, res) =>
   res.status(200).json({ status: 'ok', version: '1.0.0' })
 );
 
-app.use('/api/auth',       authLimiter, authRoutes);
+// Apply stricter loginLimiter to /api/auth/login before the general authLimiter
+app.post('/api/auth/login',   loginLimiter);
+app.use('/api/auth',          authLimiter, authRoutes);
 app.use('/api/schedule',   apiLimiter,  scheduleRoutes);
 app.use('/api/attendance', apiLimiter,  attendanceRoutes);
 app.use('/api/health',     apiLimiter,  healthRoutes);

@@ -61,7 +61,8 @@ async function login(req, res, next) {
       throw new BadRequestError('academy_id is required for login.');
     }
 
-    const result = await authService.login({ email, password, academy_id });
+    const ip = req.ip || req.socket?.remoteAddress;
+    const result = await authService.login({ email, password, academy_id, ip });
 
     return res.status(200).json({
       success: true,
@@ -81,7 +82,12 @@ async function login(req, res, next) {
 
 async function logout(req, res, next) {
   try {
-    await authService.logout(req.accessToken);
+    await authService.logout(req.accessToken, {
+      userId:    req.user?.id,
+      email:     req.user?.email,
+      academyId: req.user?.academy_id,
+      ip:        req.ip || req.socket?.remoteAddress,
+    });
 
     return res.status(200).json({
       success: true,
@@ -158,12 +164,13 @@ async function updateProfile(req, res, next) {
 async function changePassword(req, res, next) {
   try {
     const { new_password } = req.body;
-    if (!new_password || new_password.length < 8) {
-      throw new (require('../utils/errors').BadRequestError)(
-        'Password must be at least 8 characters.'
-      );
-    }
-    await authService.changePassword({ userId: req.user.id, newPassword: new_password });
+    await authService.changePassword({
+      userId:    req.user.id,
+      email:     req.user.email,
+      academyId: req.user.academy_id,
+      newPassword: new_password,
+      ip:        req.ip || req.socket?.remoteAddress,
+    });
     return res.status(200).json({ success: true, message: 'Password updated successfully.' });
   } catch (err) { next(err); }
 }

@@ -1,18 +1,4 @@
-// src/services/auth.service.js
 'use strict';
-
-/**
- * AuthService
- * -----------
- * All authentication business logic lives here.
- *
- * Security fixes applied:
- *   F-02  Global email uniqueness enforced before auth.admin.createUser —
- *         prevents two academy rows sharing the same Supabase Auth UUID,
- *         which would make auth_academy_id() RLS resolver indeterminate.
- *   F-07  Raw Supabase error strings are logged server-side only;
- *         generic messages are returned to the client.
- */
 
 const { supabaseAdmin } = require('../config/supabase');
 const {
@@ -25,8 +11,41 @@ const {
 const {
   validateSignupPayload,
   validateLoginPayload,
+  validatePasswordChange,
   sanitizeString,
 } = require('../utils/validators');
+const audit = require('./audit.service');
+
+// ─── Per-account login lockout ────────────────────────────────────────────────
+// In-memory store: email → { count, lockedUntil }
+// For a multi-instance deployment replace with Redis.
+const loginAttempts = new Map();
+const MAX_ATTEMPTS  = 5;
+const LOCKOUT_MS    = 15 * 60 * 1000; // 15 minutes
+
+function checkLockout(email) {
+  const entry = loginAttempts.get(email);
+  if (!entry) return;
+  if (entry.lockedUntil && Date.now() < entry.lockedUntil) {
+    const mins = Math.ceil((entry.lockedUntil - Date.now()) / 60000);
+    throw new UnauthorizedError(
+      `Account temporarily locked due to too many failed attempts. Try again in ${mins} minute${mins !== 1 ? 's' : ''}.`
+    );
+  }
+}
+
+function recordFailure(email) {
+  const entry = loginAttempts.get(email) ?? { count: 0, lockedUntil: null };
+  entry.count += 1;
+  if (entry.count >= MAX_ATTEMPTS) {
+    entry.lockedUntil = Date.now() + LOCKOUT_MS;
+  }
+  loginAttempts.set(email, entry);
+}
+
+function clearFailures(email) {
+  loginAttempts.delete(email);
+}
 const notif = require('./notifications.service');
 
 // ─────────────────────────────────────────────────────────────────
@@ -121,16 +140,20 @@ async function signup({ email, password, role, first_name, last_name, academy_id
 // LOGIN
 // ─────────────────────────────────────────────────────────────────
 
-async function login({ email, password, academy_id }) {
+async function login({ email, password, academy_id, ip }) {
   validateLoginPayload({ email, password });
 
   const cleanEmail = sanitizeString(email, { lowercase: true });
+
+  // Check per-account lockout BEFORE hitting Supabase Auth
+  checkLockout(cleanEmail);
 
   const { data: authData, error: authError } =
     await supabaseAdmin.auth.signInWithPassword({ email: cleanEmail, password });
 
   if (authError || !authData.session) {
-    // Deliberately vague — never reveal which field was wrong
+    recordFailure(cleanEmail);
+    audit.authLoginFailed({ email: cleanEmail, academy_id, ip, reason: 'bad_credentials' });
     throw new UnauthorizedError('Invalid email or password.');
   }
 
@@ -138,16 +161,23 @@ async function login({ email, password, academy_id }) {
     .from('users')
     .select('id, academy_id, email, role, first_name, last_name, avatar_url, created_at, is_active')
     .eq('id', authData.user.id)
-    .eq('academy_id', academy_id)            // tenant guard
+    .eq('academy_id', academy_id)
     .single();
 
   if (profileError || !profile) {
-    throw new UnauthorizedError('Account not found in this academy.');
+    recordFailure(cleanEmail);
+    audit.authLoginFailed({ email: cleanEmail, academy_id, ip, reason: 'wrong_academy' });
+    throw new UnauthorizedError('Invalid email or password.');
   }
 
   if (profile.is_active === false) {
-    throw new UnauthorizedError('This account has been deactivated.');
+    audit.authLoginFailed({ email: cleanEmail, academy_id, ip, reason: 'account_deactivated' });
+    throw new UnauthorizedError('This account has been deactivated. Contact your academy administrator.');
   }
+
+  // Successful login — clear any prior failures and write audit event
+  clearFailures(cleanEmail);
+  audit.authLogin({ academy_id, actor_id: profile.id, actor_email: cleanEmail, actor_role: profile.role, ip });
 
   const { is_active, ...safeProfile } = profile;
 
@@ -167,12 +197,12 @@ async function login({ email, password, academy_id }) {
 // LOGOUT
 // ─────────────────────────────────────────────────────────────────
 
-async function logout(accessToken) {
+async function logout(accessToken, { userId, email, academyId, ip } = {}) {
   const { error } = await supabaseAdmin.auth.admin.signOut(accessToken);
   if (error) {
-    // Non-fatal — token may already be expired
     console.warn('[AuthService.logout] sign-out warning:', error.message);
   }
+  audit.authLogout({ academy_id: academyId, actor_id: userId, actor_email: email, ip });
 }
 
 
@@ -249,7 +279,8 @@ async function updateProfile({ userId, academyId, first_name, last_name }) {
 // CHANGE PASSWORD
 // ─────────────────────────────────────────────────────────────────
 
-async function changePassword({ userId, newPassword }) {
+async function changePassword({ userId, email, academyId, newPassword, ip }) {
+  validatePasswordChange(newPassword);
   const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
     password: newPassword,
   });
@@ -257,6 +288,7 @@ async function changePassword({ userId, newPassword }) {
     console.error('[AuthService.changePassword]', error.message);
     throw new InternalError('Password change failed. Please try again.');
   }
+  audit.authPasswordChanged({ academy_id: academyId, actor_id: userId, actor_email: email, ip });
 }
 
 // ─────────────────────────────────────────────────────────────────
