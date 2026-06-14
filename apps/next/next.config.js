@@ -1,8 +1,8 @@
 /** @type {import('next').NextConfig} */
 
 const nextConfig = {
-  // Static export only for production builds (Capacitor). Dev server needs normal mode.
-  ...(process.env.NODE_ENV === 'production' ? { output: 'export' } : {}),
+  // Static export only for Capacitor builds. Web production uses normal Next.js server.
+  ...(process.env.NEXT_OUTPUT === 'export' ? { output: 'export' } : {}),
 
   // Transpile workspace packages and react-native-web
   transpilePackages: [
