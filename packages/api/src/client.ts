@@ -6,6 +6,26 @@ function resolveBaseUrl(): string {
     if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL;
     if (process.env.EXPO_PUBLIC_API_URL) return process.env.EXPO_PUBLIC_API_URL;
   }
+
+  // No env var was set. That's a legitimate local-dev fallback when the
+  // browser itself is on localhost, but if the page is being served from a
+  // real deployed origin it means NEXT_PUBLIC_API_URL was missing from the
+  // build — every request would silently target http://localhost:4000
+  // inside the visitor's own browser (nothing listens there, and https
+  // pages block http:// as mixed content), surfacing only as an opaque
+  // "Network Error" with no indication of the real cause. Fail loudly here
+  // instead.
+  if (typeof window !== 'undefined' && window.location) {
+    const host = window.location.hostname;
+    if (host !== 'localhost' && host !== '127.0.0.1') {
+      throw new Error(
+        `NEXT_PUBLIC_API_URL is not set. Refusing to fall back to http://localhost:4000 ` +
+          `on a deployed origin (${window.location.origin}) — set NEXT_PUBLIC_API_URL in the ` +
+          `hosting provider's environment variables and redeploy.`
+      );
+    }
+  }
+
   return 'http://localhost:4000';
 }
 
