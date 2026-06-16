@@ -226,4 +226,19 @@ async function uploadAvatar(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { signup, login, logout, refresh, me, updateProfile, changePassword, verifyInviteToken, register, uploadAvatar };
+// ─────────────────────────────────────────────────────────────────
+// POST /api/auth/setup-account
+// Public — body: { token, password }
+// ─────────────────────────────────────────────────────────────────
+
+async function setupAccount(req, res, next) {
+  try {
+    const { token, password } = req.body;
+    if (!token)    throw new BadRequestError('Setup token is required.');
+    if (!password) throw new BadRequestError('Password is required.');
+    const result = await authService.setupAccount({ token, password });
+    return res.status(200).json({ success: true, data: result });
+  } catch (err) { next(err); }
+}
+
+module.exports = { signup, login, logout, refresh, me, updateProfile, changePassword, verifyInviteToken, register, uploadAvatar, setupAccount };

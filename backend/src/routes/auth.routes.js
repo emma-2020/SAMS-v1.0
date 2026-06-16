@@ -30,6 +30,7 @@ router.post('/login',          controller.login);
 router.post('/refresh',        controller.refresh);
 router.get( '/invite/:token',  controller.verifyInviteToken);
 router.post('/register',       controller.register);
+router.post('/setup-account',  controller.setupAccount);
 
 // ── Protected ─────────────────────────────────────────────────────
 router.post(  '/logout',          authenticate,              controller.logout);

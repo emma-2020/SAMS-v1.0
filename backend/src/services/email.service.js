@@ -307,23 +307,19 @@ async function sendAcademyApprovalEmail({ to, contactName, academyName, loginUrl
           <strong style="color:#0F172A;">${academyName}</strong> has been
           <strong style="color:#059669;">approved</strong> by the SAMS team.
           Your workspace is ready and waiting.`)}
-        ${para(`You will receive a <strong>separate account-confirmation email</strong> shortly.
-          Click the link inside to verify your address and set your password,
-          then use the button below to log in.`)}
+        ${para(`You will receive a second email shortly with your <strong>login credentials</strong>
+          (Academy ID, email, and temporary password). Use those details to sign in.`)}
         ${ctaButton('Go to SAMS Login →', loginUrl, '#059669')}
         ${infoBox(
           '#F0FDF4', '#86EFAC', '#166534', '#15803D',
           "What's next?",
           [
-            'Check your inbox for the account confirmation email (may be in spam)',
-            'Click the confirmation link and set your password',
+            'Check your inbox for the credentials email (may be in spam)',
             `Log in at <a href="${loginUrl}" style="color:#15803D;">${loginUrl}</a>`,
+            'Change your password in Settings after first login',
             'Create your first team, then invite coaches and players',
           ]
         )}
-        ${para(`<span style="font-size:0.83rem;color:#94A3B8;">
-          Didn't receive the confirmation email? Check your spam folder or reply to this message.
-        </span>`)}
       </td>
     </tr>
   `);
@@ -331,17 +327,94 @@ async function sendAcademyApprovalEmail({ to, contactName, academyName, loginUrl
   const text =
     `Hi ${contactName},\n\n` +
     `Your enrollment request for "${academyName}" has been approved!\n\n` +
-    `You will receive a separate email to confirm your account and set your password.\n` +
-    `Once confirmed, log in at: ${loginUrl}\n\n` +
+    `Check your inbox for a second email with your login credentials.\n` +
+    `Then log in at: ${loginUrl}\n\n` +
     `Next steps:\n` +
-    `  1. Confirm your account via the separate email\n` +
-    `  2. Log in and complete your academy profile\n` +
+    `  1. Use the credentials email to sign in\n` +
+    `  2. Change your password in Settings\n` +
     `  3. Create teams and invite members\n\n` +
     `— SAMS Platform`;
 
   return dispatch({
     to,
     subject: `Your academy "${academyName}" has been approved — SAMS`,
+    html,
+    text,
+  });
+}
+
+// ─── Email: Academy Login Credentials ────────────────────────────────────────
+
+/**
+ * sendAcademyCredentialsEmail
+ * Sent immediately after academy approval with the new admin's login details:
+ * academy name, academy ID, email, and a temporary password.
+ */
+async function sendAcademyCredentialsEmail({
+  to, contactName, academyName, academyId, loginEmail, tempPassword, loginUrl,
+}) {
+  const html = emailShell(`
+    <tr>
+      <td style="padding:40px 44px 8px;">
+        ${badge('Your Login Credentials', '#7C3AED')}
+        ${h1(`Hi ${contactName},`)}
+        ${para(`Your <strong style="color:#0F172A;">${academyName}</strong> workspace is live.
+          Use the details below to sign in for the first time.`)}
+
+        <!-- Credentials box -->
+        <div style="background:#F8FAFC;border:1.5px solid #E2E8F0;border-radius:14px;
+                    padding:24px 28px;margin-bottom:28px;">
+          <table cellpadding="0" cellspacing="0" width="100%">
+            <tr>
+              <td style="padding:7px 0;font-size:0.78rem;font-weight:700;color:#94A3B8;
+                          text-transform:uppercase;letter-spacing:0.08em;width:38%;">Academy</td>
+              <td style="padding:7px 0;font-size:0.93rem;font-weight:600;color:#0F172A;">${academyName}</td>
+            </tr>
+            <tr><td colspan="2" style="height:1px;background:#E2E8F0;"></td></tr>
+            <tr>
+              <td style="padding:7px 0;font-size:0.78rem;font-weight:700;color:#94A3B8;
+                          text-transform:uppercase;letter-spacing:0.08em;">Academy ID</td>
+              <td style="padding:7px 0;font-family:monospace;font-size:0.82rem;color:#0F172A;
+                          word-break:break-all;">${academyId}</td>
+            </tr>
+            <tr><td colspan="2" style="height:1px;background:#E2E8F0;"></td></tr>
+            <tr>
+              <td style="padding:7px 0;font-size:0.78rem;font-weight:700;color:#94A3B8;
+                          text-transform:uppercase;letter-spacing:0.08em;">Email</td>
+              <td style="padding:7px 0;font-size:0.93rem;color:#0F172A;">${loginEmail}</td>
+            </tr>
+            <tr><td colspan="2" style="height:1px;background:#E2E8F0;"></td></tr>
+            <tr>
+              <td style="padding:7px 0;font-size:0.78rem;font-weight:700;color:#94A3B8;
+                          text-transform:uppercase;letter-spacing:0.08em;">Password</td>
+              <td style="padding:7px 0;font-family:monospace;font-size:1rem;font-weight:700;
+                          color:#6366F1;letter-spacing:0.05em;">${tempPassword}</td>
+            </tr>
+          </table>
+        </div>
+
+        ${warningBox(`This is a <strong>temporary password</strong>. Please change it immediately after your first login via <strong>Settings → Change Password</strong>.`)}
+
+        ${ctaButton('Log in to SAMS →', loginUrl, '#6366F1')}
+      </td>
+    </tr>
+  `);
+
+  const text =
+    `Hi ${contactName},\n\n` +
+    `Your ${academyName} workspace is live. Use these details to log in:\n\n` +
+    `  Academy:     ${academyName}\n` +
+    `  Academy ID:  ${academyId}\n` +
+    `  Email:       ${loginEmail}\n` +
+    `  Password:    ${tempPassword}\n\n` +
+    `Log in at: ${loginUrl}\n\n` +
+    `IMPORTANT: This is a temporary password. Please change it immediately\n` +
+    `after your first login via Settings → Change Password.\n\n` +
+    `— SAMS Platform`;
+
+  return dispatch({
+    to,
+    subject: `Your SAMS login credentials — ${academyName}`,
     html,
     text,
   });
@@ -445,6 +518,7 @@ async function sendEnrollmentConfirmationEmail({ to, contactName, academyName })
 module.exports = {
   sendInvitationEmail,
   sendAcademyApprovalEmail,
+  sendAcademyCredentialsEmail,
   sendAcademyRejectionEmail,
   sendEnrollmentConfirmationEmail,
 };

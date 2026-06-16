@@ -11,10 +11,23 @@ const {
   BadRequestError,
 } = require('../utils/errors');
 const env = require('../config/env');
+const crypto = require('crypto');
 const {
   sendAcademyApprovalEmail,
   sendAcademyRejectionEmail,
+  sendAcademyCredentialsEmail,
 } = require('./email.service');
+
+// Generates a secure temporary password that meets common password policies.
+// Format: Sams + 4 uppercase + 4 digits + ! (e.g. SamsXKBZ4729!)
+function generateTempPassword() {
+  const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const digits = '23456789';
+  const b = crypto.randomBytes(8);
+  const letters = Array.from(b.slice(0, 4)).map(n => upper[n % upper.length]).join('');
+  const nums    = Array.from(b.slice(4, 8)).map(n => digits[n % digits.length]).join('');
+  return `Sams${letters}${nums}!`;
+}
 
 // ─────────────────────────────────────────────────────────────────
 // LOGIN
@@ -139,13 +152,16 @@ async function approveRequest(requestId, platformAdminId) {
     throw new InternalError('Failed to create academy record.');
   }
 
-  // ── Step 2: Create Supabase auth user ─────────────────────────
-  // email_confirm: false → Supabase sends a "Confirm your email" link
-  // which lets the admin set their password and activate their account.
+  // ── Step 2: Create Supabase auth user with a temp password ───
+  // The Admin API never sends emails. We generate a temporary password,
+  // send it to the admin in a credentials email, and ask them to change
+  // it after first login.
+  const tempPassword = generateTempPassword();
   const { data: authData, error: authErr } =
     await supabaseAdmin.auth.admin.createUser({
       email:         request.contact_email,
-      email_confirm: false,
+      password:      tempPassword,
+      email_confirm: true,
       user_metadata: {
         role:        'Admin',
         academy_id:  academy.id,
@@ -201,17 +217,29 @@ async function approveRequest(requestId, platformAdminId) {
 
   if (updateErr) throw new InternalError('Provisioning succeeded but failed to update request status.');
 
-  // ── Step 5: Send custom SAMS onboarding email (non-blocking) ──
-  // Supabase already dispatches its own account-confirmation email because
-  // email_confirm was set to false above. This complementary email from SAMS
-  // explains the approval, the next steps, and provides the login URL.
+  const loginUrl = `${env.FRONTEND_URL}/login`;
+
+  // ── Step 5: Send approval notification email (non-blocking) ──
   sendAcademyApprovalEmail({
     to:          request.contact_email,
     contactName: request.contact_name,
     academyName: academy.name,
-    loginUrl:    `${env.FRONTEND_URL}/login`,
+    loginUrl,
   }).catch(err =>
     console.error('[PlatformService.approveRequest] Approval email failed:', err.message)
+  );
+
+  // ── Step 6: Send credentials email with login details (non-blocking) ──
+  sendAcademyCredentialsEmail({
+    to:           request.contact_email,
+    contactName:  request.contact_name,
+    academyName:  academy.name,
+    academyId:    academy.id,
+    loginEmail:   request.contact_email,
+    tempPassword,
+    loginUrl,
+  }).catch(err =>
+    console.error('[PlatformService.approveRequest] Credentials email failed:', err.message)
   );
 
   return {

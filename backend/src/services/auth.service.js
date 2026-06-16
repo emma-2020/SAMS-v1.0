@@ -483,4 +483,55 @@ async function uploadAvatar({ userId, academyId, fileBuffer, mimetype, originaln
   return profile;
 }
 
-module.exports = { signup, login, logout, getMe, refreshSession, updateProfile, changePassword, verifyInviteToken, registerByInvitation, uploadAvatar };
+// ─────────────────────────────────────────────────────────────────
+// SETUP ACCOUNT  (public — no prior auth)
+// Called after a new academy admin clicks the invite link in their
+// approval email. Validates the Supabase invite token, sets the
+// chosen password, and signs the user in — returning a live session.
+// ─────────────────────────────────────────────────────────────────
+
+async function setupAccount({ token, password }) {
+  if (!token) throw new BadRequestError('Setup token is required.');
+  validatePasswordChange(password);
+
+  // Verify the Supabase invite/recovery token
+  const { data: { user }, error: userErr } = await supabaseAdmin.auth.getUser(token);
+  if (userErr || !user) {
+    throw new UnauthorizedError('This setup link is invalid or has expired. Please contact support.');
+  }
+
+  // Set the chosen password
+  const { error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(user.id, { password });
+  if (updateErr) {
+    console.error('[AuthService.setupAccount] updateUserById failed:', updateErr.message);
+    throw new InternalError('Failed to set password. Please try again.');
+  }
+
+  // Sign them in immediately so they get a live session
+  const { data: sessionData, error: sessionErr } =
+    await supabaseAdmin.auth.signInWithPassword({ email: user.email, password });
+  if (sessionErr || !sessionData.session) {
+    throw new InternalError('Password set successfully. Please log in at the login page.');
+  }
+
+  // Load the user profile
+  const { data: profile, error: profileErr } = await supabaseAdmin
+    .from('users')
+    .select('id, academy_id, email, role, first_name, last_name, avatar_url, created_at')
+    .eq('id', user.id)
+    .single();
+
+  if (profileErr || !profile) throw new NotFoundError('User profile not found.');
+
+  return {
+    session: {
+      access_token:  sessionData.session.access_token,
+      refresh_token: sessionData.session.refresh_token,
+      expires_in:    sessionData.session.expires_in,
+      token_type:    'Bearer',
+    },
+    profile,
+  };
+}
+
+module.exports = { signup, login, logout, getMe, refreshSession, updateProfile, changePassword, verifyInviteToken, registerByInvitation, uploadAvatar, setupAccount };
