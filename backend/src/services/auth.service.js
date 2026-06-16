@@ -368,6 +368,15 @@ async function registerByInvitation({ token, password }) {
 
   if (createError) {
     console.error('[AuthService.registerByInvitation] createUser failed:', createError.message);
+    // Supabase rejects duplicate emails at the auth layer independently of our own
+    // `existingUser` pre-check above — a profile row can lag behind the auth user
+    // (e.g. another signup/approval flow claimed the email a moment earlier). Surface
+    // the same friendly conflict message instead of a generic, unactionable error.
+    const isDuplicateEmail = createError.status === 422 ||
+      /already registered|already exists|email_exists/i.test(createError.message || '');
+    if (isDuplicateEmail) {
+      throw new ConflictError('An account with this email already exists. Please log in.');
+    }
     throw new InternalError('Account creation failed. Please try again.');
   }
 
