@@ -34,20 +34,30 @@ export async function refreshSession(refresh_token: string): Promise<Session> {
   return res.data.session;
 }
 
-export async function validateInvite(token: string): Promise<{
-  invitation: { email: string; role: string; first_name?: string };
-}> {
-  const res = (await apiClient.get(`/auth/invite/${token}`)) as { success: boolean; data: unknown };
-  return res.data as { invitation: { email: string; role: string; first_name?: string } };
-}
-
-export async function register(payload: {
-  token: string;
+export interface InviteDetails {
+  email: string;
+  role: string;
   first_name: string;
   last_name: string;
-  email: string;
+  academy_id: string;
+  academy_name: string;
+  expires_at: string;
+}
+
+export async function validateInvite(token: string): Promise<{ invite: InviteDetails }> {
+  const res = (await apiClient.get(`/auth/invite/${token}`)) as { success: boolean; data: { invite: InviteDetails } };
+  return res.data;
+}
+
+export async function register(payload: { token: string; password: string }): Promise<LoginResponse> {
+  const res = (await apiClient.post('/auth/register', payload)) as { success: boolean; data: LoginResponse };
+  return res.data;
+}
+
+export async function setupAccount(payload: {
+  token: string;
   password: string;
 }): Promise<LoginResponse> {
-  const res = (await apiClient.post('/auth/register', payload)) as { success: boolean; data: LoginResponse };
+  const res = (await apiClient.post('/auth/setup-account', payload)) as { success: boolean; data: LoginResponse };
   return res.data;
 }
