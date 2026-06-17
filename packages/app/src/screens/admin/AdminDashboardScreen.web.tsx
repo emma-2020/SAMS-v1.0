@@ -489,6 +489,7 @@ export function AdminDashboardScreen() {
           gradient="linear-gradient(135deg,#059669,#34D399)"
           trend={total > 0 ? Math.round((accepted / total) * 100) : null}
           subtitle="Registration rate"
+          onClick={() => router.push('/dashboard/admin/invite')}
         />
         <KpiCard
           label="Pending Invites"
