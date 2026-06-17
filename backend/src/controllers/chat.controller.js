@@ -69,4 +69,17 @@ async function uploadAttachment(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { getMessages, sendMessage, uploadAttachment };
+async function deleteMessage(req, res, next) {
+  try {
+    const { messageId } = req.params;
+    await chatService.deleteMessage({
+      messageId,
+      userId:    req.user.id,
+      academyId: req.academyId,
+      role:      req.user.role,
+    });
+    return res.status(200).json({ success: true, data: { deleted: true } });
+  } catch (err) { next(err); }
+}
+
+module.exports = { getMessages, sendMessage, uploadAttachment, deleteMessage };

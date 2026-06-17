@@ -63,4 +63,10 @@ router.post(
   controller.uploadAttachment
 );
 
+router.delete(
+  '/:messageId',
+  requireRole('Admin', 'Coach', 'Player', 'Parent'),
+  controller.deleteMessage
+);
+
 module.exports = router;

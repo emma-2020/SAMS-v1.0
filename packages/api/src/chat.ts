@@ -82,6 +82,12 @@ export async function sendMessage(
   };
 }
 
+// Backend:  DELETE /chat/:messageId
+// Sender may delete their own messages; Admin may delete any.
+export async function deleteMessage(messageId: string): Promise<void> {
+  await apiClient.delete(`/chat/${messageId}`);
+}
+
 // Backend:  POST /chat/upload  multipart: { file, team_id }
 //
 // The apiClient instance defaults to Content-Type: application/json.

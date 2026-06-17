@@ -37,7 +37,7 @@ async function getAssignments({ userId, academyId, role }) {
   let query = supabaseAdmin
     .from('workout_assignments')
     .select(`
-      id, academy_id, team_id, player_id, title, due_date, created_at,
+      id, academy_id, team_id, player_id, title, due_date, created_at, assigned_by,
       workout_exercises (
         id, sort_order, description, sets_reps_notes
       )
@@ -174,7 +174,7 @@ async function createAssignment({ userId, academyId, role, payload }) {
       title:        title.trim(),
       due_date:     due_date  || null,
     })
-    .select('id, academy_id, team_id, player_id, title, due_date, created_at')
+    .select('id, academy_id, team_id, player_id, title, due_date, created_at, assigned_by')
     .single();
 
   if (aError) {

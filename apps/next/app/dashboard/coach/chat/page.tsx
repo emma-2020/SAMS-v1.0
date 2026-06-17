@@ -93,7 +93,8 @@ type MsgAction =
   | { type: 'MERGE'; messages: OptMsg[] }
   | { type: 'ADD_OPT'; message: OptMsg }
   | { type: 'CONFIRM'; tempId: string; confirmed: OptMsg }
-  | { type: 'REJECT'; tempId: string };
+  | { type: 'REJECT'; tempId: string }
+  | { type: 'REMOVE'; id: string };
 
 function reducer(state: OptMsg[], action: MsgAction): OptMsg[] {
   switch (action.type) {
@@ -106,6 +107,7 @@ function reducer(state: OptMsg[], action: MsgAction): OptMsg[] {
     case 'ADD_OPT':  return [...state, action.message];
     case 'CONFIRM':  return state.map(m => m.id === action.tempId ? action.confirmed : m);
     case 'REJECT':   return state.filter(m => m.id !== action.tempId);
+    case 'REMOVE':   return state.filter(m => m.id !== action.id);
     default: return state;
   }
 }
@@ -172,8 +174,13 @@ function MsgAvatar({ user: u, size = 36 }: { user?: TeamMember; size?: number })
 }
 
 // ─── Message bubble ──────────────────────────────────────────────────
-function MessageBubble({ msg, isSelf, showHeader, isLast }: { msg: OptMsg; isSelf: boolean; showHeader: boolean; isLast: boolean }) {
-  const [ts, setTs] = useState(() => relativeTime(msg.created_at));
+function MessageBubble({ msg, isSelf, showHeader, isLast, canDelete, onDelete }: {
+  msg: OptMsg; isSelf: boolean; showHeader: boolean; isLast: boolean;
+  canDelete?: boolean; onDelete?: () => void;
+}) {
+  const [ts,         setTs]         = useState(() => relativeTime(msg.created_at));
+  const [hovered,    setHovered]    = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const u    = msg.sender;
   const role = u?.role;
   const rs   = roleStyle(role);
@@ -186,8 +193,19 @@ function MessageBubble({ msg, isSelf, showHeader, isLast }: { msg: OptMsg; isSel
   const radiusSelf  = '20px 4px 20px 20px';
   const radiusOther = showHeader ? '4px 20px 20px 20px' : (isLast ? '4px 20px 20px 20px' : '4px 20px 20px 4px');
 
+  function handleDelete(e: React.MouseEvent) {
+    e.stopPropagation();
+    onDelete?.();
+    setConfirming(false);
+    setHovered(false);
+  }
+
   return (
-    <div style={{ display: 'flex', flexDirection: isSelf ? 'row-reverse' : 'row', alignItems: 'flex-end', gap: 10, opacity: msg._opt ? 0.65 : 1, transition: 'opacity 0.2s', marginBottom: showHeader ? 10 : 3, paddingLeft: isSelf ? 60 : 0, paddingRight: isSelf ? 0 : 60 }}>
+    <div
+      style={{ display: 'flex', flexDirection: isSelf ? 'row-reverse' : 'row', alignItems: 'flex-end', gap: 10, opacity: msg._opt ? 0.65 : 1, transition: 'opacity 0.2s', marginBottom: showHeader ? 10 : 3, paddingLeft: isSelf ? 60 : 0, paddingRight: isSelf ? 0 : 60 }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => { setHovered(false); setConfirming(false); }}
+    >
       {showHeader ? <MsgAvatar user={u} size={36} /> : <div style={{ width: 36, flexShrink: 0 }} />}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: isSelf ? 'flex-end' : 'flex-start', maxWidth: '100%' }}>
@@ -205,34 +223,63 @@ function MessageBubble({ msg, isSelf, showHeader, isLast }: { msg: OptMsg; isSel
           </div>
         )}
 
-        <div style={{ padding: '10px 15px', borderRadius: isSelf ? radiusSelf : radiusOther, background: isSelf ? 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)' : '#F1F5F9', border: isSelf ? 'none' : '1px solid #E8EDF2', color: isSelf ? '#FFFFFF' : '#1E293B', fontSize: '0.9rem', lineHeight: 1.55, boxShadow: isSelf ? '0 4px 12px rgba(99,102,241,0.28)' : '0 1px 2px rgba(15,23,42,0.04)', wordBreak: 'break-word' as const }}>
-          {msg.body && <span>{msg.body}</span>}
-          {msg.attachment_url && (
-            <div style={{ marginTop: msg.body ? 8 : 0 }}>
-              {msg.mime_type?.startsWith('image/') ? (
-                <img
-                  src={msg.attachment_url}
-                  alt={msg.file_name ?? 'image'}
-                  style={{ maxWidth: 260, maxHeight: 180, borderRadius: 8, display: 'block', cursor: 'pointer', border: isSelf ? '2px solid rgba(255,255,255,0.3)' : '1px solid #E2E8F0' }}
-                  onClick={() => window.open(msg.attachment_url!, '_blank')}
-                />
-              ) : (
-                <a
-                  href={msg.attachment_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 11px', background: isSelf ? 'rgba(255,255,255,0.15)' : 'rgba(15,23,42,0.06)', borderRadius: 8, color: 'inherit', textDecoration: 'none', maxWidth: 240 }}
-                >
-                  <IcoFile />
-                  <span style={{ fontSize: '0.8rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-                    {msg.file_name ?? 'Download file'}
-                  </span>
-                  {msg.file_size && (
-                    <span style={{ fontSize: '0.65rem', opacity: 0.7, flexShrink: 0 }}>
-                      {(msg.file_size / 1024).toFixed(0)}KB
+        {/* Bubble wrapper — relative so delete button can be positioned */}
+        <div style={{ position: 'relative', display: 'inline-flex', maxWidth: '100%' }}>
+          <div style={{ padding: '10px 15px', borderRadius: isSelf ? radiusSelf : radiusOther, background: isSelf ? 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)' : '#F1F5F9', border: isSelf ? 'none' : '1px solid #E8EDF2', color: isSelf ? '#FFFFFF' : '#1E293B', fontSize: '0.9rem', lineHeight: 1.55, boxShadow: isSelf ? '0 4px 12px rgba(99,102,241,0.28)' : '0 1px 2px rgba(15,23,42,0.04)', wordBreak: 'break-word' as const }}>
+            {msg.body && <span>{msg.body}</span>}
+            {msg.attachment_url && (
+              <div style={{ marginTop: msg.body ? 8 : 0 }}>
+                {msg.mime_type?.startsWith('image/') ? (
+                  <img
+                    src={msg.attachment_url}
+                    alt={msg.file_name ?? 'image'}
+                    style={{ maxWidth: 260, maxHeight: 180, borderRadius: 8, display: 'block', cursor: 'pointer', border: isSelf ? '2px solid rgba(255,255,255,0.3)' : '1px solid #E2E8F0' }}
+                    onClick={() => window.open(msg.attachment_url!, '_blank')}
+                  />
+                ) : (
+                  <a
+                    href={msg.attachment_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 11px', background: isSelf ? 'rgba(255,255,255,0.15)' : 'rgba(15,23,42,0.06)', borderRadius: 8, color: 'inherit', textDecoration: 'none', maxWidth: 240 }}
+                  >
+                    <IcoFile />
+                    <span style={{ fontSize: '0.8rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                      {msg.file_name ?? 'Download file'}
                     </span>
-                  )}
-                </a>
+                    {msg.file_size && (
+                      <span style={{ fontSize: '0.65rem', opacity: 0.7, flexShrink: 0 }}>
+                        {(msg.file_size / 1024).toFixed(0)}KB
+                      </span>
+                    )}
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Delete action — hover-revealed, sender only or Admin */}
+          {canDelete && hovered && !msg._opt && (
+            <div style={{
+              position: 'absolute', top: -14, zIndex: 20,
+              ...(isSelf ? { left: -4, transform: 'translateX(-100%)' } : { right: -4, transform: 'translateX(100%)' }),
+            }}>
+              {!confirming ? (
+                <button
+                  onClick={e => { e.stopPropagation(); setConfirming(true); }}
+                  title="Delete message"
+                  style={{ width: 28, height: 28, borderRadius: 8, border: '1px solid #FECDD3', background: '#FFF1F2', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.82rem', color: '#F43F5E', boxShadow: '0 2px 6px rgba(244,63,94,0.15)', transition: 'all 0.15s' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#FFE4E6'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = '#FFF1F2'; }}
+                >
+                  🗑
+                </button>
+              ) : (
+                <div style={{ display: 'flex', gap: 4, alignItems: 'center', background: 'white', border: '1px solid #E2E8F0', borderRadius: 10, padding: '5px 8px', boxShadow: '0 4px 14px rgba(15,23,42,0.12)', whiteSpace: 'nowrap' }}>
+                  <span style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: 500 }}>Delete?</span>
+                  <button onClick={handleDelete} style={{ padding: '3px 8px', borderRadius: 6, border: 'none', background: '#EF4444', color: 'white', fontSize: '0.68rem', fontWeight: 700, cursor: 'pointer' }}>Yes</button>
+                  <button onClick={e => { e.stopPropagation(); setConfirming(false); }} style={{ padding: '3px 8px', borderRadius: 6, border: '1px solid #E2E8F0', background: 'transparent', color: '#64748B', fontSize: '0.68rem', cursor: 'pointer' }}>No</button>
+                </div>
               )}
             </div>
           )}
@@ -502,6 +549,12 @@ export default function ChatPage() {
     } finally { setSending(false); }
   }, [activeTeamId, user]);
 
+  // Delete message — optimistic remove; reappears on next poll if API call fails
+  const handleDeleteMsg = useCallback(async (id: string) => {
+    dispatch({ type: 'REMOVE', id });
+    try { await chatApi.deleteMessage(id); } catch { /* poll will restore if delete failed */ }
+  }, []);
+
   function switchTeam(team: Team) {
     if (pollingRef.current) clearInterval(pollingRef.current);
     setActiveTeamId(team.id); setActiveTeam(team);
@@ -671,7 +724,15 @@ export default function ChatPage() {
                 <DateSep date={date} />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
                   {items.map(({ msg, isSelf, showHeader, isLast }) => (
-                    <MessageBubble key={msg.id} msg={msg} isSelf={isSelf} showHeader={showHeader} isLast={isLast} />
+                    <MessageBubble
+                      key={msg.id}
+                      msg={msg}
+                      isSelf={isSelf}
+                      showHeader={showHeader}
+                      isLast={isLast}
+                      canDelete={!msg._opt && (isSelf || user?.role === 'Admin')}
+                      onDelete={() => handleDeleteMsg(msg.id)}
+                    />
                   ))}
                 </div>
               </div>

@@ -195,6 +195,47 @@ async function sendMessage({ teamId, senderId, academyId, role, messageText, att
 }
 
 // ─────────────────────────────────────────────────────────────────
+// DELETE MESSAGE
+// ─────────────────────────────────────────────────────────────────
+
+/**
+ * deleteMessage
+ * Senders may delete their own messages. Admins may delete any message
+ * in the academy (content moderation). Attachment files in Supabase
+ * Storage are NOT cleaned up — orphan cleanup is a background task for
+ * a future version.
+ */
+async function deleteMessage({ messageId, userId, academyId, role }) {
+  // Fetch the message to verify it belongs to this academy
+  const { data: msg, error: fetchErr } = await supabaseAdmin
+    .from('messages')
+    .select('id, sender_id')
+    .eq('id', messageId)
+    .eq('academy_id', academyId)              // tenant isolation
+    .single();
+
+  if (fetchErr || !msg) throw new NotFoundError('Message not found.');
+
+  // Only the sender or an Admin may delete
+  if (role !== 'Admin' && msg.sender_id !== userId) {
+    throw new ForbiddenError('You can only delete your own messages.');
+  }
+
+  const { error: delErr } = await supabaseAdmin
+    .from('messages')
+    .delete()
+    .eq('id', messageId)
+    .eq('academy_id', academyId);             // tenant isolation
+
+  if (delErr) {
+    console.error('[ChatService.deleteMessage]', delErr.message);
+    throw new InternalError('Failed to delete message. Please try again.');
+  }
+
+  return { deleted: true };
+}
+
+// ─────────────────────────────────────────────────────────────────
 // INTERNAL HELPERS
 // ─────────────────────────────────────────────────────────────────
 
@@ -273,4 +314,4 @@ async function assertTeamMembership({ teamId, userId, academyId, role }) {
   throw new ForbiddenError('Unrecognised role. Access denied.');
 }
 
-module.exports = { getMessages, sendMessage, uploadAttachment };
+module.exports = { getMessages, sendMessage, uploadAttachment, deleteMessage };

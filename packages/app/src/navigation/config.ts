@@ -16,6 +16,7 @@ export const NAV_CONFIG: Record<UserProfile['role'], { main: NavItem[]; other: N
       { label: 'Invitations', path: '/dashboard/admin/invite',   icon: 'Zap'             },
       { label: 'Roster',      path: '/dashboard/admin/roster',   icon: 'Users'           },
       { label: 'Teams',       path: '/dashboard/admin/teams',    icon: 'Trophy'          },
+      { label: 'Workouts',   path: '/dashboard/admin/workouts', icon: 'Dumbbell'        },
       { label: 'Chat',        path: '/dashboard/admin/chat',     icon: 'MessageSquare'   },
     ],
     other: [SETTINGS_ITEM],
