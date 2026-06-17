@@ -27,10 +27,10 @@ export function CoachDashboardScreen() {
     : 0;
 
   const kpis = [
-    { label: 'My Players',     value: loading ? '…' : players.length,    icon: '👥', color: ROLE_COLOR.Coach },
-    { label: 'Avg Wellness',   value: loading ? '…' : `${avgHealth}%`,   icon: '💚', color: '#10B981'        },
-    { label: 'Health Alerts',  value: loading ? '…' : alerts.length,     icon: '🚨', color: '#EF4444'        },
-    { label: 'Upcoming (14d)', value: loading ? '…' : events.length,     icon: '📅', color: '#6366F1'        },
+    { label: 'My Players',     value: loading ? '…' : players.length,    icon: '👥', color: ROLE_COLOR.Coach, path: '/dashboard/coach/players'    },
+    { label: 'Avg Wellness',   value: loading ? '…' : `${avgHealth}%`,   icon: '💚', color: '#10B981',        path: '/dashboard/coach/health'      },
+    { label: 'Health Alerts',  value: loading ? '…' : alerts.length,     icon: '🚨', color: '#EF4444',        path: '/dashboard/coach/health'      },
+    { label: 'Upcoming (14d)', value: loading ? '…' : events.length,     icon: '📅', color: '#6366F1',        path: '/dashboard/coach/schedule'    },
   ];
 
   const quickActions = [
@@ -70,7 +70,20 @@ export function CoachDashboardScreen() {
         {/* KPI row */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12 }}>
           {kpis.map(kpi => (
-            <div key={kpi.label} className="card" style={{ padding: 20 }}>
+            <div
+              key={kpi.label}
+              className="card"
+              onClick={() => router.push(kpi.path)}
+              style={{ padding: 20, cursor: 'pointer', transition: 'transform 0.15s, box-shadow 0.15s' }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-2px)';
+                (e.currentTarget as HTMLDivElement).style.boxShadow = `0 8px 24px ${kpi.color}22`;
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLDivElement).style.transform = 'none';
+                (e.currentTarget as HTMLDivElement).style.boxShadow = '';
+              }}
+            >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                 <div style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: `${kpi.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem' }}>
                   {kpi.icon}

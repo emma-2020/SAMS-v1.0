@@ -52,9 +52,9 @@ export function ParentDashboardScreen() {
   const userInitials = `${user?.first_name?.[0] ?? ''}${user?.last_name?.[0] ?? ''}`;
 
   const kpis = [
-    { label: 'Upcoming Sessions', value: loading ? '…' : String(events.length), icon: '📅', bg: '#EFF6FF', accent: '#2563EB' },
-    { label: 'Wellness Alerts',   value: loading ? '…' : String(alerts.length), icon: '❤️', bg: '#FEF2F2', accent: '#EF4444' },
-    { label: 'Coach Messages',    value: '—',                                    icon: '💬', bg: '#F5F3FF', accent: '#7C3AED' },
+    { label: 'Upcoming Sessions', value: loading ? '…' : String(events.length), icon: '📅', bg: '#EFF6FF', accent: '#2563EB', path: '/dashboard/parent/schedule' },
+    { label: 'Wellness Alerts',   value: loading ? '…' : String(alerts.length), icon: '❤️', bg: '#FEF2F2', accent: '#EF4444', path: '/dashboard/parent/health'   },
+    { label: 'Coach Messages',    value: '—',                                    icon: '💬', bg: '#F5F3FF', accent: '#7C3AED', path: '/dashboard/parent/chat'     },
   ];
 
   const quickActions = [
@@ -130,7 +130,20 @@ export function ParentDashboardScreen() {
         {/* ── KPI ROW ── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12 }}>
           {kpis.map(kpi => (
-            <div key={kpi.label} className="card" style={{ padding: 20 }}>
+            <div
+              key={kpi.label}
+              className="card"
+              onClick={() => router.push(kpi.path)}
+              style={{ padding: 20, cursor: 'pointer', transition: 'transform 0.15s, box-shadow 0.15s' }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-2px)';
+                (e.currentTarget as HTMLDivElement).style.boxShadow = `0 8px 24px ${kpi.accent}22`;
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLDivElement).style.transform = 'none';
+                (e.currentTarget as HTMLDivElement).style.boxShadow = '';
+              }}
+            >
               <div style={{ marginBottom: 12 }}>
                 <div style={{
                   width: 40, height: 40, borderRadius: 12,
