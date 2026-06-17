@@ -11,6 +11,7 @@
 
 const crypto        = require('crypto');
 const { supabaseAdmin } = require('../config/supabase');
+const notif          = require('./notifications.service');
 const {
   ForbiddenError,
   NotFoundError,
@@ -114,7 +115,7 @@ async function uploadAttachment({ teamId, userId, academyId, role, fileBuffer, m
 // ─────────────────────────────────────────────────────────────────
 
 async function sendMessage({ teamId, senderId, academyId, role, messageText, attachmentUrl, fileName, mimeType, fileSize }) {
-  await fetchTeamOrThrow(teamId, academyId);
+  const team = await fetchTeamOrThrow(teamId, academyId);
   await assertTeamMembership({ teamId, userId: senderId, academyId, role });
 
   const cleanText = messageText ? messageText.trim() : null;
@@ -146,6 +147,50 @@ async function sendMessage({ teamId, senderId, academyId, role, messageText, att
     console.error('[ChatService.sendMessage]', error.message);
     throw new InternalError('Failed to send message. Please try again.');
   }
+
+  // Fire-and-forget: notify everyone else in the team chat about the new message
+  (async () => {
+    try {
+      const { data: rosters } = await supabaseAdmin
+        .from('rosters')
+        .select('player_id, parent_id')
+        .eq('academy_id', academyId)
+        .eq('team_id', teamId);
+
+      const playerIds = [...new Set((rosters || []).map(r => r.player_id))]
+        .filter(id => id && id !== senderId);
+      const parentIds = [...new Set((rosters || []).map(r => r.parent_id))]
+        .filter(id => id && id !== senderId);
+
+      const sender  = data.users;
+      const senderName = sender ? `${sender.first_name} ${sender.last_name}` : 'Someone';
+      const preview = cleanText
+        ? (cleanText.length > 80 ? `${cleanText.slice(0, 80)}…` : cleanText)
+        : 'Sent an attachment';
+      const title = `New message in ${team.name}`;
+      const body  = `${senderName}: ${preview}`;
+
+      if (team.coach_id && team.coach_id !== senderId) {
+        await notif.create({
+          academyId, recipientId: team.coach_id,
+          type: 'chat', title, body, link: '/dashboard/coach/chat',
+        });
+      }
+      if (playerIds.length > 0) {
+        await notif.createForMany({
+          academyId, recipientIds: playerIds,
+          type: 'chat', title, body, link: '/dashboard/player/chat',
+        });
+      }
+      if (parentIds.length > 0) {
+        await notif.createForMany({
+          academyId, recipientIds: parentIds,
+          type: 'chat', title, body, link: '/dashboard/parent/chat',
+        });
+      }
+    } catch (e) { console.error('[ChatService] notify error:', e.message); }
+  })();
+
   return data;
 }
 
@@ -156,7 +201,7 @@ async function sendMessage({ teamId, senderId, academyId, role, messageText, att
 async function fetchTeamOrThrow(teamId, academyId) {
   const { data, error } = await supabaseAdmin
     .from('teams')
-    .select('id, name, academy_id')
+    .select('id, name, academy_id, coach_id')
     .eq('id', teamId)
     .eq('academy_id', academyId)              // tenant isolation
     .single();
