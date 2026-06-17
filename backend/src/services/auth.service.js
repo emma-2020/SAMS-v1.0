@@ -1,6 +1,6 @@
 'use strict';
 
-const { supabaseAdmin } = require('../config/supabase');
+const { supabaseAdmin, supabaseAnon } = require('../config/supabase');
 const {
   BadRequestError,
   ConflictError,
@@ -149,8 +149,11 @@ async function login({ email, password, academy_id, ip }) {
   // Check per-account lockout BEFORE hitting Supabase Auth
   checkLockout(cleanEmail);
 
+  // Use supabaseAnon (not supabaseAdmin) for signIn — signInWithPassword mutates the
+  // client's in-memory session, which would corrupt the shared service-role singleton
+  // and cause platform_admins RLS reads to fail for the lifetime of the process.
   const { data: authData, error: authError } =
-    await supabaseAdmin.auth.signInWithPassword({ email: cleanEmail, password });
+    await supabaseAnon.auth.signInWithPassword({ email: cleanEmail, password });
 
   if (authError || !authData.session) {
     recordFailure(cleanEmail);
@@ -236,7 +239,8 @@ async function refreshSession(refreshToken) {
     throw new UnauthorizedError('Refresh token is required.');
   }
 
-  const { data, error } = await supabaseAdmin.auth.refreshSession({
+  // Use supabaseAnon for session refresh — same reason as signInWithPassword above.
+  const { data, error } = await supabaseAnon.auth.refreshSession({
     refresh_token: refreshToken,
   });
 
@@ -419,9 +423,11 @@ async function registerByInvitation({ token, password }) {
     link:       '/dashboard/admin/roster',
   });
 
-  // Sign them in immediately so they get a live session
+  // Sign them in immediately so they get a live session.
+  // Use supabaseAnon — same reason as in login(): signInWithPassword mutates the
+  // client's in-memory session and would corrupt the service-role singleton.
   const { data: sessionData, error: sessionError } =
-    await supabaseAdmin.auth.signInWithPassword({ email, password });
+    await supabaseAnon.auth.signInWithPassword({ email, password });
 
   if (sessionError || !sessionData.session) {
     // Account created but auto-login failed — they can log in manually
@@ -508,9 +514,10 @@ async function setupAccount({ token, password }) {
     throw new InternalError('Failed to set password. Please try again.');
   }
 
-  // Sign them in immediately so they get a live session
+  // Sign them in immediately so they get a live session.
+  // Use supabaseAnon — same reason as in login().
   const { data: sessionData, error: sessionErr } =
-    await supabaseAdmin.auth.signInWithPassword({ email: user.email, password });
+    await supabaseAnon.auth.signInWithPassword({ email: user.email, password });
   if (sessionErr || !sessionData.session) {
     throw new InternalError('Password set successfully. Please log in at the login page.');
   }
