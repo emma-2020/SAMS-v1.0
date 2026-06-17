@@ -5,8 +5,10 @@ const config: CapacitorConfig = {
   appName: 'SAMS',
   webDir: 'out',
   server: {
-    url: 'http://10.0.2.2:3002',
-    cleartext: true,
+    // Production live-server mode — always loads latest from Vercel.
+    // For a fully-bundled offline build remove this `server` block entirely
+    // and run `pnpm build` (static export) before `npx cap sync`.
+    url: 'https://app.playsams.com',
   },
 };
 

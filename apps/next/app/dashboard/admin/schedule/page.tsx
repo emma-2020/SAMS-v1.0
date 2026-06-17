@@ -191,16 +191,16 @@ export default function AdminSchedulePage() {
   return (
     <div style={{ animation: 'fadeIn 0.3s ease' }}>
       {/* Page header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, gap: 16 }}>
+      <div className="page-header-row" style={{ marginBottom: 24 }}>
         <div>
-          <h1 style={{ fontSize: '1.55rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.025em', lineHeight: 1.2, margin: 0 }}>
+          <h1 style={{ fontSize: 'clamp(1.2rem,4vw,1.55rem)', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.025em', lineHeight: 1.2, margin: 0 }}>
             Resource Schedule
           </h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: 6 }}>
             Manage training grounds and venue bookings
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{
             display: 'flex', alignItems: 'center', gap: 6,
             background: 'var(--bg-surface)', border: '1px solid var(--border-default)',
@@ -242,7 +242,7 @@ export default function AdminSchedulePage() {
             Schedule Session
           </div>
           <form onSubmit={addBlock} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12 }}>
+            <div className="form-grid-4">
               <div className="field">
                 <label className="field-label">Team</label>
                 <select className="field-input" style={{ height: 42, cursor: 'pointer' }}
@@ -324,7 +324,7 @@ export default function AdminSchedulePage() {
               </button>
             </div>
             <form onSubmit={saveEdit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12 }}>
+              <div className="form-grid-4">
                 <div className="field">
                   <label className="field-label">Team</label>
                   <select className="field-input" style={{ height: 42, cursor: 'pointer' }}

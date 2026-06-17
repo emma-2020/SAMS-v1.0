@@ -195,7 +195,8 @@ export default function RosterPage() {
             </p>
           </div>
         ) : (
-          <table className="table">
+          <div className="table-scroll-wrap">
+          <table className="table" style={{ minWidth: 640 }}>
             <thead>
               <tr>
                 <th>Member</th>
@@ -272,6 +273,7 @@ export default function RosterPage() {
               })}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

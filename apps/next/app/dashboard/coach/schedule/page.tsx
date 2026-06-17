@@ -165,7 +165,7 @@ function CreateSessionModal({ teams, onClose, onCreated }: {
 
           <PremiumInput label="Session Title *" placeholder="e.g. Morning Training Session" value={form.title} onChange={v => set('title', v)} required />
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <div className="form-grid-2">
             <PremiumSelect label="Session Type *" icon={IcoTag} value={form.type} onChange={v => set('type', v)} options={EVENT_TYPES} />
             <PremiumSelect label="Team *" icon={IcoUsers} value={form.team_id} onChange={v => set('team_id', v)}
               options={teams.map(t => ({ value: t.id, label: t.name }))} />
@@ -173,7 +173,7 @@ function CreateSessionModal({ teams, onClose, onCreated }: {
 
           <PremiumInput label="Date *" type="date" value={form.date} onChange={v => set('date', v)} required />
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <div className="form-grid-2">
             <PremiumInput label="Start Time *" icon={IcoClock} type="time" value={form.start_time} onChange={v => set('start_time', v)} required />
             <PremiumInput label="End Time *"   icon={IcoClock} type="time" value={form.end_time}   onChange={v => set('end_time', v)}   required />
           </div>

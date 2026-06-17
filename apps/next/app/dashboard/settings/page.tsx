@@ -322,7 +322,7 @@ export default function SettingsPage() {
       </div>
 
       {/* ── Tab navigation ────────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', borderBottom: '1.5px solid var(--border-subtle)', marginBottom: 26, gap: 0 }}>
+      <div style={{ display: 'flex', borderBottom: '1.5px solid var(--border-subtle)', marginBottom: 26, gap: 0, overflowX: 'auto' }}>
         {TABS.map(tab => {
           const active = activeTab === tab.id;
           return (
@@ -424,7 +424,7 @@ export default function SettingsPage() {
           {/* Personal info */}
           <SettingsCard icon={<IcoUser />} title="Personal Information" subtitle="Update your display name">
             <form onSubmit={handleProfileSave} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div className="form-grid-2">
                 <FormField label="First Name" description="Your given name shown to teammates">
                   <StyledInput value={profileForm.first_name} onChange={e => setProfileForm(p => ({ ...p, first_name: e.target.value }))} placeholder="First name" />
                 </FormField>

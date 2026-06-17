@@ -108,7 +108,7 @@ export function PlayerDashboardScreen() {
         <div style={{ position: 'absolute', right: -50, top: -50, width: 220, height: 220, borderRadius: '50%', background: 'rgba(99,102,241,0.06)', pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', right: 60, bottom: -80, width: 180, height: 180, borderRadius: '50%', background: 'rgba(16,185,129,0.04)', pointerEvents: 'none' }} />
 
-        <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 20 }}>
+        <div className="sams-hero-inner" style={{ position: 'relative', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 20 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', marginBottom: 6 }}>
               {today.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
@@ -139,7 +139,7 @@ export function PlayerDashboardScreen() {
           </div>
 
           {/* circular fitness ring */}
-          <div style={{
+          <div className="mobile-hide" style={{
             flexShrink: 0, textAlign: 'center',
             padding: 16, borderRadius: 14,
             background: 'rgba(255,255,255,0.04)',
@@ -212,7 +212,7 @@ export function PlayerDashboardScreen() {
       </div>
 
       {/* ── Main 2-column grid ──────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 20 }}>
+      <div className="main-sidebar-grid">
 
         {/* Upcoming sessions */}
         <div style={{

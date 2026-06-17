@@ -49,17 +49,17 @@ export function CoachDashboardScreen() {
         marginBottom: 24, borderRadius: 24, overflow: 'hidden', minHeight: 140,
         background: 'linear-gradient(135deg,#1D4ED8 0%,#2563EB 55%,#60A5FA 100%)',
       }}>
-        <div style={{ padding: '28px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div className="sams-hero-inner" style={{ padding: '28px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <p style={{ color: '#BFDBFE', fontSize: '0.85rem', fontWeight: 600, marginBottom: 4 }}>Welcome back,</p>
-            <p style={{ color: 'white', fontSize: '1.5rem', fontWeight: 900, letterSpacing: -0.5, margin: 0 }}>
+            <p style={{ color: 'white', fontSize: 'clamp(1.2rem,4vw,1.5rem)', fontWeight: 900, letterSpacing: -0.5, margin: 0 }}>
               {user?.first_name} {user?.last_name}
             </p>
             <p style={{ color: '#BFDBFE', fontSize: '0.85rem', marginTop: 4 }}>
               Coach · {players.length} player{players.length !== 1 ? 's' : ''} across your teams
             </p>
           </div>
-          <div style={{ width: 64, height: 64, borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.75rem' }}>
+          <div className="mobile-hide" style={{ width: 64, height: 64, borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.75rem' }}>
             🏆
           </div>
         </div>
@@ -68,7 +68,7 @@ export function CoachDashboardScreen() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
         {/* KPI row */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12 }}>
+        <div className="kpi-grid-4">
           {kpis.map(kpi => (
             <div
               key={kpi.label}
@@ -100,7 +100,7 @@ export function CoachDashboardScreen() {
         </div>
 
         {/* Sessions + Quick Actions */}
-        <div style={{ display: 'flex', gap: 16 }}>
+        <div className="kpi-grid-2" style={{ gap: 16 }}>
 
           {/* Upcoming sessions */}
           <div className="card" style={{ flex: 1, padding: 0, overflow: 'hidden' }}>
@@ -136,7 +136,7 @@ export function CoachDashboardScreen() {
           </div>
 
           {/* Quick Actions */}
-          <div className="card" style={{ width: 288, padding: 0, overflow: 'hidden' }}>
+          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
             <div style={{ padding: '18px 20px 12px', borderBottom: '1px solid var(--border-subtle)' }}>
               <p style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.9rem', margin: 0 }}>Quick Actions</p>
             </div>

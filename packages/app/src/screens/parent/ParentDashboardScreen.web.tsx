@@ -97,10 +97,10 @@ export function ParentDashboardScreen() {
         </div>
 
         {/* Greeting row */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+        <div className="sams-hero-inner" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
           <div>
             <h1 style={{
-              color: '#FFFFFF', fontSize: '1.75rem', fontWeight: 900,
+              color: '#FFFFFF', fontSize: 'clamp(1.3rem,4vw,1.75rem)', fontWeight: 900,
               letterSpacing: '-0.03em', margin: 0, lineHeight: 1.2,
             }}>
               {greetText} {greetEmoji}
@@ -113,7 +113,7 @@ export function ParentDashboardScreen() {
             </p>
           </div>
 
-          <div style={{
+          <div className="mobile-hide" style={{
             width: 52, height: 52, borderRadius: '50%', flexShrink: 0,
             background: 'rgba(255,255,255,0.15)',
             border: '2px solid rgba(255,255,255,0.25)',
@@ -128,7 +128,7 @@ export function ParentDashboardScreen() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
         {/* ── KPI ROW ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12 }}>
+        <div className="kpi-grid-3">
           {kpis.map(kpi => (
             <div
               key={kpi.label}

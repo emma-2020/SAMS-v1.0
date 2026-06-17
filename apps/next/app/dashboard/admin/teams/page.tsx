@@ -323,7 +323,7 @@ export default function TeamsPage() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '360px 1fr', gap: 28, alignItems: 'start' }}>
+      <div className="sidebar-content-grid">
 
         {/* Create Team card */}
         <div className="card" style={{ padding: 0, overflow: 'hidden', border: '1.5px solid #F1F5F9' }}>
@@ -349,7 +349,7 @@ export default function TeamsPage() {
                 {formErrors.name && <div style={{ marginTop: 5, fontSize: '0.75rem', color: 'var(--danger)', fontWeight: 500 }}>{formErrors.name}</div>}
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div className="form-grid-2">
                 <div>
                   <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: 6, letterSpacing: '0.03em', textTransform: 'uppercase' as const }}>Sport</label>
                   <InputField placeholder="e.g. Football" value={form.sport} onChange={e => setField('sport', e.target.value)} />

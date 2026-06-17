@@ -431,7 +431,7 @@ function InputBar({
           <IcoSend active={canSend} />
         </button>
       </div>
-      <div style={{ fontSize: '0.62rem', color: '#94A3B8', fontFamily: 'var(--font-mono)', marginTop: 7, textAlign: 'center', letterSpacing: '0.04em' }}>
+      <div className="chat-input-hint" style={{ fontSize: '0.62rem', color: '#94A3B8', fontFamily: 'var(--font-mono)', marginTop: 7, textAlign: 'center', letterSpacing: '0.04em' }}>
         Enter ↵ to send · Shift+Enter for new line · 📎 images & PDF up to 10 MB
       </div>
     </div>
@@ -600,7 +600,7 @@ export default function ChatPage() {
   }
 
   return (
-    <div style={{ animation: 'fadeIn 0.3s ease', display: 'flex', flexDirection: mobile ? 'column' : 'row', height: 'calc(100vh - 118px)', minHeight: 0, gap: 0, background: '#F8FAFC', borderRadius: 20, overflow: 'hidden', border: '1.5px solid #F1F5F9', boxShadow: '0 4px 24px rgba(15,23,42,0.07)' }}>
+    <div className="sams-chat-window" style={{ animation: 'fadeIn 0.3s ease', display: 'flex', flexDirection: mobile ? 'column' : 'row', minHeight: 0, gap: 0, background: '#F8FAFC', borderRadius: 20, overflow: 'hidden', border: '1.5px solid #F1F5F9', boxShadow: '0 4px 24px rgba(15,23,42,0.07)' }}>
 
       {mobile ? (
         /* Mobile: horizontal scrollable team tabs */

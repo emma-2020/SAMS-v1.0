@@ -354,7 +354,7 @@ export default function PlayerHealthPage() {
       {showLog && <LogModal onClose={() => setShowLog(false)} onDone={load} />}
 
       {/* ── Header ─────────────────────────────────────────────────── */}
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:22 }}>
+      <div className="page-header-row" style={{ marginBottom: 22 }}>
         <div>
           <h1 style={{ fontWeight:900, fontSize:'1.4rem', color:'var(--text-primary)', margin:0 }}>Health & Wellness</h1>
           <div style={{ fontSize:'0.78rem', color:'var(--text-muted)', marginTop:3 }}>Medical-grade athlete tracking hub</div>
@@ -475,11 +475,10 @@ export default function PlayerHealthPage() {
 
           {/* CTA */}
           {!todayLogged && (
-            <div style={{
+            <div className="cta-banner-row" style={{
               borderRadius:14, padding:'20px 24px',
               background:'linear-gradient(135deg,rgba(99,102,241,0.08),rgba(124,58,237,0.05))',
               border:'1px solid rgba(99,102,241,0.18)',
-              display:'flex', alignItems:'center', justifyContent:'space-between',
               backdropFilter:'blur(8px)',
               WebkitBackdropFilter:'blur(8px)',
             } as React.CSSProperties}>
@@ -725,7 +724,7 @@ export default function PlayerHealthPage() {
         <div style={{ animation:'tabSlideIn 0.25s ease', display:'flex', flexDirection:'column', gap:20 }}>
 
           {/* Season hero */}
-          <div style={{ background:'linear-gradient(135deg,#0D1B3E,#1a2d5a)', borderRadius:16, padding:'22px 26px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:20 }}>
+          <div className="cta-banner-row" style={{ background:'linear-gradient(135deg,#0D1B3E,#1a2d5a)', borderRadius:16, padding:'22px 26px' }}>
             <div>
               <div style={{ fontSize:'0.68rem', fontWeight:700, letterSpacing:'0.14em', textTransform:'uppercase', color:'rgba(255,255,255,0.35)', marginBottom:4 }}>Season Progress</div>
               <div style={{ fontWeight:900, fontSize:'2.5rem', color:'white', lineHeight:1 }}>
@@ -827,7 +826,7 @@ export default function PlayerHealthPage() {
           </div>
 
           {!todayLogged && (
-            <div style={{ borderRadius:14, padding:'18px 22px', background:'linear-gradient(135deg,rgba(99,102,241,0.08),rgba(16,185,129,0.04))', border:'1px solid rgba(99,102,241,0.16)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+            <div className="cta-banner-row" style={{ borderRadius:14, padding:'18px 22px', background:'linear-gradient(135deg,rgba(99,102,241,0.08),rgba(16,185,129,0.04))', border:'1px solid rgba(99,102,241,0.16)' }}>
               <div>
                 <div style={{ fontWeight:700, fontSize:'0.95rem', color:'var(--text-primary)' }}>Keep your streak going!</div>
                 <div style={{ fontSize:'0.78rem', color:'var(--text-muted)', marginTop:2 }}>Log today to grow your history and improve AI accuracy.</div>

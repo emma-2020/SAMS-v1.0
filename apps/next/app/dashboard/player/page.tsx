@@ -219,7 +219,7 @@ export default function PlayerDashboardPage() {
       </div>
 
       {/* ── Main 2-column grid ───────────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 20 }}>
+      <div className="main-sidebar-grid">
 
         {/* Upcoming sessions */}
         <div style={{

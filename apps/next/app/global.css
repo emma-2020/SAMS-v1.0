@@ -647,3 +647,209 @@ select.input, select.field-input {
 @media (max-width: 600px) {
   .data-grid-4, .data-grid-3, .data-grid-2 { grid-template-columns: 1fr; }
 }
+
+/* ================================================================
+   SAMS — Mobile Responsiveness
+   ================================================================ */
+
+/* ── Mobile density overrides ─────────────────────────────────── */
+@media (max-width: 767px) {
+  :root {
+    --density-py:  1rem;
+    --density-px:  1rem;
+    --density-gap: 0.875rem;
+  }
+}
+
+/* ── Prevent iOS auto-zoom on input focus (requires font-size ≥ 16px) */
+@media (max-width: 767px) {
+  .field-input, .input,
+  input.field-input, input.input,
+  textarea.input, textarea.field-input,
+  select.input, select.field-input {
+    font-size: 1rem !important;
+  }
+}
+
+/* ── Responsive KPI / stat grids ─────────────────────────────── */
+.kpi-grid-4 {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(4, 1fr);
+}
+.kpi-grid-3 {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, 1fr);
+}
+.kpi-grid-2 {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, 1fr);
+}
+@media (max-width: 900px) {
+  .kpi-grid-4 { grid-template-columns: repeat(2, 1fr); }
+  .kpi-grid-3 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 540px) {
+  .kpi-grid-4 { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .kpi-grid-3 { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .kpi-grid-2 { grid-template-columns: 1fr; gap: 10px; }
+}
+
+/* ── Responsive form grids ───────────────────────────────────── */
+.form-grid-4 {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, 1fr);
+}
+.form-grid-3 {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, 1fr);
+}
+.form-grid-2 {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, 1fr);
+}
+@media (max-width: 767px) {
+  .form-grid-4 { grid-template-columns: repeat(2, 1fr); }
+  .form-grid-3 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+  .form-grid-4 { grid-template-columns: 1fr; }
+  .form-grid-3 { grid-template-columns: 1fr; }
+  .form-grid-2 { grid-template-columns: 1fr; }
+}
+
+/* ── Page header row — stacks on mobile ─────────────────────── */
+.page-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+@media (max-width: 599px) {
+  .page-header-row { flex-direction: column; align-items: stretch; }
+}
+
+/* ── Hero banner adjustments on mobile ──────────────────────── */
+@media (max-width: 599px) {
+  .sams-hero-inner {
+    flex-direction: column !important;
+    gap: 16px !important;
+    align-items: flex-start !important;
+  }
+  .sams-hero-btn {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}
+
+/* ── Chat window height ──────────────────────────────────────── */
+.sams-chat-window {
+  /* desktop: topbar(62) + top-padding(--density-py) + bottom-padding(--density-py) = 62+28+28 = 118 */
+  height: calc(100vh - 62px - var(--density-py) - var(--density-py));
+}
+@media (max-width: 767px) {
+  /* mobile: topbar(62) + bottom-nav(64) + top-pad(1rem) + bottom-pad(1rem) */
+  .sams-chat-window {
+    height: calc(100dvh - 62px - 64px - 1rem - 1rem);
+  }
+}
+
+/* ── Chat input bar hint — hide on touch ────────────────────── */
+@media (max-width: 767px) {
+  .chat-input-hint { display: none !important; }
+}
+
+/* ── Table horizontal scroll wrapper ────────────────────────── */
+.table-scroll-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── Notification panel — full-width overlay on mobile ──────── */
+@media (max-width: 767px) {
+  .notif-panel-popup {
+    position: fixed !important;
+    top: 66px !important;
+    left: 8px !important;
+    right: 8px !important;
+    width: auto !important;
+    max-height: 80dvh !important;
+    z-index: 300 !important;
+  }
+}
+
+/* ── Topbar: hide user name / chevron on small screens ──────── */
+.topbar-user-text { display: flex; }
+.topbar-chevron   { display: flex; }
+@media (max-width: 767px) {
+  .topbar-user-text { display: none !important; }
+  .topbar-chevron   { display: none !important; }
+}
+
+/* ── Quick actions grid ──────────────────────────────────────── */
+.quick-actions-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, 1fr);
+}
+@media (max-width: 900px) {
+  .quick-actions-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 540px) {
+  .quick-actions-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+}
+
+/* ── Mobile / desktop visibility helpers ─────────────────────── */
+.mobile-hide { }
+.mobile-only { display: none !important; }
+@media (max-width: 767px) {
+  .mobile-hide { display: none !important; }
+  .mobile-only { display: revert !important; }
+}
+
+/* ── Card padding reduction on small screens ─────────────────── */
+@media (max-width: 599px) {
+  .card { padding: 16px; }
+}
+
+/* ── Sidebar + content 2-col layout (admin form pages) ────────── */
+/* Collapses to single column on tablet/mobile */
+.sidebar-content-grid {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(280px, 400px) 1fr;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .sidebar-content-grid { grid-template-columns: 1fr; }
+}
+
+/* ── CTA banner with text + action button ────────────────────── */
+.cta-banner-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+@media (max-width: 599px) {
+  .cta-banner-row { flex-direction: column; align-items: stretch; }
+  .cta-banner-row button { width: 100%; }
+}
+
+/* Main content + right sidebar (1fr + fixed sidebar → stack on mobile) */
+.main-sidebar-grid {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: 1fr 280px;
+}
+@media (max-width: 900px) {
+  .main-sidebar-grid { grid-template-columns: 1fr; }
+}

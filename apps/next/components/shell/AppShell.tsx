@@ -114,7 +114,7 @@ interface NotifPanelProps {
 
 function NotificationPanel({ notifications, unreadCount, onMarkRead, onMarkAllRead, onRemove, onClose, onNavigate }: NotifPanelProps) {
   return (
-    <div style={{
+    <div className="notif-panel-popup" style={{
       position: 'absolute', top: 'calc(100% + 10px)', right: 0,
       width: 368, maxHeight: 520,
       background: 'var(--bg-surface)',
@@ -519,7 +519,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <div className="sams-main-content" style={{ marginLeft: 'var(--sidebar-width)', flex: 1, display: 'flex', flexDirection: 'column', minHeight: '100vh', minWidth: 0 }}>
 
         {/* Topbar */}
-        <header style={{ height: 62, background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', padding: '0 28px', position: 'sticky', top: 0, zIndex: 50, gap: 14 }}>
+        <header className="sams-topbar-header" style={{ height: 62, background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', padding: '0 28px', position: 'sticky', top: 0, zIndex: 50, gap: 14 }}>
           <button
             onClick={() => setSidebarOpen(true)}
             onTouchStart={() => setSidebarOpen(true)}
@@ -529,7 +529,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <Menu size={20} />
           </button>
 
-          <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>{pageTitle}</div>
+          <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 1 }}>{pageTitle}</div>
 
           {viewAsRole && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 10px', borderRadius: 20, background: `${ROLE_COLOR[viewAsRole]}0D`, border: `1px solid ${ROLE_COLOR[viewAsRole]}22` }}>
@@ -610,11 +610,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 </div>
                 <div style={{ position: 'absolute', bottom: -1, right: -1, width: 9, height: 9, borderRadius: '50%', background: '#10B981', border: '2px solid var(--bg-surface)' }} />
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.2 }}>
+              <div className="topbar-user-text" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.2 }}>
                 <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>{user?.first_name}</span>
                 <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{user?.role}</span>
               </div>
-              <ChevronUp size={12} style={{ color: 'var(--text-muted)', transform: showProfileMenu ? 'none' : 'rotate(180deg)', transition: 'transform 0.15s' }} />
+              <ChevronUp className="topbar-chevron" size={12} style={{ color: 'var(--text-muted)', transform: showProfileMenu ? 'none' : 'rotate(180deg)', transition: 'transform 0.15s' }} />
             </button>
 
             {showProfileMenu && (
@@ -735,10 +735,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             margin-left: 0 !important;
           }
           .sams-page-main {
-            padding-bottom: calc(var(--density-py) + 64px) !important;
+            padding-bottom: calc(var(--density-py) + 64px + env(safe-area-inset-bottom, 0px)) !important;
           }
           .sams-bottom-nav {
             display: flex !important;
+            /* safe area for iPhone home bar */
+            padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+            height: calc(64px + env(safe-area-inset-bottom, 0px)) !important;
+          }
+          /* Tighter topbar padding on mobile */
+          .sams-topbar-header {
+            padding: 0 16px !important;
           }
         }
       `}</style>

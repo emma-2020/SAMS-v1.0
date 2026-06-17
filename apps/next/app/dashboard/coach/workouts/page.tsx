@@ -379,9 +379,9 @@ export default function WorkoutsPage() {
   return (
     <div style={{ animation: 'fadeIn 0.3s ease' }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28, gap: 16 }}>
+      <div className="page-header-row" style={{ marginBottom: 28 }}>
         <div>
-          <h1 style={{ fontSize: '1.55rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.025em', lineHeight: 1.2, margin: 0 }}>Training Plans</h1>
+          <h1 style={{ fontSize: 'clamp(1.2rem,4vw,1.55rem)', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.025em', lineHeight: 1.2, margin: 0 }}>Training Plans</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: 6 }}>
             {assignments.length} plan{assignments.length !== 1 ? 's' : ''} · {totalExercises} total exercises
           </p>

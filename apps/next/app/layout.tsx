@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './global.css';
 import { AuthProvider } from '@/lib/auth/provider';
@@ -9,6 +9,12 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 export const metadata: Metadata = {
   title: 'SAMS — Sports Academy Management',
   description: 'The command centre for elite academies.',
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover', // required for env(safe-area-inset-*) on iOS notched phones
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

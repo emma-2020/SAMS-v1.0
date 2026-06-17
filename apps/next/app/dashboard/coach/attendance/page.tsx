@@ -295,7 +295,7 @@ function AttendanceInner() {
 
               {/* Stats */}
               {roster.length > 0 && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 16 }}>
+                <div className="kpi-grid-4" style={{ marginBottom: 16 }}>
                   <StatBox label="Present" count={presentCount} color="#059669" bg="#ECFDF5" border="#A7F3D0" />
                   <StatBox label="Absent"  count={absentCount}  color="#DC2626" bg="#FEF2F2" border="#FECACA" />
                   <StatBox label="Injured" count={injuredCount} color="#D97706" bg="#FFFBEB" border="#FDE68A" />

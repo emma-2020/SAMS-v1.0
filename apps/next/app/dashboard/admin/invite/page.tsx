@@ -247,7 +247,7 @@ export default function InvitationsPage() {
       </div>
 
       {/* Two-column grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: '400px 1fr', gap: 22, alignItems: 'start' }}>
+      <div className="sidebar-content-grid">
 
         {/* LEFT: Send Invitation card */}
         <div style={{ background: '#FFFFFF', border: '1px solid #F1F5F9', borderRadius: 20, boxShadow: '0 4px 24px rgba(15,23,42,0.06)', overflow: 'hidden' }}>
@@ -298,7 +298,7 @@ export default function InvitationsPage() {
 
             {/* Form */}
             <form onSubmit={handleSend} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div className="form-grid-2">
                 <div>
                   <FieldLabel required>First Name</FieldLabel>
                   <FieldInput value={form.first_name} placeholder="Jordan" error={errors.first_name}

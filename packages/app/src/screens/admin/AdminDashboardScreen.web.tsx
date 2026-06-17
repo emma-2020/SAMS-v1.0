@@ -433,12 +433,12 @@ export function AdminDashboardScreen() {
         <div style={{ position: 'absolute', left: '35%', bottom: -80, width: 180, height: 180, borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
         <div style={{ position: 'absolute', right: 120, top: 10, width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
 
-        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20 }}>
+        <div className="sams-hero-inner" style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20 }}>
           <div>
             <div style={{ fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.45)', marginBottom: 6 }}>
               {today.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
             </div>
-            <h1 style={{ fontWeight: 900, fontSize: '1.65rem', color: '#fff', margin: '0 0 8px', letterSpacing: '-0.025em' }}>
+            <h1 style={{ fontWeight: 900, fontSize: 'clamp(1.3rem,4vw,1.65rem)', color: '#fff', margin: '0 0 8px', letterSpacing: '-0.025em' }}>
               {greeting}, {user?.first_name}!
             </h1>
             <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
@@ -455,6 +455,7 @@ export function AdminDashboardScreen() {
           </div>
           <button
             onClick={() => router.push('/dashboard/admin/invite')}
+            className="sams-hero-btn"
             style={{
               display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0,
               padding: '12px 22px', borderRadius: 12,
@@ -471,7 +472,7 @@ export function AdminDashboardScreen() {
       </div>
 
       {/* ── KPI Row ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
+      <div className="kpi-grid-4" style={{ marginBottom: 24 }}>
         <KpiCard
           label="Total Members"
           value={rosterLoading ? '—' : memberCount}
@@ -512,7 +513,7 @@ export function AdminDashboardScreen() {
       </div>
 
       {/* ── Analytics + Calendar row ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 18, marginBottom: 20, alignItems: 'start' }}>
+      <div className="kpi-grid-2" style={{ marginBottom: 20, alignItems: 'start' }}>
 
         {/* Analytics card */}
         <div style={{
@@ -606,7 +607,7 @@ export function AdminDashboardScreen() {
       </div>
 
       {/* ── Invitations + Quick Actions row ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 18 }}>
+      <div className="kpi-grid-2" style={{ gap: 18 }}>
 
         {/* Recent Invitations */}
         <div style={{
@@ -641,7 +642,8 @@ export function AdminDashboardScreen() {
               </button>
             </div>
           ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <div className="table-scroll-wrap">
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 480 }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
                   {['Member', 'Role', 'Status', 'Date'].map(h => (
@@ -681,6 +683,7 @@ export function AdminDashboardScreen() {
                 })}
               </tbody>
             </table>
+            </div>
           )}
         </div>
 
