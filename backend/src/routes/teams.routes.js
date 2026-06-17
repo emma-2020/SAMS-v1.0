@@ -13,6 +13,7 @@ const { Router } = require('express');
 const { authenticate, extractTenant, requireRole } = require('../middleware/auth.middleware');
 const { supabaseAdmin } = require('../config/supabase');
 const { NotFoundError, InternalError } = require('../utils/errors');
+const notif = require('../services/notifications.service');
 
 const router = Router();
 router.use(authenticate, extractTenant);
@@ -92,7 +93,7 @@ router.post('/', requireRole('Admin'), async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// DELETE /api/teams/:id — Admin only
+// DELETE /api/teams/:id — Admin only (soft-delete: sets is_active = false)
 router.delete('/:id', requireRole('Admin'), async (req, res, next) => {
   try {
     const { data, error } = await supabaseAdmin
@@ -100,9 +101,39 @@ router.delete('/:id', requireRole('Admin'), async (req, res, next) => {
       .update({ is_active: false })
       .eq('id', req.params.id)
       .eq('academy_id', req.academyId)
-      .select('id, name')
+      .select('id, name, coach_id')
       .single();
     if (error || !data) throw new NotFoundError('Team not found.');
+
+    // Fire-and-forget: notify coach + all rostered players
+    (async () => {
+      try {
+        const recipientIds = [];
+
+        if (data.coach_id) recipientIds.push(data.coach_id);
+
+        const { data: rosters } = await supabaseAdmin
+          .from('rosters')
+          .select('player_id')
+          .eq('team_id', data.id)
+          .eq('academy_id', req.academyId);
+        (rosters || []).forEach(r => {
+          if (r.player_id !== data.coach_id) recipientIds.push(r.player_id);
+        });
+
+        if (recipientIds.length > 0) {
+          await notif.createForMany({
+            academyId:    req.academyId,
+            recipientIds,
+            type:  'system',
+            title: `Team "${data.name}" has been dissolved`,
+            body:  'The team has been deactivated by the academy admin. You will no longer receive updates from this channel.',
+            link:  '/dashboard',
+          });
+        }
+      } catch (e) { console.error('[teams] deactivate notify error:', e.message); }
+    })();
+
     return res.json({ success: true, message: `Team "${data.name}" deactivated.` });
   } catch (err) { next(err); }
 });

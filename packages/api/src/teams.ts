@@ -25,7 +25,7 @@ export async function createTeam(payload: {
 }
 
 export async function deactivateTeam(id: string): Promise<void> {
-  await apiClient.patch(`/teams/${id}`, { is_active: false });
+  await apiClient.delete(`/teams/${id}`);
 }
 
 // Backend shape: { success, data: { team, rosters: [{players: TeamMember, ...}] } }

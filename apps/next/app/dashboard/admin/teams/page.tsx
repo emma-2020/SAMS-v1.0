@@ -296,7 +296,12 @@ export default function TeamsPage() {
 
   async function handleDeactivate(team: Team) {
     if (!window.confirm(`Deactivate "${team.name}"? Members will lose access to this channel.`)) return;
-    try { await teamsApi.deactivateTeam(team.id); loadTeams(); } catch (_) {}
+    try {
+      await teamsApi.deactivateTeam(team.id);
+      loadTeams();
+    } catch (err: unknown) {
+      setTeamsError(err instanceof Error ? err.message : 'Failed to deactivate team.');
+    }
   }
 
   return (
