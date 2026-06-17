@@ -56,6 +56,13 @@ export default function LoginPage() {
   const [apiError, setApiError]   = useState('');
   const [loading, setLoading]     = useState(false);
 
+  // Forgot password inline flow
+  const [showForgot,    setShowForgot]    = useState(false);
+  const [forgotEmail,   setForgotEmail]   = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotSent,    setForgotSent]    = useState(false);
+  const [forgotError,   setForgotError]   = useState('');
+
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const { name, value } = e.target;
     setForm(p => ({ ...p, [name]: value }));
@@ -305,7 +312,90 @@ export default function LoginPage() {
                 </button>
               </div>
               {errors.password && <span style={{ fontSize: '0.75rem', color: '#EF4444', fontWeight: 500 }}>{errors.password}</span>}
+
+              {/* Forgot password link */}
+              <div style={{ textAlign: 'right', marginTop: 4 }}>
+                <button
+                  type="button"
+                  onClick={() => { setShowForgot(f => !f); setForgotSent(false); setForgotError(''); }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6366F1', fontSize: '0.78rem', fontWeight: 600, padding: 0, textDecoration: 'underline' }}
+                >
+                  {showForgot ? 'Cancel' : 'Forgot password?'}
+                </button>
+              </div>
             </div>
+
+            {/* ── Inline forgot-password panel ────────────────────────────────── */}
+            {showForgot && (
+              <div style={{
+                background: '#F8F7FF', border: '1.5px solid #C7D2FE',
+                borderRadius: 12, padding: '18px 20px',
+                display: 'flex', flexDirection: 'column', gap: 12,
+              }}>
+                <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#3730A3', marginBottom: 2 }}>
+                  Reset your password
+                </div>
+
+                {forgotSent ? (
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, color: '#166534', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 8, padding: '12px 14px', fontSize: '0.82rem' }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ flexShrink: 0, marginTop: 1 }}><polyline points="20 6 9 17 4 12"/></svg>
+                    <span>Check your inbox — we've sent a password reset link to <strong>{forgotEmail}</strong>. It expires in 1 hour.</span>
+                  </div>
+                ) : (
+                  <>
+                    <p style={{ margin: 0, fontSize: '0.8rem', color: '#475569' }}>
+                      Enter the email address on your account and we'll send you a reset link.
+                    </p>
+                    {forgotError && (
+                      <div style={{ fontSize: '0.78rem', color: '#991B1B', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '8px 12px' }}>
+                        {forgotError}
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <input
+                        type="email"
+                        value={forgotEmail}
+                        onChange={e => { setForgotEmail(e.target.value); setForgotError(''); }}
+                        placeholder="you@academy.com"
+                        disabled={forgotLoading}
+                        style={{
+                          flex: 1, height: 40, padding: '0 12px',
+                          border: '1.5px solid #C7D2FE', borderRadius: 8,
+                          fontSize: '0.875rem', color: '#0F172A',
+                          background: '#FFFFFF', outline: 'none', fontFamily: 'inherit',
+                        }}
+                        onKeyDown={async e => {
+                          if (e.key !== 'Enter') return;
+                          e.preventDefault();
+                          if (!forgotEmail.trim() || !/\S+@\S+\.\S+/.test(forgotEmail)) { setForgotError('Please enter a valid email address.'); return; }
+                          setForgotLoading(true);
+                          try { await authApi.forgotPassword(forgotEmail.trim().toLowerCase()); setForgotSent(true); } catch { setForgotError('Something went wrong. Please try again.'); }
+                          setForgotLoading(false);
+                        }}
+                      />
+                      <button
+                        type="button"
+                        disabled={forgotLoading}
+                        onClick={async () => {
+                          if (!forgotEmail.trim() || !/\S+@\S+\.\S+/.test(forgotEmail)) { setForgotError('Please enter a valid email address.'); return; }
+                          setForgotLoading(true);
+                          try { await authApi.forgotPassword(forgotEmail.trim().toLowerCase()); setForgotSent(true); } catch { setForgotError('Something went wrong. Please try again.'); }
+                          setForgotLoading(false);
+                        }}
+                        style={{
+                          padding: '0 16px', height: 40, borderRadius: 8, border: 'none',
+                          background: '#6366F1', color: 'white', fontWeight: 700, fontSize: '0.8rem',
+                          cursor: forgotLoading ? 'not-allowed' : 'pointer', opacity: forgotLoading ? 0.7 : 1,
+                          whiteSpace: 'nowrap', flexShrink: 0,
+                        }}
+                      >
+                        {forgotLoading ? '…' : 'Send link'}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
 
             <button
               type="submit"

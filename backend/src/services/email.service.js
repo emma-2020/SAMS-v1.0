@@ -513,6 +513,46 @@ async function sendEnrollmentConfirmationEmail({ to, contactName, academyName })
   });
 }
 
+// ─── Email: Password Reset ────────────────────────────────────────────────────
+
+/**
+ * sendPasswordResetEmail
+ * Sent when a user requests a password reset via "Forgot password?".
+ * Contains a single-use link that expires in 1 hour (Supabase default).
+ */
+async function sendPasswordResetEmail({ to, firstName, resetLink }) {
+  const html = emailShell(`
+    <tr>
+      <td style="padding:40px 44px 8px;">
+        ${badge('Password Reset', '#6366F1')}
+        ${h1(`Hi ${firstName},`)}
+        ${para(`We received a request to reset the password for your SAMS account.
+          Click the button below to choose a new password.`)}
+        ${ctaButton('Reset My Password →', resetLink, '#6366F1')}
+        ${linkBox(resetLink)}
+        ${warningBox(`This link expires in <strong>1 hour</strong>.
+          If you did not request a password reset, you can safely ignore this email
+          — your password will not change.`)}
+      </td>
+    </tr>
+  `);
+
+  const text =
+    `Hi ${firstName},\n\n` +
+    `We received a request to reset your SAMS password.\n\n` +
+    `Reset your password here:\n${resetLink}\n\n` +
+    `This link expires in 1 hour.\n` +
+    `If you didn't request this, ignore this email — your password won't change.\n\n` +
+    `— SAMS Platform`;
+
+  return dispatch({
+    to,
+    subject: 'Reset your SAMS password',
+    html,
+    text,
+  });
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 module.exports = {
@@ -521,4 +561,5 @@ module.exports = {
   sendAcademyCredentialsEmail,
   sendAcademyRejectionEmail,
   sendEnrollmentConfirmationEmail,
+  sendPasswordResetEmail,
 };

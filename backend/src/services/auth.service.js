@@ -46,7 +46,8 @@ function recordFailure(email) {
 function clearFailures(email) {
   loginAttempts.delete(email);
 }
-const notif = require('./notifications.service');
+const notif        = require('./notifications.service');
+const emailService = require('./email.service');
 
 // ─────────────────────────────────────────────────────────────────
 // SIGNUP
@@ -534,4 +535,70 @@ async function setupAccount({ token, password }) {
   };
 }
 
-module.exports = { signup, login, logout, getMe, refreshSession, updateProfile, changePassword, verifyInviteToken, registerByInvitation, uploadAvatar, setupAccount };
+// ─────────────────────────────────────────────────────────────────
+// FORGOT PASSWORD
+// Generates a Supabase recovery link and emails it to the user.
+// Always resolves (never throws) — we never reveal whether an
+// email is registered to prevent enumeration attacks.
+// ─────────────────────────────────────────────────────────────────
+
+async function forgotPassword(email) {
+  const cleanEmail = sanitizeString(email).toLowerCase();
+
+  // Look up the user in our users table to get their first_name for the email
+  const { data: user } = await supabaseAdmin
+    .from('users')
+    .select('id, email, first_name')
+    .eq('email', cleanEmail)
+    .maybeSingle();
+
+  if (!user) return; // Silent — do not reveal whether email exists
+
+  const { data, error } = await supabaseAdmin.auth.admin.generateLink({
+    type: 'recovery',
+    email: user.email,
+    options: { redirectTo: 'https://app.playsams.com/reset-password' },
+  });
+
+  if (error) {
+    console.error('[AuthService.forgotPassword] generateLink error:', error.message);
+    return; // Silent failure — user still sees success message
+  }
+
+  // Fire-and-forget email — do not let email failure surface to caller
+  emailService.sendPasswordResetEmail({
+    to:        user.email,
+    firstName: user.first_name || 'there',
+    resetLink: data.properties.action_link,
+  }).catch(e => console.error('[AuthService.forgotPassword] email error:', e.message));
+}
+
+// ─────────────────────────────────────────────────────────────────
+// RESET PASSWORD
+// Validates the Supabase recovery access_token and updates the
+// user's password via the admin API.
+// ─────────────────────────────────────────────────────────────────
+
+async function resetPassword(accessToken, newPassword) {
+  validatePasswordChange({ new_password: newPassword, confirm_password: newPassword });
+
+  // Verify the recovery token and extract the user
+  const { data: { user }, error: tokenError } =
+    await supabaseAdmin.auth.getUser(accessToken);
+
+  if (tokenError || !user) {
+    throw new UnauthorizedError('Reset link is invalid or has expired. Please request a new one.');
+  }
+
+  const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+    user.id,
+    { password: newPassword }
+  );
+
+  if (updateError) {
+    console.error('[AuthService.resetPassword] updateUserById error:', updateError.message);
+    throw new InternalError('Failed to update password. Please try again.');
+  }
+}
+
+module.exports = { signup, login, logout, getMe, refreshSession, updateProfile, changePassword, verifyInviteToken, registerByInvitation, uploadAvatar, setupAccount, forgotPassword, resetPassword };

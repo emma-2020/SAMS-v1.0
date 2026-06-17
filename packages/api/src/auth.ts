@@ -61,3 +61,14 @@ export async function setupAccount(payload: {
   const res = (await apiClient.post('/auth/setup-account', payload)) as { success: boolean; data: LoginResponse };
   return res.data;
 }
+
+export async function forgotPassword(email: string): Promise<void> {
+  await apiClient.post('/auth/forgot-password', { email });
+}
+
+export async function resetPassword(payload: {
+  access_token: string;
+  new_password: string;
+}): Promise<void> {
+  await apiClient.post('/auth/reset-password', payload);
+}

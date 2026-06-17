@@ -241,4 +241,40 @@ async function setupAccount(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { signup, login, logout, refresh, me, updateProfile, changePassword, verifyInviteToken, register, uploadAvatar, setupAccount };
+// ─────────────────────────────────────────────────────────────────
+// POST /api/auth/forgot-password
+// Public — body: { email }
+// Always returns 200 to prevent email enumeration.
+// ─────────────────────────────────────────────────────────────────
+
+async function forgotPassword(req, res, next) {
+  try {
+    const { email } = req.body;
+    if (!email || typeof email !== 'string') {
+      throw new BadRequestError('Email address is required.');
+    }
+    // Fire-and-forget — service never throws (silent on missing user)
+    authService.forgotPassword(email.trim());
+    return res.json({
+      success: true,
+      message: 'If that email is registered, a password reset link has been sent.',
+    });
+  } catch (err) { next(err); }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// POST /api/auth/reset-password
+// Public — body: { access_token, new_password }
+// ─────────────────────────────────────────────────────────────────
+
+async function resetPassword(req, res, next) {
+  try {
+    const { access_token, new_password } = req.body;
+    if (!access_token) throw new BadRequestError('Reset token is required.');
+    if (!new_password) throw new BadRequestError('New password is required.');
+    await authService.resetPassword(access_token, new_password);
+    return res.json({ success: true, message: 'Password updated successfully. You can now log in.' });
+  } catch (err) { next(err); }
+}
+
+module.exports = { signup, login, logout, refresh, me, updateProfile, changePassword, verifyInviteToken, register, uploadAvatar, setupAccount, forgotPassword, resetPassword };

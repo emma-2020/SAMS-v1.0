@@ -25,12 +25,14 @@ const upload = multer({
 const router = Router();
 
 // ── Public ────────────────────────────────────────────────────────
-router.post('/signup',         controller.signup);
-router.post('/login',          controller.login);
-router.post('/refresh',        controller.refresh);
-router.get( '/invite/:token',  controller.verifyInviteToken);
-router.post('/register',       controller.register);
-router.post('/setup-account',  controller.setupAccount);
+router.post('/signup',           controller.signup);
+router.post('/login',            controller.login);
+router.post('/refresh',          controller.refresh);
+router.get( '/invite/:token',    controller.verifyInviteToken);
+router.post('/register',         controller.register);
+router.post('/setup-account',    controller.setupAccount);
+router.post('/forgot-password',  controller.forgotPassword);
+router.post('/reset-password',   controller.resetPassword);
 
 // ── Protected ─────────────────────────────────────────────────────
 router.post(  '/logout',          authenticate,              controller.logout);

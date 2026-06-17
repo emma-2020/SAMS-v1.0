@@ -57,7 +57,6 @@ async function getAssignments({ userId, academyId, role }) {
 
     const teamIds = (rosters || []).map((r) => r.team_id);
 
-    // Use Supabase .or() to match team_id IN teamIds OR player_id = userId
     if (teamIds.length > 0) {
       query = query.or(
         `team_id.in.(${teamIds.join(',')}),player_id.eq.${userId}`
@@ -65,6 +64,27 @@ async function getAssignments({ userId, academyId, role }) {
     } else {
       query = query.eq('player_id', userId);
     }
+  } else if (role === 'Parent') {
+    // Parents see workouts assigned to their linked children
+    const { data: links } = await supabaseAdmin
+      .from('rosters')
+      .select('player_id, team_id')
+      .eq('academy_id', academyId)            // tenant isolation
+      .eq('parent_id', userId);
+
+    const childIds = [...new Set((links || []).map(l => l.player_id).filter(Boolean))];
+    const teamIds  = [...new Set((links || []).map(l => l.team_id).filter(Boolean))];
+
+    if (childIds.length === 0) {
+      return []; // No linked children → no workouts to show
+    }
+
+    // Match workouts assigned directly to a child OR to any team a child is on
+    const orParts = [
+      ...childIds.map(id => `player_id.eq.${id}`),
+      ...(teamIds.length > 0 ? [`team_id.in.(${teamIds.join(',')})`] : []),
+    ];
+    query = query.or(orParts.join(','));
   }
   // Admin: no additional filter — sees all in academy
 

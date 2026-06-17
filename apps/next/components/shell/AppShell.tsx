@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, Users, CalendarDays, ClipboardList, Activity,
   Dumbbell, MessageSquare, Settings, LogOut, Menu, Bell,
-  Search, ChevronUp, ChevronRight, Sun, Moon,
+  ChevronUp, ChevronRight, Sun, Moon,
   Shield, Trophy, Zap, UserCircle,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -541,12 +541,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           )}
 
           <div style={{ flex: 1 }} />
-
-          {/* Search */}
-          <div className="search-input" style={{ width: 200 }}>
-            <Search size={15} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-            <input placeholder="Search…" />
-          </div>
 
           {/* Bell */}
           <div style={{ position: 'relative' }} ref={notifRef}>

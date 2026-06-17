@@ -537,7 +537,9 @@ export default function ChatPage() {
           <p style={{ color: '#94A3B8', fontSize: '0.875rem', maxWidth: 360, margin: '0 auto' }}>
             {user?.role === 'Admin'
               ? 'Create a team from the Teams page to start chatting with your academy.'
-              : 'Contact your academy admin or coach to be added to a team channel.'}
+              : user?.role === 'Parent'
+                ? "Your child hasn't been added to a team yet. Contact your academy admin to get them enrolled."
+                : 'Contact your academy admin to be added to a team channel.'}
           </p>
         </div>
       </div>
@@ -626,7 +628,7 @@ export default function ChatPage() {
             <div>
               <div style={{ fontWeight: 800, fontSize: '1rem', color: '#0F172A', letterSpacing: '-0.01em' }}>{activeTeam?.name ?? 'Team Channel'}</div>
               <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginTop: 1 }}>
-                Coach: {coachName}
+                {user?.role === 'Parent' ? 'Team channel' : `Coach: ${coachName}`}
                 {activeTeam?.sport    && ` · ${activeTeam.sport}`}
                 {activeTeam?.division && ` · ${activeTeam.division}`}
               </div>
