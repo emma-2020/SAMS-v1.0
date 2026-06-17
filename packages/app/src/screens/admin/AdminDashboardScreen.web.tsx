@@ -503,7 +503,7 @@ export function AdminDashboardScreen() {
       </div>
 
       {/* ── Analytics + Calendar row ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 18, marginBottom: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 18, marginBottom: 20, alignItems: 'start' }}>
 
         {/* Analytics card */}
         <div style={{
