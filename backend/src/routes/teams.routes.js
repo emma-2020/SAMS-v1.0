@@ -141,7 +141,7 @@ router.post('/:id/members', requireRole('Admin'), async (req, res, next) => {
         team_id:    req.params.id,
         player_id,
         parent_id:  parent_id || null,
-      }, { onConflict: 'academy_id,team_id,player_id' })
+      }, { onConflict: 'team_id,player_id' })
       .select('*')
       .single();
 
