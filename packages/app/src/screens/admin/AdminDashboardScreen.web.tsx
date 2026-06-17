@@ -382,6 +382,15 @@ export function AdminDashboardScreen() {
       .finally(() => setRosterLoading(false));
     teamsApi.getTeams().then(setTeams).catch(() => {});
     scheduleApi.getEvents().then(setEvents).catch(() => {});
+
+    // Safety net: if the auth-refresh queue hangs (e.g. expired refresh token),
+    // promises may never settle. Clear loading flags after 10 s so the dashboard
+    // shows 0s instead of permanent dashes.
+    const timeout = setTimeout(() => {
+      setInvLoading(false);
+      setRosterLoading(false);
+    }, 10_000);
+    return () => clearTimeout(timeout);
   }, []);
 
   const total      = invitations.length;
