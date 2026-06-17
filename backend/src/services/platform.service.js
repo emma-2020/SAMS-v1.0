@@ -38,21 +38,17 @@ async function login(email, password) {
     throw new BadRequestError('Email and password are required.');
   }
 
-  const lookupEmail = email.toLowerCase().trim();
-
   // Retry up to 3 times to handle transient Supabase connection issues
   let admin = null;
-  let lastQueryError = null;
   for (let attempt = 1; attempt <= 3; attempt++) {
     const { data, error } = await supabaseAdmin
       .from('platform_admins')
       .select('id, name, email, password_hash, is_active')
-      .eq('email', lookupEmail)
+      .eq('email', email.toLowerCase().trim())
       .maybeSingle();
 
     if (!error) { admin = data; break; }
 
-    lastQueryError = error;
     // PGRST116 = no rows — stop retrying, it's not a transient error
     if (error.code === 'PGRST116') break;
 
@@ -60,22 +56,15 @@ async function login(email, password) {
     if (attempt < 3) await new Promise(r => setTimeout(r, 300 * attempt));
   }
 
-  // Temporary diagnostic logging — remove after Railway issue is confirmed fixed
   if (!admin) {
-    console.error('[PlatformLogin] DIAG: admin not found for email:', lookupEmail,
-      '| supabase_url_prefix:', (process.env.SUPABASE_URL || '').substring(0, 40),
-      '| query_error:', lastQueryError ? `${lastQueryError.code}:${lastQueryError.message}` : 'none (data was null)');
     throw new UnauthorizedError('Invalid credentials.');
   }
-  console.log('[PlatformLogin] DIAG: admin found:', admin.email, '| is_active:', admin.is_active,
-    '| hash_prefix:', (admin.password_hash || '').substring(0, 7));
 
   if (!admin.is_active) {
     throw new UnauthorizedError('This platform admin account has been deactivated.');
   }
 
   const valid = await bcrypt.compare(password, admin.password_hash);
-  console.log('[PlatformLogin] DIAG: bcrypt result:', valid, 'for email:', admin.email);
   if (!valid) throw new UnauthorizedError('Invalid credentials.');
 
   // stamp last_login_at (non-blocking — don't fail login if this errors)
