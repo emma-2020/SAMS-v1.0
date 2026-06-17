@@ -206,7 +206,7 @@ const OCEAN_PALETTE = [
   { from: '#3B82F6', to: '#93C5FD' },
 ];
 
-function OceanBarChart({ data, height = 130 }: { data: { label: string; v: number }[]; height?: number }) {
+function OceanBarChart({ data, height = '100%' }: { data: { label: string; v: number }[]; height?: number | string }) {
   if (!data || data.length === 0) return null;
   return (
     <ResponsiveContainer width="100%" height={height}>
@@ -510,6 +510,7 @@ export function AdminDashboardScreen() {
           background: '#FFFFFF', border: '1px solid #F1F5F9', borderRadius: 20,
           boxShadow: '0 4px 24px rgba(15,23,42,0.06), 0 1px 4px rgba(15,23,42,0.03)',
           padding: '22px 24px',
+          display: 'flex', flexDirection: 'column', minHeight: 300,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22 }}>
             <div>
@@ -524,25 +525,27 @@ export function AdminDashboardScreen() {
             </button>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 32, alignItems: 'center' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 32, alignItems: 'stretch', flex: 1 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 0 }}>
               <div style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#CBD5E1', marginBottom: 8 }}>
                 Acceptance Rate
               </div>
-              <RegistrationDonut accepted={accepted} pending={pending} expired={expired} size={130} />
+              <RegistrationDonut accepted={accepted} pending={pending} expired={expired} size={150} />
             </div>
 
-            <div>
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
               <div style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#CBD5E1', marginBottom: 10 }}>
                 Member Distribution
               </div>
-              {rosterBreakdown.length > 0 ? (
-                <OceanBarChart data={rosterBreakdown} height={130} />
-              ) : (
-                <div style={{ height: 130, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#CBD5E1', fontSize: '0.8rem' }}>
-                  No roster data yet
-                </div>
-              )}
+              <div style={{ flex: 1, minHeight: 130 }}>
+                {rosterBreakdown.length > 0 ? (
+                  <OceanBarChart data={rosterBreakdown} />
+                ) : (
+                  <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#CBD5E1', fontSize: '0.8rem' }}>
+                    No roster data yet
+                  </div>
+                )}
+              </div>
               <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
                 {[
                   { label: 'Coaches', v: coachCount, color: '#0EA5E9' },
