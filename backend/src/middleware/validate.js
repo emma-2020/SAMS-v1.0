@@ -123,8 +123,8 @@ const MAX_MESSAGE_LENGTH = 2000;
 
 const validateChatQuery = runChecks([
   ({ query }) => {
-    if (!query.team_id || typeof query.team_id !== 'string') {
-      return 'Query param "team_id" (UUID) is required.';
+    if (!query.channel_id && !query.team_id) {
+      return 'Query param "channel_id" (UUID) is required.';
     }
   },
   ({ query }) => {
@@ -139,8 +139,8 @@ const validateChatQuery = runChecks([
 
 const validateChatBody = runChecks([
   ({ body }) => {
-    if (!body.team_id || typeof body.team_id !== 'string') {
-      return '"team_id" (UUID string) is required.';
+    if (!body.channel_id && !body.team_id) {
+      return '"channel_id" (UUID string) is required.';
     }
   },
   ({ body }) => {
@@ -151,6 +151,35 @@ const validateChatBody = runChecks([
     }
     if (body.message_text && body.message_text.length > MAX_MESSAGE_LENGTH) {
       return `"message_text" cannot exceed ${MAX_MESSAGE_LENGTH} characters.`;
+    }
+  },
+]);
+
+const VALID_GROUP_TYPES = ['role_group', 'custom_group'];
+const VALID_TARGET_ROLES = ['Coach', 'Player', 'Parent'];
+
+const validateCreateGroup = runChecks([
+  ({ body }) => {
+    if (!body.name || typeof body.name !== 'string' || !body.name.trim()) {
+      return '"name" is required.';
+    }
+  },
+  ({ body }) => {
+    if (!VALID_GROUP_TYPES.includes(body.type)) {
+      return `"type" must be one of: ${VALID_GROUP_TYPES.join(', ')}.`;
+    }
+  },
+  ({ body }) => {
+    if (body.type === 'role_group' && !VALID_TARGET_ROLES.includes(body.target_role)) {
+      return `"target_role" must be one of: ${VALID_TARGET_ROLES.join(', ')} for role_group.`;
+    }
+  },
+]);
+
+const validateDirectBody = runChecks([
+  ({ body }) => {
+    if (!body.target_user_id || typeof body.target_user_id !== 'string') {
+      return '"target_user_id" (UUID) is required.';
     }
   },
 ]);
@@ -270,6 +299,8 @@ module.exports = {
   validateHealthBody,
   validateChatQuery,
   validateChatBody,
+  validateCreateGroup,
+  validateDirectBody,
   validateInviteBody,
   validateMemberStatusBody,
 };

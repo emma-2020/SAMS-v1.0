@@ -1,31 +1,26 @@
 import { apiClient } from './client';
-import type { ChatMessage, ChatAttachment } from './types';
-export type { ChatAttachment };
+import type {
+  ChatMessage,
+  ChatAttachment,
+  ChatChannel,
+  ChatChannelMember,
+  TeamMember,
+} from './types';
+export type { ChatAttachment, ChatChannel, ChatChannelMember };
 
-// Backend:  GET /chat?team_id=:uuid&limit=50
-// Response: { success, data: { team, messages: [...], page } }
-// ChatMessage.body maps from backend message_text field
-export async function getMessages(teamId: string): Promise<ChatMessage[]> {
-  const res = (await apiClient.get(`/chat?team_id=${teamId}&limit=50`)) as {
-    success: boolean;
-    data: {
-      messages: Array<{
-        id: string;
-        team_id: string;
-        sender_id: string;
-        message_text: string | null;
-        attachment_url?: string | null;
-        file_name?: string | null;
-        mime_type?: string | null;
-        file_size?: number | null;
-        created_at: string;
-        users?: { id: string; first_name: string; last_name: string; role: string } | null;
-      }>;
-    };
-  };
-  return (res.data?.messages ?? []).map((m) => ({
+// ── Type helpers ──────────────────────────────────────────────────
+
+function mapMessage(m: {
+  id: string; channel_id?: string; team_id?: string | null; sender_id: string;
+  message_text: string | null; attachment_url?: string | null;
+  file_name?: string | null; mime_type?: string | null; file_size?: number | null;
+  created_at: string;
+  users?: { id: string; first_name: string; last_name: string; role: string } | null;
+}): ChatMessage {
+  return {
     id:             m.id,
-    team_id:        m.team_id,
+    channel_id:     m.channel_id ?? m.team_id ?? '',
+    team_id:        m.team_id ?? null,
     sender_id:      m.sender_id,
     body:           m.message_text ?? null,
     created_at:     m.created_at,
@@ -34,16 +29,27 @@ export async function getMessages(teamId: string): Promise<ChatMessage[]> {
     mime_type:      m.mime_type ?? null,
     file_size:      m.file_size ?? null,
     sender:         m.users ? { ...m.users, email: '' } : undefined,
-  }));
+  };
 }
 
-// Backend:  POST /chat  body: { team_id, message_text?, attachment_url?, ... }
+// ── Messages ──────────────────────────────────────────────────────
+
+// Backend: GET /chat?channel_id=:uuid&limit=50
+export async function getMessages(channelId: string): Promise<ChatMessage[]> {
+  const res = (await apiClient.get(`/chat?channel_id=${channelId}&limit=50`)) as {
+    success: boolean;
+    data: { messages: Parameters<typeof mapMessage>[0][] };
+  };
+  return (res.data?.messages ?? []).map(mapMessage);
+}
+
+// Backend: POST /chat  { channel_id, message_text?, attachment_url?, ... }
 export async function sendMessage(
-  teamId: string,
+  channelId: string,
   body: string,
   attachment?: ChatAttachment,
 ): Promise<ChatMessage> {
-  const payload: Record<string, unknown> = { team_id: teamId };
+  const payload: Record<string, unknown> = { channel_id: channelId };
   if (body.trim()) payload.message_text = body;
   if (attachment) {
     payload.attachment_url = attachment.url;
@@ -54,54 +60,21 @@ export async function sendMessage(
 
   const res = (await apiClient.post('/chat', payload)) as {
     success: boolean;
-    data: {
-      message: {
-        id: string;
-        team_id: string;
-        sender_id: string;
-        message_text: string | null;
-        attachment_url?: string | null;
-        file_name?: string | null;
-        mime_type?: string | null;
-        file_size?: number | null;
-        created_at: string;
-      };
-    };
+    data: { message: Parameters<typeof mapMessage>[0] };
   };
-  const m = res.data.message;
-  return {
-    id:             m.id,
-    team_id:        m.team_id,
-    sender_id:      m.sender_id,
-    body:           m.message_text ?? null,
-    created_at:     m.created_at,
-    attachment_url: m.attachment_url ?? null,
-    file_name:      m.file_name ?? null,
-    mime_type:      m.mime_type ?? null,
-    file_size:      m.file_size ?? null,
-  };
+  return mapMessage(res.data.message);
 }
 
-// Backend:  DELETE /chat/:messageId
-// Sender may delete their own messages; Admin may delete any.
+// Backend: DELETE /chat/:messageId
 export async function deleteMessage(messageId: string): Promise<void> {
   await apiClient.delete(`/chat/${messageId}`);
 }
 
-// Backend:  POST /chat/upload  multipart: { file, team_id }
-//
-// The apiClient instance defaults to Content-Type: application/json.
-// Axios 1.x sees that default + FormData data and converts FormData to
-// JSON via formDataToJSON(), sending application/json to the server.
-// Multer never parses a JSON body, so req.file is always undefined.
-//
-// Fix: delete Content-Type inside transformRequest (runs after header
-// merging) so the browser's XHR sets multipart/form-data; boundary=…
-// automatically when it receives a FormData body.
-export async function uploadChatAttachment(teamId: string, file: File): Promise<ChatAttachment> {
+// Backend: POST /chat/upload  multipart: { file, channel_id }
+export async function uploadChatAttachment(channelId: string, file: File): Promise<ChatAttachment> {
   const fd = new FormData();
   fd.append('file', file);
-  fd.append('team_id', teamId);
+  fd.append('channel_id', channelId);
   const res = (await apiClient.post('/chat/upload', fd, {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     transformRequest: [(data: FormData, headers: any) => {
@@ -112,9 +85,87 @@ export async function uploadChatAttachment(teamId: string, file: File): Promise<
       }
       return data;
     }],
-  })) as {
-    success: boolean;
-    data: ChatAttachment;
-  };
+  })) as { success: boolean; data: ChatAttachment };
   return res.data;
+}
+
+// ── Channels ──────────────────────────────────────────────────────
+
+// Backend: GET /chat/channels
+export async function listChannels(): Promise<ChatChannel[]> {
+  const res = (await apiClient.get('/chat/channels')) as {
+    success: boolean;
+    data: { channels: ChatChannel[] };
+  };
+  return res.data?.channels ?? [];
+}
+
+// Backend: POST /chat/channels
+export async function createGroup(params: {
+  name: string;
+  type: 'role_group' | 'custom_group';
+  description?: string;
+  icon_color?: string;
+  target_role?: 'Coach' | 'Player' | 'Parent';
+  member_ids?: string[];
+}): Promise<ChatChannel> {
+  const res = (await apiClient.post('/chat/channels', params)) as {
+    success: boolean;
+    data: { channel: ChatChannel };
+  };
+  return res.data.channel;
+}
+
+// Backend: PATCH /chat/channels/:id
+export async function updateGroup(
+  channelId: string,
+  params: { name?: string; description?: string; icon_color?: string },
+): Promise<ChatChannel> {
+  const res = (await apiClient.patch(`/chat/channels/${channelId}`, params)) as {
+    success: boolean;
+    data: { channel: ChatChannel };
+  };
+  return res.data.channel;
+}
+
+// Backend: DELETE /chat/channels/:id
+export async function deleteGroup(channelId: string): Promise<void> {
+  await apiClient.delete(`/chat/channels/${channelId}`);
+}
+
+// Backend: GET /chat/channels/:id/members
+export async function getChannelMembers(channelId: string): Promise<ChatChannelMember[]> {
+  const res = (await apiClient.get(`/chat/channels/${channelId}/members`)) as {
+    success: boolean;
+    data: { members: ChatChannelMember[] };
+  };
+  return res.data?.members ?? [];
+}
+
+// Backend: POST /chat/channels/:id/members
+export async function addChannelMember(channelId: string, userId: string): Promise<void> {
+  await apiClient.post(`/chat/channels/${channelId}/members`, { user_id: userId });
+}
+
+// Backend: DELETE /chat/channels/:id/members/:userId
+export async function removeChannelMember(channelId: string, userId: string): Promise<void> {
+  await apiClient.delete(`/chat/channels/${channelId}/members/${userId}`);
+}
+
+// Backend: POST /chat/direct  { target_user_id }
+export async function getOrCreateDirect(targetUserId: string): Promise<ChatChannel> {
+  const res = (await apiClient.post('/chat/direct', { target_user_id: targetUserId })) as {
+    success: boolean;
+    data: { channel: ChatChannel };
+  };
+  return res.data.channel;
+}
+
+// Backend: GET /chat/users?q=query
+export async function searchUsers(query: string): Promise<TeamMember[]> {
+  const res = (await apiClient.get(`/chat/users?q=${encodeURIComponent(query)}`)) as {
+    success: boolean;
+    data: { users: TeamMember[] };
+  };
+  return res.data?.users ?? [];
 }

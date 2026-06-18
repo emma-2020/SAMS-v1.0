@@ -114,7 +114,8 @@ export interface ChatAttachment {
 
 export interface ChatMessage {
   id: string;
-  team_id: string;
+  channel_id: string;
+  team_id?: string | null;
   sender_id: string;
   sender?: TeamMember;
   body: string | null;
@@ -123,6 +124,41 @@ export interface ChatMessage {
   file_name?: string | null;
   mime_type?: string | null;
   file_size?: number | null;
+}
+
+export type ChatChannelType = 'team' | 'role_group' | 'custom_group' | 'direct';
+
+export interface LastMessagePreview {
+  id: string;
+  body: string | null;
+  sender_name: string;
+  created_at: string;
+}
+
+export interface ChatChannel {
+  id: string;
+  academy_id: string;
+  name: string;
+  description?: string | null;
+  type: ChatChannelType;
+  team_id?: string | null;
+  icon_color?: string | null;
+  created_by?: string | null;
+  created_at: string;
+  updated_at: string;
+  member_count?: number;
+  last_message?: LastMessagePreview | null;
+  other_user?: TeamMember | null;
+}
+
+export interface ChatChannelMember {
+  user_id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  role: string;
+  is_admin: boolean;
+  joined_at: string;
 }
 
 export interface InvitationRecord {

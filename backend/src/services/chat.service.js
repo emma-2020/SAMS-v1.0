@@ -1,17 +1,9 @@
 // src/services/chat.service.js
 'use strict';
 
-/**
- * ChatService
- * Fixes applied:
- *   F-04  assertTeamMembership(): removed dead rosters.player_id = coachId query.
- *         Coaches are found only via teams.coach_id.
- *   F-07  Raw Supabase error strings replaced with safe logged messages.
- */
-
-const crypto        = require('crypto');
+const crypto            = require('crypto');
 const { supabaseAdmin } = require('../config/supabase');
-const notif          = require('./notifications.service');
+const notif             = require('./notifications.service');
 const {
   ForbiddenError,
   NotFoundError,
@@ -20,30 +12,30 @@ const {
 } = require('../utils/errors');
 
 const ATTACHMENT_BUCKET = 'chat-attachments';
-
-const DEFAULT_LIMIT = 50;
-const MAX_LIMIT     = 100;
+const DEFAULT_LIMIT     = 50;
+const MAX_LIMIT         = 100;
 
 // ─────────────────────────────────────────────────────────────────
 // GET MESSAGES
+// Accepts channel_id (new) or team_id (legacy — auto-resolved).
 // ─────────────────────────────────────────────────────────────────
 
-async function getMessages({ teamId, userId, academyId, role, limit, before }) {
-  const team     = await fetchTeamOrThrow(teamId, academyId);
-  await assertTeamMembership({ teamId, userId, academyId, role });
+async function getMessages({ channelId, teamId, userId, academyId, role, limit, before }) {
+  const resolvedChannelId = await resolveChannelId({ channelId, teamId, academyId });
+  await assertChannelMembership({ channelId: resolvedChannelId, userId, academyId, role });
 
   const pageSize = Math.min(Number(limit) || DEFAULT_LIMIT, MAX_LIMIT);
 
   let query = supabaseAdmin
     .from('messages')
     .select(`
-      id, team_id, sender_id, message_text,
+      id, team_id, channel_id, sender_id, message_text,
       attachment_url, file_name, mime_type, file_size,
       created_at,
       users!messages_sender_id_fkey ( id, first_name, last_name, role )
     `)
-    .eq('academy_id', academyId)              // tenant isolation
-    .eq('team_id', teamId)
+    .eq('academy_id', academyId)
+    .eq('channel_id', resolvedChannelId)
     .order('created_at', { ascending: false })
     .limit(pageSize);
 
@@ -52,9 +44,8 @@ async function getMessages({ teamId, userId, academyId, role, limit, before }) {
       .from('messages')
       .select('created_at')
       .eq('id', before)
-      .eq('academy_id', academyId)            // tenant isolation
+      .eq('academy_id', academyId)
       .single();
-
     if (cursor) query = query.lt('created_at', cursor.created_at);
   }
 
@@ -66,8 +57,15 @@ async function getMessages({ teamId, userId, academyId, role, limit, before }) {
 
   const messages = (data || []).reverse();
 
+  // Fetch channel name for response
+  const { data: ch } = await supabaseAdmin
+    .from('chat_channels')
+    .select('id, name')
+    .eq('id', resolvedChannelId)
+    .single();
+
   return {
-    team:     { id: team.id, name: team.name },
+    team:     { id: resolvedChannelId, name: ch?.name ?? 'Channel' },
     messages,
     page: {
       count:     messages.length,
@@ -80,17 +78,14 @@ async function getMessages({ teamId, userId, academyId, role, limit, before }) {
 
 // ─────────────────────────────────────────────────────────────────
 // UPLOAD ATTACHMENT
-// Uploads a file buffer to Supabase Storage and returns metadata.
-// The caller is responsible for then sending a message with the URL.
 // ─────────────────────────────────────────────────────────────────
 
-async function uploadAttachment({ teamId, userId, academyId, role, fileBuffer, mimetype, originalname, fileSize }) {
-  await fetchTeamOrThrow(teamId, academyId);
-  await assertTeamMembership({ teamId, userId, academyId, role });
+async function uploadAttachment({ channelId, teamId, userId, academyId, role, fileBuffer, mimetype, originalname, fileSize }) {
+  const resolvedChannelId = await resolveChannelId({ channelId, teamId, academyId });
+  await assertChannelMembership({ channelId: resolvedChannelId, userId, academyId, role });
 
-  const ext      = (originalname.split('.').pop() || 'bin').toLowerCase();
-  const safeName = originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
-  const storagePath = `${academyId}/${teamId}/${Date.now()}_${crypto.randomBytes(4).toString('hex')}_${safeName}`;
+  const safeName    = originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const storagePath = `${academyId}/${resolvedChannelId}/${Date.now()}_${crypto.randomBytes(4).toString('hex')}_${safeName}`;
 
   const { error: uploadError } = await supabaseAdmin
     .storage
@@ -114,29 +109,37 @@ async function uploadAttachment({ teamId, userId, academyId, role, fileBuffer, m
 // SEND MESSAGE
 // ─────────────────────────────────────────────────────────────────
 
-async function sendMessage({ teamId, senderId, academyId, role, messageText, attachmentUrl, fileName, mimeType, fileSize }) {
-  const team = await fetchTeamOrThrow(teamId, academyId);
-  await assertTeamMembership({ teamId, userId: senderId, academyId, role });
+async function sendMessage({ channelId, teamId, senderId, academyId, role, messageText, attachmentUrl, fileName, mimeType, fileSize }) {
+  const resolvedChannelId = await resolveChannelId({ channelId, teamId, academyId });
+  await assertChannelMembership({ channelId: resolvedChannelId, userId: senderId, academyId, role });
 
   const cleanText = messageText ? messageText.trim() : null;
   if (!cleanText && !attachmentUrl) {
     throw new BadRequestError('Message must contain text or an attachment.');
   }
 
+  // Resolve team_id if this is a team channel (for backwards-compat insert)
+  const { data: ch } = await supabaseAdmin
+    .from('chat_channels')
+    .select('id, name, team_id, type')
+    .eq('id', resolvedChannelId)
+    .single();
+
   const { data, error } = await supabaseAdmin
     .from('messages')
     .insert({
       academy_id:     academyId,
-      team_id:        teamId,
+      channel_id:     resolvedChannelId,
+      team_id:        ch?.team_id || null,
       sender_id:      senderId,
-      message_text:   cleanText   || null,
+      message_text:   cleanText    || null,
       attachment_url: attachmentUrl || null,
-      file_name:      fileName    || null,
-      mime_type:      mimeType    || null,
-      file_size:      fileSize    || null,
+      file_name:      fileName     || null,
+      mime_type:      mimeType     || null,
+      file_size:      fileSize     || null,
     })
     .select(`
-      id, team_id, sender_id, message_text,
+      id, team_id, channel_id, sender_id, message_text,
       attachment_url, file_name, mime_type, file_size,
       created_at,
       users!messages_sender_id_fkey ( id, first_name, last_name, role )
@@ -148,44 +151,52 @@ async function sendMessage({ teamId, senderId, academyId, role, messageText, att
     throw new InternalError('Failed to send message. Please try again.');
   }
 
-  // Fire-and-forget: notify everyone else in the team chat about the new message
+  // Fire-and-forget notifications
   (async () => {
     try {
-      const { data: rosters } = await supabaseAdmin
-        .from('rosters')
-        .select('player_id, parent_id')
-        .eq('academy_id', academyId)
-        .eq('team_id', teamId);
-
-      const playerIds = [...new Set((rosters || []).map(r => r.player_id))]
-        .filter(id => id && id !== senderId);
-      const parentIds = [...new Set((rosters || []).map(r => r.parent_id))]
-        .filter(id => id && id !== senderId);
-
-      const sender  = data.users;
+      const sender     = data.users;
       const senderName = sender ? `${sender.first_name} ${sender.last_name}` : 'Someone';
-      const preview = cleanText
+      const preview    = cleanText
         ? (cleanText.length > 80 ? `${cleanText.slice(0, 80)}…` : cleanText)
         : 'Sent an attachment';
-      const title = `New message in ${team.name}`;
+      const title = `New message in ${ch?.name ?? 'Chat'}`;
       const body  = `${senderName}: ${preview}`;
 
-      if (team.coach_id && team.coach_id !== senderId) {
-        await notif.create({
-          academyId, recipientId: team.coach_id,
+      // Get all channel members except sender
+      const { data: members } = await supabaseAdmin
+        .from('chat_channel_members')
+        .select('user_id, users!chat_channel_members_user_id_fkey(role)')
+        .eq('channel_id', resolvedChannelId)
+        .neq('user_id', senderId);
+
+      const byRole = { Coach: [], Player: [], Parent: [], Admin: [] };
+      for (const m of (members || [])) {
+        const r = m.users?.role;
+        if (r && byRole[r]) byRole[r].push(m.user_id);
+      }
+
+      if (byRole.Coach.length > 0) {
+        await notif.createForMany({
+          academyId, recipientIds: byRole.Coach,
           type: 'chat', title, body, link: '/dashboard/coach/chat',
         });
       }
-      if (playerIds.length > 0) {
+      if (byRole.Player.length > 0) {
         await notif.createForMany({
-          academyId, recipientIds: playerIds,
+          academyId, recipientIds: byRole.Player,
           type: 'chat', title, body, link: '/dashboard/player/chat',
         });
       }
-      if (parentIds.length > 0) {
+      if (byRole.Parent.length > 0) {
         await notif.createForMany({
-          academyId, recipientIds: parentIds,
+          academyId, recipientIds: byRole.Parent,
           type: 'chat', title, body, link: '/dashboard/parent/chat',
+        });
+      }
+      if (byRole.Admin.length > 0) {
+        await notif.createForMany({
+          academyId, recipientIds: byRole.Admin,
+          type: 'chat', title, body, link: '/dashboard/admin/chat',
         });
       }
     } catch (e) { console.error('[ChatService] notify error:', e.message); }
@@ -198,25 +209,16 @@ async function sendMessage({ teamId, senderId, academyId, role, messageText, att
 // DELETE MESSAGE
 // ─────────────────────────────────────────────────────────────────
 
-/**
- * deleteMessage
- * Senders may delete their own messages. Admins may delete any message
- * in the academy (content moderation). Attachment files in Supabase
- * Storage are NOT cleaned up — orphan cleanup is a background task for
- * a future version.
- */
 async function deleteMessage({ messageId, userId, academyId, role }) {
-  // Fetch the message to verify it belongs to this academy
   const { data: msg, error: fetchErr } = await supabaseAdmin
     .from('messages')
     .select('id, sender_id')
     .eq('id', messageId)
-    .eq('academy_id', academyId)              // tenant isolation
+    .eq('academy_id', academyId)
     .single();
 
   if (fetchErr || !msg) throw new NotFoundError('Message not found.');
 
-  // Only the sender or an Admin may delete
   if (role !== 'Admin' && msg.sender_id !== userId) {
     throw new ForbiddenError('You can only delete your own messages.');
   }
@@ -225,7 +227,7 @@ async function deleteMessage({ messageId, userId, academyId, role }) {
     .from('messages')
     .delete()
     .eq('id', messageId)
-    .eq('academy_id', academyId);             // tenant isolation
+    .eq('academy_id', academyId);
 
   if (delErr) {
     console.error('[ChatService.deleteMessage]', delErr.message);
@@ -239,79 +241,35 @@ async function deleteMessage({ messageId, userId, academyId, role }) {
 // INTERNAL HELPERS
 // ─────────────────────────────────────────────────────────────────
 
-async function fetchTeamOrThrow(teamId, academyId) {
-  const { data, error } = await supabaseAdmin
-    .from('teams')
-    .select('id, name, academy_id, coach_id')
-    .eq('id', teamId)
-    .eq('academy_id', academyId)              // tenant isolation
-    .single();
+async function resolveChannelId({ channelId, teamId, academyId }) {
+  if (channelId) return channelId;
 
-  if (error || !data) throw new NotFoundError('Team not found in this academy.');
-  return data;
+  // Legacy: resolve team_id → channel_id
+  if (teamId) {
+    const { data } = await supabaseAdmin
+      .from('chat_channels')
+      .select('id')
+      .eq('team_id', teamId)
+      .eq('academy_id', academyId)
+      .eq('type', 'team')
+      .single();
+    if (data?.id) return data.id;
+  }
+
+  throw new NotFoundError('Channel not found.');
 }
 
-/**
- * assertTeamMembership
- * F-04 FIX: For the Coach role, only check teams.coach_id.
- * The previous implementation also queried rosters.player_id = coachId,
- * which always returned null (coaches are not roster entries) and
- * would throw ForbiddenError for any coach not set as head_coach.
- */
-async function assertTeamMembership({ teamId, userId, academyId, role }) {
-  if (role === 'Admin') return;              // Admins have full academy access
+async function assertChannelMembership({ channelId, userId, academyId, role }) {
+  if (role === 'Admin') return; // Admins have full academy access
 
-  if (role === 'Coach') {
-    // F-04 FIX: Correct lookup — teams.coach_id only
-    const { data: team } = await supabaseAdmin
-      .from('teams')
-      .select('coach_id')
-      .eq('id', teamId)
-      .eq('academy_id', academyId)            // tenant isolation
-      .single();
+  const { data } = await supabaseAdmin
+    .from('chat_channel_members')
+    .select('user_id')
+    .eq('channel_id', channelId)
+    .eq('user_id', userId)
+    .single();
 
-    if (team?.coach_id === userId) return;
-    throw new ForbiddenError('You are not the head coach of this team.');
-  }
-
-  if (role === 'Player') {
-    const { data } = await supabaseAdmin
-      .from('rosters')
-      .select('id')
-      .eq('team_id', teamId)
-      .eq('academy_id', academyId)            // tenant isolation
-      .eq('player_id', userId)
-      .maybeSingle();
-
-    if (!data) throw new ForbiddenError('You are not rostered on this team.');
-    return;
-  }
-
-  if (role === 'Parent') {
-    const { data: links } = await supabaseAdmin
-      .from('rosters')
-      .select('player_id')
-      .eq('academy_id', academyId)            // tenant isolation
-      .eq('parent_id', userId);
-
-    const childIds = (links || []).map((l) => l.player_id);
-    if (childIds.length === 0) throw new ForbiddenError('No linked children found.');
-
-    const { data: childOnTeam } = await supabaseAdmin
-      .from('rosters')
-      .select('id')
-      .eq('team_id', teamId)
-      .eq('academy_id', academyId)            // tenant isolation
-      .in('player_id', childIds)
-      .maybeSingle();
-
-    if (!childOnTeam) {
-      throw new ForbiddenError('Your child is not on this team.');
-    }
-    return;
-  }
-
-  throw new ForbiddenError('Unrecognised role. Access denied.');
+  if (!data) throw new ForbiddenError('You are not a member of this channel.');
 }
 
 module.exports = { getMessages, sendMessage, uploadAttachment, deleteMessage };

@@ -5,9 +5,10 @@ const chatService = require('../services/chat.service');
 
 async function getMessages(req, res, next) {
   try {
-    const { team_id, limit, before } = req.query;
+    const { channel_id, team_id, limit, before } = req.query;
 
     const result = await chatService.getMessages({
+      channelId: channel_id,
       teamId:    team_id,
       userId:    req.user.id,
       academyId: req.academyId,
@@ -22,9 +23,10 @@ async function getMessages(req, res, next) {
 
 async function sendMessage(req, res, next) {
   try {
-    const { team_id, message_text, attachment_url, file_name, mime_type, file_size } = req.body;
+    const { channel_id, team_id, message_text, attachment_url, file_name, mime_type, file_size } = req.body;
 
     const message = await chatService.sendMessage({
+      channelId:     channel_id,
       teamId:        team_id,
       senderId:      req.user.id,
       academyId:     req.academyId,
@@ -49,12 +51,13 @@ async function uploadAttachment(req, res, next) {
     if (!req.file) {
       return res.status(400).json({ success: false, error: 'No file provided.' });
     }
-    const { team_id } = req.body;
-    if (!team_id) {
-      return res.status(400).json({ success: false, error: '"team_id" is required.' });
+    const { channel_id, team_id } = req.body;
+    if (!channel_id && !team_id) {
+      return res.status(400).json({ success: false, error: '"channel_id" is required.' });
     }
 
     const result = await chatService.uploadAttachment({
+      channelId:    channel_id,
       teamId:       team_id,
       userId:       req.user.id,
       academyId:    req.academyId,

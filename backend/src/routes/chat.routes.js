@@ -1,34 +1,21 @@
 // src/routes/chat.routes.js
 'use strict';
 
-/**
- * /api/chat
- *
- * GET  /api/chat?team_id=:uuid&limit=50&before=:messageUUID
- *   → All roles. Returns paginated team channel history.
- *     Supports cursor pagination via ?before=<message_id>.
- *
- * POST /api/chat
- *   → All roles. Sends a message to a team channel.
- *     Body: { team_id, message_text?, attachment_url?, file_name?, mime_type?, file_size? }
- *     At least one of message_text or attachment_url must be present.
- *
- * POST /api/chat/upload
- *   → All roles. Uploads a file to Supabase Storage and returns its public URL.
- *     Multipart: field "file" (required) + field "team_id" (required).
- *     Allowed types: JPEG, PNG, GIF, WebP, PDF. Max size: 10 MB.
- *     Returns: { url, file_name, mime_type, file_size }
- */
-
-const multer       = require('multer');
-const { Router }   = require('express');
-const controller   = require('../controllers/chat.controller');
+const multer     = require('multer');
+const { Router } = require('express');
+const controller = require('../controllers/chat.controller');
+const ch         = require('../controllers/chat_channels.controller');
 const { authenticate, extractTenant, requireRole } = require('../middleware/auth.middleware');
-const { validateChatQuery, validateChatBody } = require('../middleware/validate');
+const {
+  validateChatQuery,
+  validateChatBody,
+  validateCreateGroup,
+  validateDirectBody,
+} = require('../middleware/validate');
 
 const chatUpload = multer({
   storage: multer.memoryStorage(),
-  limits:  { fileSize: 10 * 1024 * 1024 },  // 10 MB
+  limits:  { fileSize: 10 * 1024 * 1024 },
   fileFilter(_, file, cb) {
     if (/^(image\/(jpeg|jpg|png|gif|webp)|application\/pdf)$/.test(file.mimetype)) {
       cb(null, true);
@@ -39,34 +26,29 @@ const chatUpload = multer({
 });
 
 const router = Router();
-
 router.use(authenticate, extractTenant);
 
-router.get(
-  '/',
-  requireRole('Admin', 'Coach', 'Player', 'Parent'),
-  validateChatQuery,
-  controller.getMessages
-);
+const allRoles = ['Admin', 'Coach', 'Player', 'Parent'];
 
-router.post(
-  '/',
-  requireRole('Admin', 'Coach', 'Player', 'Parent'),
-  validateChatBody,
-  controller.sendMessage
-);
+// ── Channel management ────────────────────────────────────────────
+router.get(  '/channels',                    requireRole(...allRoles), ch.listChannels);
+router.post( '/channels',                    requireRole('Admin'),     validateCreateGroup, ch.createGroup);
+router.get(  '/channels/:id/members',        requireRole(...allRoles), ch.getChannelMembers);
+router.post( '/channels/:id/members',        requireRole('Admin'),     ch.addMember);
+router.delete('/channels/:id/members/:userId', requireRole('Admin'),   ch.removeMember);
+router.patch('/channels/:id',                requireRole('Admin'),     ch.updateGroup);
+router.delete('/channels/:id',               requireRole('Admin'),     ch.deleteGroup);
 
-router.post(
-  '/upload',
-  requireRole('Admin', 'Coach', 'Player', 'Parent'),
-  chatUpload.single('file'),
-  controller.uploadAttachment
-);
+// ── Direct messages ───────────────────────────────────────────────
+router.post('/direct',                       requireRole(...allRoles), validateDirectBody, ch.getOrCreateDirect);
 
-router.delete(
-  '/:messageId',
-  requireRole('Admin', 'Coach', 'Player', 'Parent'),
-  controller.deleteMessage
-);
+// ── User search (for DM / group member selection) ─────────────────
+router.get('/users',                         requireRole(...allRoles), ch.searchUsers);
+
+// ── Message CRUD ──────────────────────────────────────────────────
+router.get(    '/',          requireRole(...allRoles), validateChatQuery, controller.getMessages);
+router.post(   '/',          requireRole(...allRoles), validateChatBody,  controller.sendMessage);
+router.post(   '/upload',    requireRole(...allRoles), chatUpload.single('file'), controller.uploadAttachment);
+router.delete( '/:messageId',requireRole(...allRoles), controller.deleteMessage);
 
 module.exports = router;
