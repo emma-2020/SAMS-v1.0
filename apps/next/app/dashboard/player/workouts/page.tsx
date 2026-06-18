@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { ClipboardList, CheckCircle2, Clock } from 'lucide-react';
 import { workoutApi, apiClient } from '@sams/api';
 import type { WorkoutPlan, Exercise } from '@sams/api';
 
@@ -362,10 +363,10 @@ export default function PlayerWorkoutsPage() {
       {!loading && totalExercises > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: 14, marginBottom: 24 }}>
           {([
-            { label: 'Total Exercises', value: totalExercises,                         color: '#6366F1', icon: '📋' },
-            { label: 'Completed',       value: completedExercises,                     color: '#10B981', icon: '✅' },
-            { label: 'Remaining',       value: totalExercises - completedExercises,    color: '#F59E0B', icon: '⏳' },
-          ] as const).map(({ label, value, color, icon }) => (
+            { label: 'Total Exercises', value: totalExercises,                       color: '#6366F1', Icon: ClipboardList },
+            { label: 'Completed',       value: completedExercises,                   color: '#10B981', Icon: CheckCircle2  },
+            { label: 'Remaining',       value: totalExercises - completedExercises,  color: '#F59E0B', Icon: Clock         },
+          ]).map(({ label, value, color, Icon }) => (
             <div key={label} style={{
               background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)',
               borderRadius: 14, padding: '16px 18px', boxShadow: 'var(--shadow-sm)',
@@ -374,9 +375,9 @@ export default function PlayerWorkoutsPage() {
               <div style={{
                 width: 40, height: 40, borderRadius: 10, flexShrink: 0,
                 background: `${color}15`, border: `1px solid ${color}30`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', color,
               }}>
-                {icon}
+                <Icon size={20} strokeWidth={1.75} />
               </div>
               <div>
                 <div style={{ fontSize: '1.4rem', fontWeight: 900, color, lineHeight: 1 }}>{value}</div>

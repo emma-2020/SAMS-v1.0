@@ -677,7 +677,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         zIndex: 50, padding: '0 4px',
       }}>
         {bottomNavItems.map(item => {
-          const isActive = pathname === item.path || pathname.startsWith(item.path + '/');
+          // Same depth-based exact-match logic as SidebarNavItem
+          const depth    = item.path.split('/').length;
+          const isExact  = depth <= 3;
+          const isActive = isExact
+            ? pathname === item.path
+            : pathname === item.path || pathname.startsWith(item.path + '/');
           return (
             <button
               key={item.path}

@@ -148,9 +148,10 @@ export default function RosterPage() {
             <span style={{ color: 'var(--text-muted)', display: 'flex' }}><IcoSearch /></span>
             <input placeholder="Search members..." value={search} onChange={e => setSearch(e.target.value)} />
           </div>
-          <div style={{ display: 'flex', gap: 6 }}>
+          <div style={{ display: 'flex', gap: 6, overflowX: 'auto', flexShrink: 0, paddingBottom: 2 }}>
             {ROLE_FILTERS.map(r => (
               <button key={r} onClick={() => setRole(r)}
+                style={{ flexShrink: 0 }}
                 className={`btn btn-sm ${roleFilter === r ? 'btn-primary' : 'btn-secondary'}`}>
                 {r}
                 {counts[r] > 0 && (

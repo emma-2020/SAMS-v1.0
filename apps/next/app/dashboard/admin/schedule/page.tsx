@@ -273,28 +273,30 @@ export default function AdminSchedulePage() {
                   value={newBlock.label} onChange={e => setNewBlock(p => ({ ...p, label: e.target.value }))} required />
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end' }}>
-              <div className="field" style={{ flex: 1 }}>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+              <div className="field" style={{ flex: '1 1 130px', minWidth: 110 }}>
                 <label className="field-label">Date</label>
                 <input type="date" className="field-input" style={{ paddingLeft: 14, height: 42 }}
                   value={newBlock.date} onChange={e => setNewBlock(p => ({ ...p, date: e.target.value }))} required />
               </div>
-              <div className="field" style={{ flex: 1 }}>
+              <div className="field" style={{ flex: '1 1 110px', minWidth: 100 }}>
                 <label className="field-label">Start Time</label>
                 <input type="time" className="field-input" style={{ paddingLeft: 14, height: 42 }}
                   value={newBlock.start} onChange={e => setNewBlock(p => ({ ...p, start: e.target.value }))} />
               </div>
-              <div className="field" style={{ flex: 1 }}>
+              <div className="field" style={{ flex: '1 1 110px', minWidth: 100 }}>
                 <label className="field-label">End Time</label>
                 <input type="time" className="field-input" style={{ paddingLeft: 14, height: 42 }}
                   value={newBlock.end} onChange={e => setNewBlock(p => ({ ...p, end: e.target.value }))} />
               </div>
-              <button type="submit" className="btn btn-primary" disabled={saving} style={{ whiteSpace: 'nowrap' }}>
-                {saving ? 'Saving…' : 'Save Session'}
-              </button>
-              <button type="button" className="btn btn-secondary" onClick={() => { setShowForm(false); setNewBlock(BLANK_FORM); }}>
-                Cancel
-              </button>
+              <div style={{ display: 'flex', gap: 8, flexShrink: 0, alignSelf: 'flex-end' }}>
+                <button type="submit" className="btn btn-primary" disabled={saving} style={{ whiteSpace: 'nowrap' }}>
+                  {saving ? 'Saving…' : 'Save Session'}
+                </button>
+                <button type="button" className="btn btn-secondary" onClick={() => { setShowForm(false); setNewBlock(BLANK_FORM); }}>
+                  Cancel
+                </button>
+              </div>
             </div>
           </form>
         </div>

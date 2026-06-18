@@ -52,8 +52,8 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
           </div>
         </Link>
 
-        {/* Centre nav */}
-        <nav style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+        {/* Centre nav — hidden on mobile */}
+        <nav className="mkt-center-nav" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
           {NAV.map(({ label, hash }) => (
             <Link
               key={label}
@@ -94,7 +94,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25">
                 <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
               </svg>
-              Back to home
+              <span className="mkt-btn-text">Back to home</span>
             </Link>
           ) : (
             <>
@@ -129,12 +129,13 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
                   <polyline points="10 17 15 12 10 7"/>
                   <line x1="15" y1="12" x2="3" y2="12"/>
                 </svg>
-                Sign In
+                <span className="mkt-btn-text">Sign In</span>
               </Link>
 
               {/* Enroll — primary button */}
               <Link
                 href="/enroll"
+                className="mkt-enroll-btn"
                 style={{
                   display: 'flex', alignItems: 'center', gap: 8,
                   padding: '9px 22px', borderRadius: 99,
@@ -153,7 +154,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
                   (e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 4px 18px rgba(109,40,217,0.52)';
                 }}
               >
-                Enroll Academy
+                <span className="mkt-btn-text">Enroll Academy</span>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25">
                   <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
                 </svg>
@@ -165,7 +166,17 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
 
       <main>{children}</main>
 
-      <style>{`html { scroll-behavior: smooth; }`}</style>
+      <style>{`
+        html { scroll-behavior: smooth; }
+        @media (max-width: 640px) {
+          .mkt-center-nav { display: none !important; }
+          .mkt-enroll-btn { padding: 9px 14px !important; }
+          .mkt-btn-text { display: none; }
+        }
+        @media (max-width: 380px) {
+          .mkt-enroll-btn { display: none !important; }
+        }
+      `}</style>
     </div>
   );
 }

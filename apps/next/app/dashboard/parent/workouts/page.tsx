@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { ClipboardList, Dumbbell } from 'lucide-react';
 import { workoutApi } from '@sams/api';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -233,9 +234,9 @@ export default function ParentWorkoutsPage() {
       {!loading && workouts.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: 14, marginBottom: 24 }}>
           {([
-            { label: 'Workout Plans',    value: workouts.length,  color: '#6366F1', icon: '📋' },
-            { label: 'Total Exercises',  value: totalExercises,   color: '#2563EB', icon: '🏋️' },
-          ] as const).map(({ label, value, color, icon }) => (
+            { label: 'Workout Plans',   value: workouts.length, color: '#6366F1', Icon: ClipboardList },
+            { label: 'Total Exercises', value: totalExercises,  color: '#2563EB', Icon: Dumbbell      },
+          ]).map(({ label, value, color, Icon }) => (
             <div key={label} style={{
               background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)',
               borderRadius: 14, padding: '16px 18px', boxShadow: 'var(--shadow-sm)',
@@ -244,9 +245,9 @@ export default function ParentWorkoutsPage() {
               <div style={{
                 width: 40, height: 40, borderRadius: 10, flexShrink: 0,
                 background: `${color}15`, border: `1px solid ${color}30`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', color,
               }}>
-                {icon}
+                <Icon size={20} strokeWidth={1.75} />
               </div>
               <div>
                 <div style={{ fontSize: '1.4rem', fontWeight: 900, color, lineHeight: 1 }}>{value}</div>

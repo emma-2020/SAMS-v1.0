@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { ClipboardList, Users, Dumbbell, AlertTriangle } from 'lucide-react';
 import { workoutApi, teamsApi, adminApi } from '@sams/api';
 import type { UserProfile } from '@sams/api';
 
@@ -235,14 +236,14 @@ export default function AdminWorkoutsPage() {
       {!loading && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 14, marginBottom: 24 }}>
           {([
-            { label: 'Total Plans',      value: workouts.length,    color: '#6366F1', icon: '📋' },
-            { label: 'Teams w/ Plans',   value: teamsWithPlans,     color: '#2563EB', icon: '👥' },
-            { label: 'Total Exercises',  value: totalExercises,     color: '#059669', icon: '🏋️' },
-            { label: 'Overdue',          value: overduePlans,       color: '#EF4444', icon: '⚠️' },
-          ] as const).map(({ label, value, color, icon }) => (
+            { label: 'Total Plans',     value: workouts.length,  color: '#6366F1', Icon: ClipboardList },
+            { label: 'Teams w/ Plans',  value: teamsWithPlans,   color: '#2563EB', Icon: Users         },
+            { label: 'Total Exercises', value: totalExercises,   color: '#059669', Icon: Dumbbell      },
+            { label: 'Overdue',         value: overduePlans,     color: '#EF4444', Icon: AlertTriangle },
+          ]).map(({ label, value, color, Icon }) => (
             <div key={label} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 14, padding: '16px 18px', boxShadow: 'var(--shadow-sm)', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ width: 40, height: 40, borderRadius: 10, flexShrink: 0, background: `${color}15`, border: `1px solid ${color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem' }}>
-                {icon}
+              <div style={{ width: 40, height: 40, borderRadius: 10, flexShrink: 0, background: `${color}15`, border: `1px solid ${color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', color }}>
+                <Icon size={20} strokeWidth={1.75} />
               </div>
               <div>
                 <div style={{ fontSize: '1.4rem', fontWeight: 900, color, lineHeight: 1 }}>{value}</div>
@@ -274,7 +275,7 @@ export default function AdminWorkoutsPage() {
 
       {/* ── Loading skeletons ────────────────────────────────────────────────── */}
       {loading && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20, alignItems: 'start' }}>
           {[1, 2, 3].map(i => <div key={i} className="skeleton" style={{ height: 220, borderRadius: 20 }} />)}
         </div>
       )}
@@ -301,7 +302,7 @@ export default function AdminWorkoutsPage() {
 
       {/* ── Workout grid ─────────────────────────────────────────────────────── */}
       {!loading && filtered.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20, alignItems: 'start' }}>
           {filtered.map(w => (
             <WorkoutCard
               key={w.id}

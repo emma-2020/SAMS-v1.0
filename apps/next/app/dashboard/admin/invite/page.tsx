@@ -249,9 +249,9 @@ export default function InvitationsPage() {
       {/* Two-column grid */}
       <div className="sidebar-content-grid">
 
-        {/* LEFT: Send Invitation card */}
-        <div style={{ background: '#FFFFFF', border: '1px solid #F1F5F9', borderRadius: 20, boxShadow: '0 4px 24px rgba(15,23,42,0.06)', overflow: 'hidden' }}>
-          <div style={{ height: 3, background: 'linear-gradient(90deg, #EC4899, #8B5CF6)' }} />
+        {/* LEFT: Send Invitation card — no overflow:hidden so role dropdown isn't clipped */}
+        <div style={{ background: '#FFFFFF', border: '1px solid #F1F5F9', borderRadius: 20, boxShadow: '0 4px 24px rgba(15,23,42,0.06)' }}>
+          <div style={{ height: 3, background: 'linear-gradient(90deg, #EC4899, #8B5CF6)', borderRadius: '20px 20px 0 0' }} />
           <div style={{ padding: '22px 24px 0' }}>
             <div style={{ fontWeight: 700, fontSize: '1rem', color: '#0F172A', letterSpacing: '-0.01em' }}>Send New Invitation</div>
             <div style={{ fontSize: '0.78rem', color: '#94A3B8', marginTop: 3, marginBottom: 22 }}>Invite a new member via email link</div>
@@ -347,14 +347,14 @@ export default function InvitationsPage() {
         {/* RIGHT: Invitation history */}
         <div style={{ background: '#FFFFFF', border: '1px solid #F1F5F9', borderRadius: 20, boxShadow: '0 4px 24px rgba(15,23,42,0.06)', overflow: 'hidden' }}>
           {/* Card header */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 22px 16px', borderBottom: '1px solid #F8FAFC' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, padding: '20px 22px 16px', borderBottom: '1px solid #F8FAFC' }}>
             <div>
               <div style={{ fontWeight: 700, fontSize: '1rem', color: '#0F172A', letterSpacing: '-0.01em' }}>Invitation History</div>
               <div style={{ fontSize: '0.78rem', color: '#94A3B8', marginTop: 3 }}>Track all sent invitations</div>
             </div>
 
-            {/* Pill tab filter */}
-            <div style={{ display: 'flex', gap: 3, background: '#F1F5F9', borderRadius: 10, padding: 3 }}>
+            {/* Pill tab filter — scrollable on mobile */}
+            <div style={{ display: 'flex', gap: 3, background: '#F1F5F9', borderRadius: 10, padding: 3, overflowX: 'auto', flexShrink: 0 }}>
               {(['pending', 'accepted', 'expired'] as const).map(s => {
                 const isActive = filter === s;
                 const meta = STATUS[s];
@@ -365,7 +365,8 @@ export default function InvitationsPage() {
                     background: isActive ? '#FFFFFF' : 'transparent', border: 'none', cursor: 'pointer',
                     boxShadow: isActive ? '0 1px 4px rgba(15,23,42,0.10)' : 'none',
                     fontSize: '0.8rem', fontWeight: isActive ? 600 : 500,
-                    color: isActive ? '#1E293B' : '#94A3B8', transition: 'all 0.18s', whiteSpace: 'nowrap' as const,
+                    color: isActive ? '#1E293B' : '#94A3B8', transition: 'all 0.18s',
+                    whiteSpace: 'nowrap' as const, flexShrink: 0,
                   }}>
                     {filterLabels[s]}
                     {count > 0 && (
