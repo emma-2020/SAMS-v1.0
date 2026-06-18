@@ -421,13 +421,13 @@ export function AdminDashboardScreen() {
   ];
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 40, animation: 'fadeIn 0.3s ease' }}>
+    <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 20, animation: 'fadeIn 0.3s ease' }}>
 
       {/* ── Hero Banner ── */}
       <div style={{
         background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 45%, #EC4899 100%)',
         borderRadius: 22, padding: '28px 32px 26px',
-        marginBottom: 28, position: 'relative', overflow: 'hidden',
+        marginBottom: 20, position: 'relative', overflow: 'hidden',
       }}>
         <div style={{ position: 'absolute', right: -40, top: -40, width: 220, height: 220, borderRadius: '50%', background: 'rgba(255,255,255,0.07)' }} />
         <div style={{ position: 'absolute', left: '35%', bottom: -80, width: 180, height: 180, borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
@@ -472,7 +472,7 @@ export function AdminDashboardScreen() {
       </div>
 
       {/* ── KPI Row ── */}
-      <div className="kpi-grid-4" style={{ marginBottom: 24, gap: 16 }}>
+      <div className="kpi-grid-4" style={{ marginBottom: 16, gap: 16 }}>
         <KpiCard
           label="Total Members"
           value={rosterLoading ? '—' : memberCount}
@@ -513,14 +513,14 @@ export function AdminDashboardScreen() {
       </div>
 
       {/* ── Analytics + Calendar row ── */}
-      <div className="admin-dash-2col" style={{ marginBottom: 20 }}>
+      <div className="admin-dash-2col" style={{ marginBottom: 14 }}>
 
         {/* Analytics card */}
         <div style={{
           background: '#FFFFFF', border: '1px solid #F1F5F9', borderRadius: 20,
           boxShadow: '0 4px 24px rgba(15,23,42,0.06), 0 1px 4px rgba(15,23,42,0.03)',
           padding: '22px 24px',
-          display: 'flex', flexDirection: 'column', minHeight: 300,
+          display: 'flex', flexDirection: 'column',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22 }}>
             <div>
