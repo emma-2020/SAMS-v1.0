@@ -853,3 +853,24 @@ select.input, select.field-input {
 @media (max-width: 900px) {
   .main-sidebar-grid { grid-template-columns: 1fr; }
 }
+
+/* Admin dashboard asymmetric 2-col: wide left + 300px right panel */
+.admin-dash-2col {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: 1fr 300px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .admin-dash-2col { grid-template-columns: 1fr; gap: 16px; }
+}
+
+/* Coach dashboard: sessions (flex:1) + fixed-width quick actions panel */
+.coach-sessions-row {
+  display: flex;
+  gap: 16px;
+}
+@media (max-width: 900px) {
+  .coach-sessions-row { flex-direction: column; }
+  .coach-sessions-row .coach-qa-panel { width: auto !important; }
+}

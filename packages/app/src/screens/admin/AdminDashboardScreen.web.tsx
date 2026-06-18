@@ -472,7 +472,7 @@ export function AdminDashboardScreen() {
       </div>
 
       {/* ── KPI Row ── */}
-      <div className="kpi-grid-4" style={{ marginBottom: 24 }}>
+      <div className="kpi-grid-4" style={{ marginBottom: 24, gap: 16 }}>
         <KpiCard
           label="Total Members"
           value={rosterLoading ? '—' : memberCount}
@@ -513,7 +513,7 @@ export function AdminDashboardScreen() {
       </div>
 
       {/* ── Analytics + Calendar row ── */}
-      <div className="kpi-grid-2" style={{ marginBottom: 20, alignItems: 'start' }}>
+      <div className="admin-dash-2col" style={{ marginBottom: 20 }}>
 
         {/* Analytics card */}
         <div style={{
@@ -607,7 +607,7 @@ export function AdminDashboardScreen() {
       </div>
 
       {/* ── Invitations + Quick Actions row ── */}
-      <div className="kpi-grid-2" style={{ gap: 18 }}>
+      <div className="admin-dash-2col">
 
         {/* Recent Invitations */}
         <div style={{
