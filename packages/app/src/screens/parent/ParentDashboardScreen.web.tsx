@@ -128,7 +128,7 @@ export function ParentDashboardScreen() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
         {/* ── KPI ROW ── */}
-        <div className="kpi-grid-3">
+        <div className="kpi-grid-3" style={{ gap: 12 }}>
           {kpis.map(kpi => (
             <div
               key={kpi.label}

@@ -68,7 +68,7 @@ export function CoachDashboardScreen() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
         {/* KPI row */}
-        <div className="kpi-grid-4">
+        <div className="kpi-grid-4" style={{ gap: 12 }}>
           {kpis.map(kpi => (
             <div
               key={kpi.label}
@@ -100,7 +100,7 @@ export function CoachDashboardScreen() {
         </div>
 
         {/* Sessions + Quick Actions */}
-        <div className="kpi-grid-2" style={{ gap: 16 }}>
+        <div className="coach-sessions-row">
 
           {/* Upcoming sessions */}
           <div className="card" style={{ flex: 1, padding: 0, overflow: 'hidden' }}>
@@ -136,7 +136,7 @@ export function CoachDashboardScreen() {
           </div>
 
           {/* Quick Actions */}
-          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div className="card coach-qa-panel" style={{ width: 288, flexShrink: 0, padding: 0, overflow: 'hidden' }}>
             <div style={{ padding: '18px 20px 12px', borderBottom: '1px solid var(--border-subtle)' }}>
               <p style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.9rem', margin: 0 }}>Quick Actions</p>
             </div>
