@@ -125,6 +125,27 @@ async function sendMessage({ channelId, teamId, senderId, academyId, role, messa
     .eq('id', resolvedChannelId)
     .single();
 
+  // For DM channels: block message if recipient has blocked the sender
+  if (ch?.type === 'direct') {
+    const { data: otherMember } = await supabaseAdmin
+      .from('chat_channel_members')
+      .select('user_id')
+      .eq('channel_id', resolvedChannelId)
+      .neq('user_id', senderId)
+      .limit(1)
+      .maybeSingle();
+
+    if (otherMember) {
+      const { data: blockRow } = await supabaseAdmin
+        .from('blocked_users')
+        .select('blocker_id')
+        .eq('blocker_id', otherMember.user_id)
+        .eq('blocked_id', senderId)
+        .maybeSingle();
+      if (blockRow) throw new ForbiddenError('You cannot send messages to this user.');
+    }
+  }
+
   const { data, error } = await supabaseAdmin
     .from('messages')
     .insert({
@@ -162,15 +183,18 @@ async function sendMessage({ channelId, teamId, senderId, academyId, role, messa
       const title = `New message in ${ch?.name ?? 'Chat'}`;
       const body  = `${senderName}: ${preview}`;
 
-      // Get all channel members except sender
+      // Get all channel members except sender (includes mute state)
       const { data: members } = await supabaseAdmin
         .from('chat_channel_members')
-        .select('user_id, users!chat_channel_members_user_id_fkey(role)')
+        .select('user_id, is_muted, muted_until, users!chat_channel_members_user_id_fkey(role)')
         .eq('channel_id', resolvedChannelId)
         .neq('user_id', senderId);
 
+      const now = new Date().toISOString();
       const byRole = { Coach: [], Player: [], Parent: [], Admin: [] };
       for (const m of (members || [])) {
+        // Skip users who are currently muted in this channel
+        if (m.is_muted && (!m.muted_until || m.muted_until > now)) continue;
         const r = m.users?.role;
         if (r && byRole[r]) byRole[r].push(m.user_id);
       }

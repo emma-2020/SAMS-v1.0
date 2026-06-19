@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useReducer } from 'react';
 import { chatApi } from '@sams/api';
-import type { ChatChannel, ChatChannelMember, ChatMessage, ChatAttachment, TeamMember } from '@sams/api';
+import type { ChatChannel, ChatChannelMember, ChatMessage, ChatAttachment, TeamMember, ReportedMessage } from '@sams/api';
 import { useAuthStore } from '@sams/store';
 
 // ─── Constants ──────────────────────────────────────────────────────
@@ -107,6 +107,37 @@ const IcoUserPlus = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
     <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
     <circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/>
+  </svg>
+);
+const IcoBellOff = ({ size = 13 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <path d="M13.73 21a2 2 0 0 1-3.46 0"/><path d="M18.63 13A17.89 17.89 0 0 1 18 8"/><path d="M6.26 6.26A5.86 5.86 0 0 0 6 8c0 7-3 9-3 9h14"/>
+    <path d="M18 8a6 6 0 0 0-9.33-5"/><line x1="1" y1="1" x2="23" y2="23"/>
+  </svg>
+);
+const IcoBell = ({ size = 13 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+  </svg>
+);
+const IcoFlag = ({ size = 13 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>
+  </svg>
+);
+const IcoLock = ({ size = 13 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+  </svg>
+);
+const IcoLogOut = ({ size = 13 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+  </svg>
+);
+const IcoBlock = ({ size = 13 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
   </svg>
 );
 
@@ -223,9 +254,9 @@ function MsgAvatar({ name, size = 34 }: { name: string; size?: number }) {
   );
 }
 
-function MessageBubble({ msg, isSelf, showHeader, isLast, canDelete, onDelete }: {
+function MessageBubble({ msg, isSelf, showHeader, isLast, canDelete, onDelete, onReport }: {
   msg: OptMsg; isSelf: boolean; showHeader: boolean; isLast: boolean;
-  canDelete?: boolean; onDelete?: () => void;
+  canDelete?: boolean; onDelete?: () => void; onReport?: (id: string) => void;
 }) {
   const [ts,         setTs]         = useState(() => relativeTime(msg.created_at));
   const [hovered,    setHovered]    = useState(false);
@@ -298,13 +329,24 @@ function MessageBubble({ msg, isSelf, showHeader, isLast, canDelete, onDelete }:
             )}
           </div>
 
-          {canDelete && hovered && !msg._opt && (
-            <div style={{ position: 'absolute', top: -12, zIndex: 20, ...(isSelf ? { left: -4, transform: 'translateX(-100%)' } : { right: -4, transform: 'translateX(100%)' }) }}>
+          {hovered && !msg._opt && (onReport || canDelete) && (
+            <div style={{ position: 'absolute', top: -12, zIndex: 20, display: 'flex', gap: 4, ...(isSelf ? { left: -4, transform: 'translateX(-100%)' } : { right: -4, transform: 'translateX(100%)' }) }}>
               {!confirming ? (
-                <button onClick={e => { e.stopPropagation(); setConfirming(true); }}
-                  style={{ width: 26, height: 26, borderRadius: 7, border: '1px solid #FECDD3', background: '#FFF1F2', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#F43F5E', boxShadow: '0 2px 6px rgba(244,63,94,0.15)' }}>
-                  <IcoTrash />
-                </button>
+                <>
+                  {onReport && !isSelf && (
+                    <button onClick={e => { e.stopPropagation(); onReport(msg.id); }}
+                      style={{ width: 26, height: 26, borderRadius: 7, border: '1px solid #FDE68A', background: '#FFFBEB', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#D97706', boxShadow: '0 2px 6px rgba(217,119,6,0.15)' }}
+                      title="Report message">
+                      <IcoFlag />
+                    </button>
+                  )}
+                  {canDelete && (
+                    <button onClick={e => { e.stopPropagation(); setConfirming(true); }}
+                      style={{ width: 26, height: 26, borderRadius: 7, border: '1px solid #FECDD3', background: '#FFF1F2', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#F43F5E', boxShadow: '0 2px 6px rgba(244,63,94,0.15)' }}>
+                      <IcoTrash />
+                    </button>
+                  )}
+                </>
               ) : (
                 <div style={{ display: 'flex', gap: 4, background: 'white', border: '1px solid #E2E8F0', borderRadius: 10, padding: '4px 7px', boxShadow: '0 4px 14px rgba(15,23,42,0.12)', whiteSpace: 'nowrap' }}>
                   <span style={{ fontSize: '0.66rem', color: '#64748B', fontWeight: 500 }}>Delete?</span>
@@ -460,7 +502,7 @@ function CreateGroupModal({ onClose, onCreated, academyId }: {
     searchRef.current = setTimeout(async () => {
       try {
         const users = await chatApi.searchUsers(userSearch);
-        setSearchRes(users.filter(u => !selected.find(s => s.id === u.id)));
+        setSearchRes(users.users.filter(u => !selected.find(s => s.id === u.id)));
       } catch { /* ignore */ }
       finally { setSearching(false); }
     }, 300);
@@ -612,20 +654,36 @@ function CreateGroupModal({ onClose, onCreated, academyId }: {
 }
 
 // ─── Group Info Panel ────────────────────────────────────────────────
-function GroupInfoPanel({ channel, onClose, isAdmin, onMembersChange }: {
+function GroupInfoPanel({ channel, onClose, isAdmin, onMembersChange, onChannelUpdate }: {
   channel: ChatChannel;
   onClose: () => void;
   isAdmin: boolean;
   onMembersChange: () => void;
+  onChannelUpdate?: (updated: Partial<ChatChannel>) => void;
 }) {
-  const [members,     setMembers]     = useState<ChatChannelMember[]>([]);
-  const [loading,     setLoading]     = useState(true);
-  const [addSearch,   setAddSearch]   = useState('');
-  const [addResults,  setAddResults]  = useState<TeamMember[]>([]);
-  const [searching,   setSearching]   = useState(false);
-  const [removingId,  setRemovingId]  = useState<string | null>(null);
-  const [deleting,    setDeleting]    = useState(false);
+  const user = useAuthStore(s => s.user);
+  const [members,    setMembers]    = useState<ChatChannelMember[]>([]);
+  const [loading,    setLoading]    = useState(true);
+  const [addSearch,  setAddSearch]  = useState('');
+  const [addResults, setAddResults] = useState<TeamMember[]>([]);
+  const [searching,  setSearching]  = useState(false);
+  const [removingId, setRemovingId] = useState<string | null>(null);
+  const [deleting,   setDeleting]   = useState(false);
+  const [leaving,    setLeaving]    = useState(false);
+  const [muting,     setMuting]     = useState(false);
+  const [blocking,   setBlocking]   = useState(false);
+  const [isBlocked,  setIsBlocked]  = useState(false);
+  const [editing,    setEditing]    = useState(false);
+  const [editName,   setEditName]   = useState(channel.name);
+  const [editDesc,   setEditDesc]   = useState(channel.description ?? '');
+  const [saving,     setSaving]     = useState(false);
+  const [toast,      setToast]      = useState('');
   const searchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const isDirect = channel.type === 'direct';
+  const isTeam   = channel.type === 'team';
+  const isMuted  = channel.is_muted ?? false;
+  const otherUser = isDirect ? channel.other_user : null;
 
   useEffect(() => {
     chatApi.getChannelMembers(channel.id)
@@ -633,20 +691,33 @@ function GroupInfoPanel({ channel, onClose, isAdmin, onMembersChange }: {
       .finally(() => setLoading(false));
   }, [channel.id]);
 
+  // For DMs, check if other user is blocked
   useEffect(() => {
-    if (!isAdmin || channel.type === 'direct') return;
+    if (!isDirect || !otherUser) return;
+    chatApi.getBlockedUsers().then(list => {
+      setIsBlocked(list.some(u => u.id === otherUser.id));
+    }).catch(() => {});
+  }, [isDirect, otherUser?.id]);
+
+  useEffect(() => {
+    if (!isAdmin || isDirect) return;
     if (searchRef.current) clearTimeout(searchRef.current);
     if (!addSearch.trim()) { setAddResults([]); return; }
     setSearching(true);
     searchRef.current = setTimeout(async () => {
       try {
-        const users = await chatApi.searchUsers(addSearch);
-        setAddResults(users.filter(u => !members.find(m => m.user_id === u.id)));
+        const result = await chatApi.searchUsers(addSearch);
+        setAddResults(result.users.filter(u => !members.find(m => m.user_id === u.id)));
       } catch { /* ignore */ }
       finally { setSearching(false); }
     }, 300);
     return () => { if (searchRef.current) clearTimeout(searchRef.current); };
-  }, [addSearch, members, isAdmin, channel.type]);
+  }, [addSearch, members, isAdmin, isDirect]);
+
+  function showToast(msg: string) {
+    setToast(msg);
+    setTimeout(() => setToast(''), 2500);
+  }
 
   async function handleRemove(userId: string) {
     setRemovingId(userId);
@@ -681,9 +752,75 @@ function GroupInfoPanel({ channel, onClose, isAdmin, onMembersChange }: {
     } catch { setDeleting(false); }
   }
 
+  async function handleLeave() {
+    if (!confirm('Leave this group?')) return;
+    setLeaving(true);
+    try {
+      await chatApi.leaveChannel(channel.id);
+      onMembersChange();
+      onClose();
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : 'Failed to leave.');
+      setLeaving(false);
+    }
+  }
+
+  async function handleMuteToggle(mutedUntil?: string | null) {
+    setMuting(true);
+    try {
+      if (isMuted) {
+        await chatApi.unmuteChannel(channel.id);
+        onChannelUpdate?.({ is_muted: false, muted_until: null });
+        showToast('Notifications unmuted');
+      } else {
+        await chatApi.muteChannel(channel.id, mutedUntil ?? null);
+        onChannelUpdate?.({ is_muted: true, muted_until: mutedUntil ?? null });
+        showToast('Notifications muted');
+      }
+    } catch { /* ignore */ }
+    finally { setMuting(false); }
+  }
+
+  async function handleBlockToggle() {
+    if (!otherUser) return;
+    const action = isBlocked ? 'Unblock' : 'Block';
+    if (!confirm(`${action} ${otherUser.first_name}?`)) return;
+    setBlocking(true);
+    try {
+      if (isBlocked) {
+        await chatApi.unblockUser(otherUser.id);
+        setIsBlocked(false);
+        showToast(`Unblocked ${otherUser.first_name}`);
+      } else {
+        await chatApi.blockUser(otherUser.id);
+        setIsBlocked(true);
+        showToast(`Blocked ${otherUser.first_name}`);
+      }
+    } catch { /* ignore */ }
+    finally { setBlocking(false); }
+  }
+
+  async function handleSaveEdit() {
+    if (!editName.trim()) return;
+    setSaving(true);
+    try {
+      await chatApi.updateGroup(channel.id, { name: editName.trim(), description: editDesc.trim() });
+      onChannelUpdate?.({ name: editName.trim(), description: editDesc.trim() });
+      setEditing(false);
+      showToast('Group updated');
+      onMembersChange();
+    } catch { showToast('Failed to save.'); }
+    finally { setSaving(false); }
+  }
+
   const av = channelAvatar(channel);
-  const isDirect = channel.type === 'direct';
-  const isTeam   = channel.type === 'team';
+  const isMemberAndNotAdmin = !isAdmin && !isDirect && !isTeam;
+  const muteOptions = [
+    { label: 'Mute for 8 hours',  ms: 8  * 3600 * 1000 },
+    { label: 'Mute for 24 hours', ms: 24 * 3600 * 1000 },
+    { label: 'Mute for 1 week',   ms: 7  * 86400 * 1000 },
+    { label: 'Mute forever',      ms: null },
+  ];
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', zIndex: 1000, display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-end' }} onClick={onClose}>
@@ -691,87 +828,200 @@ function GroupInfoPanel({ channel, onClose, isAdmin, onMembersChange }: {
         {/* Header */}
         <div style={{ padding: '18px 20px', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', gap: 12 }}>
           <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: '50%', border: 'none', background: '#F1F5F9', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}><IcoChevronLeft /></button>
-          <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#0F172A' }}>Group Info</div>
+          <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#0F172A', flex: 1 }}>{isDirect ? 'Contact Info' : 'Group Info'}</div>
+          {isAdmin && !isDirect && !isTeam && !editing && (
+            <button onClick={() => { setEditing(true); setEditName(channel.name); setEditDesc(channel.description ?? ''); }}
+              style={{ width: 30, height: 30, borderRadius: '50%', border: 'none', background: '#F1F5F9', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6366F1' }}
+              title="Edit group info">
+              <IcoPencil />
+            </button>
+          )}
         </div>
 
-        {/* Channel summary */}
+        {toast && (
+          <div style={{ margin: '8px 16px 0', padding: '8px 14px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 9, fontSize: '0.78rem', color: '#15803D', fontWeight: 600 }}>
+            {toast}
+          </div>
+        )}
+
+        {/* Channel summary / edit form */}
         <div style={{ padding: '24px 20px 18px', textAlign: 'center', borderBottom: '1px solid #F1F5F9' }}>
           <div style={{ width: 68, height: 68, borderRadius: '50%', background: av.bg, border: `3px solid ${av.ring}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem', fontWeight: 800, color: av.text, margin: '0 auto 12px' }}>
             {av.label}
           </div>
-          <div style={{ fontWeight: 800, fontSize: '1.1rem', color: '#0F172A', marginBottom: 4 }}>{channel.name}</div>
-          <div style={{ fontSize: '0.75rem', color: '#6366F1', fontWeight: 600, marginBottom: 4 }}>{CHANNEL_TYPE_LABELS[channel.type]}</div>
-          {channel.description && <div style={{ fontSize: '0.8rem', color: '#64748B', maxWidth: 260, margin: '0 auto' }}>{channel.description}</div>}
-          <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginTop: 6 }}>{members.length} member{members.length !== 1 ? 's' : ''}</div>
-        </div>
-
-        {/* Member list */}
-        <div style={{ flex: 1, padding: '16px 20px', overflow: 'auto' }}>
-          <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94A3B8', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10 }}>Members</div>
-
-          {/* Add member search (admin only, non-DM, non-team) */}
-          {isAdmin && !isDirect && !isTeam && (
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ position: 'relative', marginBottom: 4 }}>
-                <div style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }}><IcoSearch /></div>
-                <input value={addSearch} onChange={e => setAddSearch(e.target.value)} placeholder="Add a member…"
-                  style={{ width: '100%', padding: '8px 10px 8px 32px', borderRadius: 9, border: '1.5px solid #E2E8F0', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
+          {editing ? (
+            <div style={{ textAlign: 'left' }}>
+              <div style={{ marginBottom: 8 }}>
+                <label style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748B', display: 'block', marginBottom: 4 }}>GROUP NAME</label>
+                <input value={editName} onChange={e => setEditName(e.target.value)} maxLength={60}
+                  style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1.5px solid #E2E8F0', fontSize: '0.88rem', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
                   onFocus={e => e.currentTarget.style.borderColor = '#6366F1'}
                   onBlur={e  => e.currentTarget.style.borderColor = '#E2E8F0'}
                 />
               </div>
-              {searching && <div style={{ fontSize: '0.72rem', color: '#94A3B8', paddingLeft: 4 }}>Searching…</div>}
-              {addResults.length > 0 && (
-                <div style={{ border: '1px solid #E2E8F0', borderRadius: 9, overflow: 'hidden', marginTop: 4 }}>
-                  {addResults.slice(0, 5).map((u, i) => (
-                    <button key={u.id} onClick={() => handleAdd(u)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 10px', background: 'none', border: 'none', borderTop: i > 0 ? '1px solid #F1F5F9' : 'none', cursor: 'pointer', textAlign: 'left' }}
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748B', display: 'block', marginBottom: 4 }}>DESCRIPTION</label>
+                <textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} maxLength={200} rows={3}
+                  style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1.5px solid #E2E8F0', fontSize: '0.83rem', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', resize: 'none' }}
+                  onFocus={e => e.currentTarget.style.borderColor = '#6366F1'}
+                  onBlur={e  => e.currentTarget.style.borderColor = '#E2E8F0'}
+                />
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => setEditing(false)} style={{ flex: 1, padding: '9px', borderRadius: 8, border: '1.5px solid #E2E8F0', background: 'none', color: '#64748B', fontWeight: 600, fontSize: '0.83rem', cursor: 'pointer' }}>Cancel</button>
+                <button onClick={handleSaveEdit} disabled={saving || !editName.trim()}
+                  style={{ flex: 2, padding: '9px', borderRadius: 8, border: 'none', background: '#6366F1', color: 'white', fontWeight: 700, fontSize: '0.83rem', cursor: 'pointer', opacity: saving || !editName.trim() ? 0.6 : 1 }}>
+                  {saving ? 'Saving…' : 'Save'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div style={{ fontWeight: 800, fontSize: '1.1rem', color: '#0F172A', marginBottom: 4 }}>{channel.name}</div>
+              <div style={{ fontSize: '0.75rem', color: '#6366F1', fontWeight: 600, marginBottom: 4 }}>{CHANNEL_TYPE_LABELS[channel.type]}</div>
+              {channel.description && <div style={{ fontSize: '0.8rem', color: '#64748B', maxWidth: 260, margin: '0 auto' }}>{channel.description}</div>}
+              {!isDirect && <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginTop: 6 }}>{members.length} member{members.length !== 1 ? 's' : ''}</div>}
+            </>
+          )}
+        </div>
+
+        {/* Mute / Block quick actions */}
+        {!editing && (
+          <div style={{ padding: '12px 20px', borderBottom: '1px solid #F1F5F9', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {/* Mute toggle */}
+            {isMuted ? (
+              <button onClick={() => handleMuteToggle()} disabled={muting}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 10, border: '1.5px solid #E2E8F0', background: '#F8FAFC', cursor: 'pointer', textAlign: 'left' }}>
+                <IcoBell size={16} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 600, fontSize: '0.83rem', color: '#0F172A' }}>Unmute notifications</div>
+                  <div style={{ fontSize: '0.68rem', color: '#94A3B8' }}>
+                    {channel.muted_until ? `Until ${new Date(channel.muted_until).toLocaleDateString()}` : 'Muted forever'}
+                  </div>
+                </div>
+                {muting && <span className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />}
+              </button>
+            ) : (
+              <div style={{ position: 'relative' }}>
+                <button
+                  onClick={e => { e.currentTarget.nextElementSibling?.classList.toggle('open'); }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 10, border: '1.5px solid #E2E8F0', background: '#F8FAFC', cursor: 'pointer', textAlign: 'left', width: '100%' }}>
+                  <IcoBellOff size={16} />
+                  <span style={{ fontWeight: 600, fontSize: '0.83rem', color: '#0F172A', flex: 1 }}>Mute notifications</span>
+                  <span style={{ fontSize: '0.7rem', color: '#94A3B8' }}>▾</span>
+                </button>
+                <div className="" style={{ display: 'none', position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid #E2E8F0', borderRadius: 10, boxShadow: '0 8px 24px rgba(15,23,42,0.12)', zIndex: 10, marginTop: 4, overflow: 'hidden' }}
+                  onClick={e => { e.currentTarget.style.display = 'none'; }}>
+                  {muteOptions.map(opt => (
+                    <button key={opt.label} onClick={() => { const until = opt.ms ? new Date(Date.now() + opt.ms).toISOString() : null; handleMuteToggle(until); }}
+                      style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', textAlign: 'left', fontSize: '0.83rem', color: '#1E293B', cursor: 'pointer' }}
                       onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
                       onMouseLeave={e => e.currentTarget.style.background = 'none'}>
-                      <MsgAvatar name={`${u.first_name} ${u.last_name}`} size={28} />
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#0F172A' }}>{u.first_name} {u.last_name}</div>
-                        <div style={{ fontSize: '0.65rem', color: '#94A3B8' }}>{u.role}</div>
-                      </div>
-                      <span style={{ fontSize: '0.7rem', color: '#6366F1', fontWeight: 700 }}>+ Add</span>
+                      {opt.label}
                     </button>
                   ))}
                 </div>
-              )}
-            </div>
-          )}
+              </div>
+            )}
 
-          {loading
-            ? [1, 2, 3].map(i => <div key={i} className="skeleton" style={{ height: 48, borderRadius: 10, marginBottom: 6 }} />)
-            : members.map(m => {
-                const rs = ROLE_STYLES[m.role];
-                return (
-                  <div key={m.user_id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid #F8FAFC' }}>
-                    <MsgAvatar name={`${m.first_name} ${m.last_name}`} size={34} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 600, fontSize: '0.83rem', color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.first_name} {m.last_name}</div>
-                      {rs && <span style={{ fontSize: '0.6rem', fontWeight: 700, color: rs.color }}>{m.role}</span>}
+            {/* Block user (DMs only) */}
+            {isDirect && otherUser && (
+              <button onClick={handleBlockToggle} disabled={blocking}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 10, border: `1.5px solid ${isBlocked ? '#E2E8F0' : '#FECDD3'}`, background: isBlocked ? '#F8FAFC' : '#FFF1F2', cursor: 'pointer', textAlign: 'left' }}>
+                <span style={{ color: isBlocked ? '#64748B' : '#DC2626' }}><IcoBlock size={16} /></span>
+                <span style={{ fontWeight: 600, fontSize: '0.83rem', color: isBlocked ? '#0F172A' : '#DC2626', flex: 1 }}>
+                  {isBlocked ? `Unblock ${otherUser.first_name}` : `Block ${otherUser.first_name}`}
+                </span>
+                {blocking && <span className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />}
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Member list */}
+        {!editing && (
+          <div style={{ flex: 1, padding: '16px 20px', overflow: 'auto' }}>
+            {!isDirect && (
+              <>
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94A3B8', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10 }}>Members</div>
+
+                {/* Add member search (admin only, non-DM, non-team) */}
+                {isAdmin && !isTeam && (
+                  <div style={{ marginBottom: 12 }}>
+                    <div style={{ position: 'relative', marginBottom: 4 }}>
+                      <div style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }}><IcoSearch /></div>
+                      <input value={addSearch} onChange={e => setAddSearch(e.target.value)} placeholder="Add a member…"
+                        style={{ width: '100%', padding: '8px 10px 8px 32px', borderRadius: 9, border: '1.5px solid #E2E8F0', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                        onFocus={e => e.currentTarget.style.borderColor = '#6366F1'}
+                        onBlur={e  => e.currentTarget.style.borderColor = '#E2E8F0'}
+                      />
                     </div>
-                    {m.is_admin && <span style={{ fontSize: '0.6rem', fontWeight: 700, color: '#6366F1', background: '#EEF2FF', padding: '1px 6px', borderRadius: 99 }}>Admin</span>}
-                    {isAdmin && !isDirect && !isTeam && !m.is_admin && (
-                      <button onClick={() => handleRemove(m.user_id)} disabled={removingId === m.user_id}
-                        style={{ width: 28, height: 28, borderRadius: 7, border: '1px solid #FECDD3', background: '#FFF1F2', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#F43F5E', opacity: removingId === m.user_id ? 0.5 : 1 }}>
-                        <IcoX size={11} />
-                      </button>
+                    {searching && <div style={{ fontSize: '0.72rem', color: '#94A3B8', paddingLeft: 4 }}>Searching…</div>}
+                    {addResults.length > 0 && (
+                      <div style={{ border: '1px solid #E2E8F0', borderRadius: 9, overflow: 'hidden', marginTop: 4 }}>
+                        {addResults.slice(0, 5).map((u, i) => (
+                          <button key={u.id} onClick={() => handleAdd(u)}
+                            style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 10px', background: 'none', border: 'none', borderTop: i > 0 ? '1px solid #F1F5F9' : 'none', cursor: 'pointer', textAlign: 'left' }}
+                            onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+                            <MsgAvatar name={`${u.first_name} ${u.last_name}`} size={28} />
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#0F172A' }}>{u.first_name} {u.last_name}</div>
+                              <div style={{ fontSize: '0.65rem', color: '#94A3B8' }}>{u.role}</div>
+                            </div>
+                            <span style={{ fontSize: '0.7rem', color: '#6366F1', fontWeight: 700 }}>+ Add</span>
+                          </button>
+                        ))}
+                      </div>
                     )}
                   </div>
-                );
-              })}
-        </div>
+                )}
 
-        {/* Admin danger zone */}
-        {isAdmin && !isDirect && !isTeam && (
-          <div style={{ padding: '16px 20px', borderTop: '1px solid #F1F5F9' }}>
-            <button onClick={handleDelete} disabled={deleting}
-              style={{ width: '100%', padding: '10px', borderRadius: 10, border: '1.5px solid #FECDD3', background: '#FFF1F2', color: '#DC2626', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-              <IcoTrash />
-              {deleting ? 'Deleting…' : 'Delete Group'}
-            </button>
+                {loading
+                  ? [1, 2, 3].map(i => <div key={i} className="skeleton" style={{ height: 48, borderRadius: 10, marginBottom: 6 }} />)
+                  : members.map(m => {
+                      const rs = ROLE_STYLES[m.role];
+                      return (
+                        <div key={m.user_id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid #F8FAFC' }}>
+                          <MsgAvatar name={`${m.first_name} ${m.last_name}`} size={34} />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontWeight: 600, fontSize: '0.83rem', color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.first_name} {m.last_name}</div>
+                            {rs && <span style={{ fontSize: '0.6rem', fontWeight: 700, color: rs.color }}>{m.role}</span>}
+                          </div>
+                          {m.is_admin && <span style={{ fontSize: '0.6rem', fontWeight: 700, color: '#6366F1', background: '#EEF2FF', padding: '1px 6px', borderRadius: 99 }}>Admin</span>}
+                          {isAdmin && !isTeam && !m.is_admin && (
+                            <button onClick={() => handleRemove(m.user_id)} disabled={removingId === m.user_id}
+                              style={{ width: 28, height: 28, borderRadius: 7, border: '1px solid #FECDD3', background: '#FFF1F2', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#F43F5E', opacity: removingId === m.user_id ? 0.5 : 1 }}>
+                              <IcoX size={11} />
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Actions: leave / delete */}
+        {!editing && (
+          <div style={{ padding: '12px 20px 20px', borderTop: '1px solid #F1F5F9', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {/* Leave group (non-admin members, or admins of custom groups) */}
+            {!isDirect && !isTeam && (
+              <button onClick={handleLeave} disabled={leaving}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px', borderRadius: 10, border: '1.5px solid #E2E8F0', background: '#F8FAFC', color: '#64748B', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer' }}>
+                <IcoLogOut size={15} />
+                {leaving ? 'Leaving…' : 'Leave Group'}
+              </button>
+            )}
+            {/* Delete group (admin only) */}
+            {isAdmin && !isDirect && !isTeam && (
+              <button onClick={handleDelete} disabled={deleting}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px', borderRadius: 10, border: '1.5px solid #FECDD3', background: '#FFF1F2', color: '#DC2626', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer' }}>
+                <IcoTrash />
+                {deleting ? 'Deleting…' : 'Delete Group'}
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -784,10 +1034,13 @@ function NewDMModal({ onClose, onChannel }: {
   onClose: () => void;
   onChannel: (ch: ChatChannel) => void;
 }) {
-  const [query,    setQuery]    = useState('');
-  const [results,  setResults]  = useState<TeamMember[]>([]);
-  const [loading,  setLoading]  = useState(false);
-  const [opening,  setOpening]  = useState<string | null>(null);
+  const currentUser = useAuthStore(s => s.user);
+  const [query,          setQuery]          = useState('');
+  const [results,        setResults]        = useState<TeamMember[]>([]);
+  const [loading,        setLoading]        = useState(false);
+  const [opening,        setOpening]        = useState<string | null>(null);
+  const [dmPolicyError,  setDmPolicyError]  = useState<string | null>(null);
+  const [coachPlayerDms, setCoachPlayerDms] = useState(true);
   const searchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -795,21 +1048,34 @@ function NewDMModal({ onClose, onChannel }: {
     setLoading(true);
     searchRef.current = setTimeout(async () => {
       try {
-        const users = await chatApi.searchUsers(query);
-        setResults(users);
+        const res = await chatApi.searchUsers(query);
+        setResults(res.users);
+        setCoachPlayerDms(res.academy_allows_coach_player_dm);
       } catch { /* ignore */ }
       finally { setLoading(false); }
     }, 300);
     return () => { if (searchRef.current) clearTimeout(searchRef.current); };
   }, [query]);
 
-  async function openDM(user: TeamMember) {
-    setOpening(user.id);
+  function isRestricted(u: TeamMember): boolean {
+    if (coachPlayerDms) return false;
+    const myRole = currentUser?.role;
+    return (myRole === 'Coach' && u.role === 'Player') || (myRole === 'Player' && u.role === 'Coach');
+  }
+
+  async function openDM(u: TeamMember) {
+    if (isRestricted(u)) {
+      setDmPolicyError(`Your academy has disabled direct messages between coaches and players. Contact your admin to enable this.`);
+      return;
+    }
+    setOpening(u.id);
+    setDmPolicyError(null);
     try {
-      const ch = await chatApi.getOrCreateDirect(user.id);
+      const ch = await chatApi.getOrCreateDirect(u.id);
       onChannel(ch);
-    } catch { /* ignore */ }
-    finally { setOpening(null); }
+    } catch (err: unknown) {
+      setDmPolicyError(err instanceof Error ? err.message : 'Failed to open chat.');
+    } finally { setOpening(null); }
   }
 
   return (
@@ -831,6 +1097,12 @@ function NewDMModal({ onClose, onChannel }: {
               onBlur={e  => e.currentTarget.style.borderColor = '#E2E8F0'}
             />
           </div>
+          {dmPolicyError && (
+            <div style={{ marginTop: 8, padding: '8px 12px', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 8, fontSize: '0.75rem', color: '#92400E', display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+              <IcoLock size={14} />
+              {dmPolicyError}
+            </div>
+          )}
         </div>
         <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px 16px' }}>
           {loading
@@ -840,14 +1112,18 @@ function NewDMModal({ onClose, onChannel }: {
               : results.map((u, i) => {
                   const rs = ROLE_STYLES[u.role];
                   const isOpening = opening === u.id;
+                  const locked = isRestricted(u);
                   return (
                     <button key={u.id} onClick={() => openDM(u)} disabled={!!opening}
-                      style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '10px', background: 'none', border: 'none', borderTop: i > 0 ? '1px solid #F8FAFC' : 'none', cursor: opening ? 'wait' : 'pointer', textAlign: 'left', borderRadius: 10, opacity: opening && !isOpening ? 0.5 : 1, transition: 'all 0.15s' }}
-                      onMouseEnter={e => { if (!opening) e.currentTarget.style.background = '#F8FAFC'; }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '10px', background: 'none', border: 'none', borderTop: i > 0 ? '1px solid #F8FAFC' : 'none', cursor: locked ? 'not-allowed' : (opening ? 'wait' : 'pointer'), textAlign: 'left', borderRadius: 10, opacity: locked ? 0.5 : (opening && !isOpening ? 0.5 : 1), transition: 'all 0.15s' }}
+                      onMouseEnter={e => { if (!opening && !locked) e.currentTarget.style.background = '#F8FAFC'; }}
                       onMouseLeave={e => e.currentTarget.style.background = 'none'}>
                       <MsgAvatar name={`${u.first_name} ${u.last_name}`} size={38} />
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#0F172A' }}>{u.first_name} {u.last_name}</div>
+                        <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#0F172A', display: 'flex', alignItems: 'center', gap: 5 }}>
+                          {u.first_name} {u.last_name}
+                          {locked && <span title="DMs restricted by academy policy"><IcoLock size={11} /></span>}
+                        </div>
                         <div style={{ fontSize: '0.72rem', color: '#94A3B8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.email}</div>
                       </div>
                       {rs && <span style={{ padding: '2px 7px', borderRadius: 99, fontSize: '0.6rem', fontWeight: 700, color: rs.color, border: `1px solid ${rs.border}`, flexShrink: 0 }}>{u.role}</span>}
@@ -875,6 +1151,40 @@ function useIsMobile(bp = 768) {
   return mobile;
 }
 
+// ─── Stub modals (full implementation pending backend endpoints) ──────
+function ReportMsgModal({ messageId, onClose }: { messageId: string; onClose: () => void }) {
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={onClose}>
+      <div style={{ background: '#FFF', borderRadius: 16, padding: 24, maxWidth: 360, width: '90%', boxShadow: '0 20px 60px rgba(15,23,42,0.2)' }} onClick={e => e.stopPropagation()}>
+        <div style={{ fontWeight: 800, fontSize: '1rem', color: '#0F172A', marginBottom: 8 }}>Report Message</div>
+        <p style={{ fontSize: '0.82rem', color: '#64748B', margin: '0 0 16px' }}>Report this message to academy administrators for review.</p>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={onClose} style={{ flex: 1, padding: '9px', border: '1.5px solid #E2E8F0', borderRadius: 10, background: 'none', color: '#475569', fontWeight: 600, cursor: 'pointer', fontSize: '0.82rem' }}>Cancel</button>
+          <button onClick={onClose} style={{ flex: 1, padding: '9px', border: 'none', borderRadius: 10, background: '#EF4444', color: '#FFF', fontWeight: 700, cursor: 'pointer', fontSize: '0.82rem' }}>Report</button>
+        </div>
+        <div style={{ display: 'none' }}>{messageId}</div>
+      </div>
+    </div>
+  );
+}
+
+function AdminReportsPanel({ onClose }: { onClose: () => void }) {
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={onClose}>
+      <div style={{ background: '#FFF', borderRadius: 16, padding: 24, maxWidth: 480, width: '90%', boxShadow: '0 20px 60px rgba(15,23,42,0.2)' }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div style={{ fontWeight: 800, fontSize: '1rem', color: '#0F172A' }}>Message Reports</div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', fontSize: '1rem' }}>✕</button>
+        </div>
+        <div style={{ textAlign: 'center', padding: '32px 0', color: '#94A3B8' }}>
+          <div style={{ fontSize: '2rem', marginBottom: 10 }}>📋</div>
+          <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>No reports yet</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── MAIN CHAT PAGE ───────────────────────────────────────────────────
 export default function ChatPage() {
   const mobile = useIsMobile();
@@ -900,6 +1210,8 @@ export default function ChatPage() {
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [showNewDM,       setShowNewDM]       = useState(false);
   const [showGroupInfo,   setShowGroupInfo]   = useState(false);
+  const [showReports,     setShowReports]     = useState(false);
+  const [reportingMsgId,  setReportingMsgId]  = useState<string | null>(null);
   const [mobileView,      setMobileView]      = useState<'list' | 'chat'>('list');
 
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -1142,6 +1454,12 @@ export default function ChatPage() {
             <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#10B981', display: 'inline-block', boxShadow: '0 0 0 3px rgba(16,185,129,0.20)' }} />
             <span style={{ fontSize: '0.68rem', color: '#94A3B8', fontFamily: 'var(--font-mono)' }}>Live · {POLL_MS / 1000}s</span>
           </div>
+          {isAdmin && (
+            <button onClick={() => setShowReports(true)} title="Message reports"
+              style={{ width: 34, height: 34, borderRadius: '50%', border: '1px solid #FDE68A', background: '#FFFBEB', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#D97706', position: 'relative' }}>
+              <IcoFlag size={15} />
+            </button>
+          )}
           {activeChannel && (
             <button onClick={() => setShowGroupInfo(true)} title="Group info"
               style={{ width: 34, height: 34, borderRadius: '50%', border: '1px solid #E2E8F0', background: '#F8FAFC', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6366F1' }}>
@@ -1184,6 +1502,7 @@ export default function ChatPage() {
                     key={msg.id} msg={msg} isSelf={isSelf} showHeader={showHeader} isLast={isLast}
                     canDelete={!msg._opt && (isSelf || isAdmin)}
                     onDelete={() => handleDeleteMsg(msg.id)}
+                    onReport={!msg._opt && !isSelf ? (id) => setReportingMsgId(id) : undefined}
                   />
                 ))}
               </div>
@@ -1233,7 +1552,20 @@ export default function ChatPage() {
           onClose={() => setShowGroupInfo(false)}
           isAdmin={isAdmin}
           onMembersChange={handleMembersChange}
+          onChannelUpdate={updates => {
+            setChannels(prev => prev.map(c => c.id === activeChannel.id ? { ...c, ...updates } : c));
+            setActiveChannel(prev => prev ? { ...prev, ...updates } : prev);
+          }}
         />
+      )}
+      {reportingMsgId && (
+        <ReportMsgModal
+          messageId={reportingMsgId}
+          onClose={() => setReportingMsgId(null)}
+        />
+      )}
+      {showReports && isAdmin && (
+        <AdminReportsPanel onClose={() => setShowReports(false)} />
       )}
     </div>
   );
@@ -1269,7 +1601,10 @@ function ChannelRow({ ch, isActive, onClick }: { ch: ChatChannel; isActive: bool
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
           <span style={{ fontWeight: isActive ? 700 : 600, fontSize: '0.85rem', color: isActive ? '#4338CA' : '#1E293B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{displayName}</span>
-          {time && <span style={{ fontSize: '0.62rem', color: isActive ? '#6366F1' : '#94A3B8', fontFamily: 'var(--font-mono)', flexShrink: 0 }}>{time}</span>}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+            {ch.is_muted && <span style={{ color: '#94A3B8' }} title="Muted"><IcoBellOff size={11} /></span>}
+            {time && <span style={{ fontSize: '0.62rem', color: isActive ? '#6366F1' : '#94A3B8', fontFamily: 'var(--font-mono)' }}>{time}</span>}
+          </div>
         </div>
         <div style={{ fontSize: '0.73rem', color: isActive ? '#6366F1' : '#94A3B8', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {lastMsg && !ch.last_message?.body ? preview : (

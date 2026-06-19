@@ -2,6 +2,7 @@
 'use strict';
 
 const { supabaseAdmin } = require('../config/supabase');
+const notif             = require('./notifications.service');
 const {
   ForbiddenError,
   NotFoundError,
@@ -106,10 +107,25 @@ async function listChannels({ userId, academyId, role }) {
     }
   }
 
+  // Batch: mute state for current user
+  const { data: muteRows } = await supabaseAdmin
+    .from('chat_channel_members')
+    .select('channel_id, is_muted, muted_until')
+    .eq('user_id', userId)
+    .in('channel_id', channelIds);
+
+  const muteMap = {};
+  for (const m of (muteRows || [])) {
+    muteMap[m.channel_id] = { is_muted: m.is_muted, muted_until: m.muted_until };
+  }
+
   return channels.map(ch => {
-    const lastMsg = lastMsgMap[ch.id] || null;
+    const lastMsg  = lastMsgMap[ch.id] || null;
+    const muteInfo = muteMap[ch.id] || { is_muted: false, muted_until: null };
     return {
       ...ch,
+      is_muted:     muteInfo.is_muted,
+      muted_until:  muteInfo.muted_until,
       member_count: memberCounts[ch.id] ?? 0,
       last_message: lastMsg
         ? {
@@ -314,7 +330,7 @@ async function removeMember({ channelId, userId, academyId }) {
 // Finds an existing 1:1 DM between two users or creates one.
 // ─────────────────────────────────────────────────────────────────
 
-async function getOrCreateDirect({ userId, targetUserId, academyId }) {
+async function getOrCreateDirect({ userId, userRole, targetUserId, academyId }) {
   if (userId === targetUserId) throw new BadRequestError('Cannot message yourself.');
 
   const { data: targetUser } = await supabaseAdmin
@@ -324,6 +340,34 @@ async function getOrCreateDirect({ userId, targetUserId, academyId }) {
     .eq('academy_id', academyId)
     .single();
   if (!targetUser) throw new NotFoundError('User not found in this academy.');
+
+  // Check per-academy Coach <-> Player DM policy
+  if (
+    (userRole === 'Coach' && targetUser.role === 'Player') ||
+    (userRole === 'Player' && targetUser.role === 'Coach')
+  ) {
+    const { data: academy } = await supabaseAdmin
+      .from('academies')
+      .select('settings')
+      .eq('id', academyId)
+      .single();
+    const allowed = academy?.settings?.chat_coach_player_dm === true;
+    if (!allowed) {
+      throw new ForbiddenError(
+        'Direct messages between coaches and players are disabled by your academy. An admin can enable this in Chat Policy settings.',
+      );
+    }
+  }
+
+  // Check if either user has blocked the other
+  const { data: blockRecord } = await supabaseAdmin
+    .from('blocked_users')
+    .select('blocker_id')
+    .or(`and(blocker_id.eq.${userId},blocked_id.eq.${targetUserId}),and(blocker_id.eq.${targetUserId},blocked_id.eq.${userId})`)
+    .eq('academy_id', academyId)
+    .limit(1)
+    .maybeSingle();
+  if (blockRecord) throw new ForbiddenError('You cannot message this user.');
 
   // Find channels the current user belongs to
   const { data: myMemberships } = await supabaseAdmin
@@ -400,6 +444,21 @@ async function getOrCreateDirect({ userId, targetUserId, academyId }) {
 // ─────────────────────────────────────────────────────────────────
 
 async function searchUsers({ query, academyId, currentUserId }) {
+  // Fetch IDs of users blocked by the current user (exclude from results)
+  const { data: blockedRows } = await supabaseAdmin
+    .from('blocked_users')
+    .select('blocked_id')
+    .eq('blocker_id', currentUserId);
+  const blockedIds = (blockedRows || []).map(r => r.blocked_id);
+
+  // Fetch academy DM policy so the frontend can show locks on restricted role pairs
+  const { data: academy } = await supabaseAdmin
+    .from('academies')
+    .select('settings')
+    .eq('id', academyId)
+    .single();
+  const academy_allows_coach_player_dm = academy?.settings?.chat_coach_player_dm === true;
+
   let q = supabaseAdmin
     .from('users')
     .select('id, first_name, last_name, email, role')
@@ -408,6 +467,8 @@ async function searchUsers({ query, academyId, currentUserId }) {
     .neq('id', currentUserId)
     .limit(20);
 
+  if (blockedIds.length > 0) q = q.not('id', 'in', `(${blockedIds.join(',')})`);
+
   if (query && query.trim()) {
     const s = query.trim();
     q = q.or(`first_name.ilike.%${s}%,last_name.ilike.%${s}%,email.ilike.%${s}%`);
@@ -415,7 +476,247 @@ async function searchUsers({ query, academyId, currentUserId }) {
 
   const { data, error } = await q.order('first_name');
   if (error) throw new InternalError('Search failed.');
+  return { users: data || [], academy_allows_coach_player_dm };
+}
+
+// ─────────────────────────────────────────────────────────────────
+// LEAVE CHANNEL
+// Any member can leave a non-team channel.
+// If the leaver is the last admin and others remain, the next member
+// is promoted to admin to avoid admin-less groups.
+// ─────────────────────────────────────────────────────────────────
+
+async function leaveChannel({ channelId, userId, academyId }) {
+  const channel = await fetchChannelOrThrow(channelId, academyId);
+  if (channel.type === 'team') throw new ForbiddenError('You cannot leave team channels.');
+  if (channel.type === 'direct') throw new ForbiddenError('You cannot leave direct messages.');
+
+  const { data: membership } = await supabaseAdmin
+    .from('chat_channel_members')
+    .select('is_admin')
+    .eq('channel_id', channelId)
+    .eq('user_id', userId)
+    .single();
+  if (!membership) throw new ForbiddenError('You are not a member of this channel.');
+
+  if (membership.is_admin) {
+    const { data: otherAdmins } = await supabaseAdmin
+      .from('chat_channel_members')
+      .select('user_id')
+      .eq('channel_id', channelId)
+      .eq('is_admin', true)
+      .neq('user_id', userId);
+
+    if (!otherAdmins || otherAdmins.length === 0) {
+      // Promote the next available non-admin member
+      const { data: others } = await supabaseAdmin
+        .from('chat_channel_members')
+        .select('user_id')
+        .eq('channel_id', channelId)
+        .neq('user_id', userId)
+        .limit(1);
+
+      if (others && others.length > 0) {
+        await supabaseAdmin
+          .from('chat_channel_members')
+          .update({ is_admin: true })
+          .eq('channel_id', channelId)
+          .eq('user_id', others[0].user_id);
+      }
+    }
+  }
+
+  await supabaseAdmin
+    .from('chat_channel_members')
+    .delete()
+    .eq('channel_id', channelId)
+    .eq('user_id', userId);
+
+  return { left: true };
+}
+
+// ─────────────────────────────────────────────────────────────────
+// MUTE / UNMUTE CHANNEL
+// Per-member mute. muted_until=null means muted forever.
+// ─────────────────────────────────────────────────────────────────
+
+async function muteChannel({ channelId, userId, mutedUntil }) {
+  const { error } = await supabaseAdmin
+    .from('chat_channel_members')
+    .update({ is_muted: true, muted_until: mutedUntil || null })
+    .eq('channel_id', channelId)
+    .eq('user_id', userId);
+  if (error) throw new InternalError('Failed to mute channel.');
+  return { muted: true };
+}
+
+async function unmuteChannel({ channelId, userId }) {
+  const { error } = await supabaseAdmin
+    .from('chat_channel_members')
+    .update({ is_muted: false, muted_until: null })
+    .eq('channel_id', channelId)
+    .eq('user_id', userId);
+  if (error) throw new InternalError('Failed to unmute channel.');
+  return { muted: false };
+}
+
+// ─────────────────────────────────────────────────────────────────
+// BLOCK / UNBLOCK USER
+// ─────────────────────────────────────────────────────────────────
+
+async function blockUser({ blockerId, blockedId, academyId }) {
+  if (blockerId === blockedId) throw new BadRequestError('Cannot block yourself.');
+  const { error } = await supabaseAdmin
+    .from('blocked_users')
+    .upsert(
+      { blocker_id: blockerId, blocked_id: blockedId, academy_id: academyId },
+      { onConflict: 'blocker_id,blocked_id' },
+    );
+  if (error) throw new InternalError('Failed to block user.');
+  return { blocked: true };
+}
+
+async function unblockUser({ blockerId, blockedId }) {
+  const { error } = await supabaseAdmin
+    .from('blocked_users')
+    .delete()
+    .eq('blocker_id', blockerId)
+    .eq('blocked_id', blockedId);
+  if (error) throw new InternalError('Failed to unblock user.');
+  return { blocked: false };
+}
+
+async function getBlockedUsers({ userId, academyId }) {
+  const { data, error } = await supabaseAdmin
+    .from('blocked_users')
+    .select(`
+      blocked_id, created_at,
+      users!blocked_users_blocked_id_fkey ( id, first_name, last_name, role, email )
+    `)
+    .eq('blocker_id', userId)
+    .eq('academy_id', academyId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw new InternalError('Failed to fetch blocked users.');
+  return (data || []).map(r => ({ ...r.users, blocked_at: r.created_at }));
+}
+
+// ─────────────────────────────────────────────────────────────────
+// REPORT MESSAGE
+// ─────────────────────────────────────────────────────────────────
+
+async function reportMessage({ messageId, reportedBy, reason, notes, academyId }) {
+  const { data: msg } = await supabaseAdmin
+    .from('messages')
+    .select('id, sender_id, message_text, channel_id')
+    .eq('id', messageId)
+    .eq('academy_id', academyId)
+    .single();
+  if (!msg) throw new NotFoundError('Message not found.');
+
+  const { data: report, error } = await supabaseAdmin
+    .from('reported_messages')
+    .insert({
+      academy_id:  academyId,
+      message_id:  messageId,
+      reported_by: reportedBy,
+      reason,
+      notes: notes || null,
+    })
+    .select()
+    .single();
+
+  if (error) throw new InternalError('Failed to submit report.');
+
+  // Notify admins (fire-and-forget)
+  notif.notifyStaff({
+    academyId,
+    type:  'report',
+    title: 'New message report',
+    body:  `A message was reported: "${reason}"`,
+    link:  '/dashboard/admin/chat',
+  }).catch(() => {});
+
+  return report;
+}
+
+// ─────────────────────────────────────────────────────────────────
+// GET REPORTS  (Admin only)
+// ─────────────────────────────────────────────────────────────────
+
+async function getReports({ academyId }) {
+  const { data, error } = await supabaseAdmin
+    .from('reported_messages')
+    .select(`
+      id, reason, notes, status, created_at, reviewed_at,
+      messages!reported_messages_message_id_fkey (
+        id, message_text, attachment_url, created_at,
+        users!messages_sender_id_fkey ( id, first_name, last_name, role )
+      ),
+      reporter:users!reported_messages_reported_by_fkey ( id, first_name, last_name, role ),
+      reviewer:users!reported_messages_reviewed_by_fkey ( id, first_name, last_name )
+    `)
+    .eq('academy_id', academyId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw new InternalError('Failed to fetch reports.');
   return data || [];
+}
+
+// ─────────────────────────────────────────────────────────────────
+// REVIEW REPORT  (Admin only)
+// ─────────────────────────────────────────────────────────────────
+
+async function reviewReport({ reportId, reviewedBy, status, academyId }) {
+  if (!['reviewed', 'dismissed'].includes(status)) {
+    throw new BadRequestError('Status must be "reviewed" or "dismissed".');
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from('reported_messages')
+    .update({ status, reviewed_by: reviewedBy, reviewed_at: new Date().toISOString() })
+    .eq('id', reportId)
+    .eq('academy_id', academyId)
+    .select()
+    .single();
+
+  if (error || !data) throw new NotFoundError('Report not found.');
+  return data;
+}
+
+// ─────────────────────────────────────────────────────────────────
+// ACADEMY SETTINGS
+// ─────────────────────────────────────────────────────────────────
+
+async function getAcademySettings({ academyId }) {
+  const { data, error } = await supabaseAdmin
+    .from('academies')
+    .select('settings')
+    .eq('id', academyId)
+    .single();
+  if (error || !data) throw new NotFoundError('Academy not found.');
+  return data.settings || {};
+}
+
+async function updateAcademySettings({ academyId, settings }) {
+  // Merge incoming settings with existing to avoid clobbering other keys
+  const { data: existing } = await supabaseAdmin
+    .from('academies')
+    .select('settings')
+    .eq('id', academyId)
+    .single();
+
+  const merged = { ...(existing?.settings || {}), ...settings };
+
+  const { data, error } = await supabaseAdmin
+    .from('academies')
+    .update({ settings: merged })
+    .eq('id', academyId)
+    .select('settings')
+    .single();
+
+  if (error) throw new InternalError('Failed to update settings.');
+  return data.settings;
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -444,4 +745,15 @@ module.exports = {
   removeMember,
   getOrCreateDirect,
   searchUsers,
+  leaveChannel,
+  muteChannel,
+  unmuteChannel,
+  blockUser,
+  unblockUser,
+  getBlockedUsers,
+  reportMessage,
+  getReports,
+  reviewReport,
+  getAcademySettings,
+  updateAcademySettings,
 };

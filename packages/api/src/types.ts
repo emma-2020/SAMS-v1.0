@@ -149,6 +149,45 @@ export interface ChatChannel {
   member_count?: number;
   last_message?: LastMessagePreview | null;
   other_user?: TeamMember | null;
+  is_muted?: boolean;
+  muted_until?: string | null;
+}
+
+export interface BlockedUser {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  role: string;
+  blocked_at: string;
+}
+
+export interface ReportedMessage {
+  id: string;
+  reason: string;
+  notes?: string | null;
+  status: 'pending' | 'reviewed' | 'dismissed';
+  created_at: string;
+  reviewed_at?: string | null;
+  messages: {
+    id: string;
+    message_text?: string | null;
+    attachment_url?: string | null;
+    created_at: string;
+    users?: { id: string; first_name: string; last_name: string; role: string } | null;
+  } | null;
+  reporter?: { id: string; first_name: string; last_name: string; role: string } | null;
+  reviewer?: { id: string; first_name: string; last_name: string } | null;
+}
+
+export interface AcademySettings {
+  chat_coach_player_dm?: boolean;
+  [key: string]: unknown;
+}
+
+export interface UserSearchResult {
+  users: TeamMember[];
+  academy_allows_coach_player_dm: boolean;
 }
 
 export interface ChatChannelMember {

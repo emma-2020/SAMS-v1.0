@@ -88,6 +88,7 @@ async function getOrCreateDirect(req, res, next) {
   try {
     const channel = await svc.getOrCreateDirect({
       userId:       req.user.id,
+      userRole:     req.user.role,
       targetUserId: req.body.target_user_id,
       academyId:    req.academyId,
     });
@@ -97,12 +98,103 @@ async function getOrCreateDirect(req, res, next) {
 
 async function searchUsers(req, res, next) {
   try {
-    const users = await svc.searchUsers({
+    const result = await svc.searchUsers({
       query:         req.query.q || '',
       academyId:     req.academyId,
       currentUserId: req.user.id,
     });
+    return res.status(200).json({ success: true, data: result });
+  } catch (err) { next(err); }
+}
+
+async function leaveChannel(req, res, next) {
+  try {
+    await svc.leaveChannel({ channelId: req.params.id, userId: req.user.id, academyId: req.academyId });
+    return res.status(200).json({ success: true, data: { left: true } });
+  } catch (err) { next(err); }
+}
+
+async function muteChannel(req, res, next) {
+  try {
+    await svc.muteChannel({ channelId: req.params.id, userId: req.user.id, mutedUntil: req.body.muted_until || null });
+    return res.status(200).json({ success: true, data: { muted: true } });
+  } catch (err) { next(err); }
+}
+
+async function unmuteChannel(req, res, next) {
+  try {
+    await svc.unmuteChannel({ channelId: req.params.id, userId: req.user.id });
+    return res.status(200).json({ success: true, data: { muted: false } });
+  } catch (err) { next(err); }
+}
+
+async function blockUser(req, res, next) {
+  try {
+    await svc.blockUser({ blockerId: req.user.id, blockedId: req.params.userId, academyId: req.academyId });
+    return res.status(200).json({ success: true, data: { blocked: true } });
+  } catch (err) { next(err); }
+}
+
+async function unblockUser(req, res, next) {
+  try {
+    await svc.unblockUser({ blockerId: req.user.id, blockedId: req.params.userId });
+    return res.status(200).json({ success: true, data: { blocked: false } });
+  } catch (err) { next(err); }
+}
+
+async function getBlockedUsers(req, res, next) {
+  try {
+    const users = await svc.getBlockedUsers({ userId: req.user.id, academyId: req.academyId });
     return res.status(200).json({ success: true, data: { users } });
+  } catch (err) { next(err); }
+}
+
+async function reportMessage(req, res, next) {
+  try {
+    const { reason, notes } = req.body;
+    if (!reason) return res.status(400).json({ success: false, error: 'reason is required.' });
+    const report = await svc.reportMessage({
+      messageId:  req.params.messageId,
+      reportedBy: req.user.id,
+      reason,
+      notes,
+      academyId:  req.academyId,
+    });
+    return res.status(201).json({ success: true, data: { report } });
+  } catch (err) { next(err); }
+}
+
+async function getReports(req, res, next) {
+  try {
+    const reports = await svc.getReports({ academyId: req.academyId });
+    return res.status(200).json({ success: true, data: { reports } });
+  } catch (err) { next(err); }
+}
+
+async function reviewReport(req, res, next) {
+  try {
+    const { status } = req.body;
+    const report = await svc.reviewReport({
+      reportId:   req.params.reportId,
+      reviewedBy: req.user.id,
+      status,
+      academyId:  req.academyId,
+    });
+    return res.status(200).json({ success: true, data: { report } });
+  } catch (err) { next(err); }
+}
+
+async function getAcademySettings(req, res, next) {
+  try {
+    const settings = await svc.getAcademySettings({ academyId: req.academyId });
+    return res.status(200).json({ success: true, data: { settings } });
+  } catch (err) { next(err); }
+}
+
+async function updateAcademySettings(req, res, next) {
+  try {
+    const settings = await svc.updateAcademySettings({ academyId: req.academyId, settings: req.body });
+    return res.status(200).json({ success: true, data: { settings } });
   } catch (err) { next(err); }
 }
 
@@ -116,4 +208,15 @@ module.exports = {
   removeMember,
   getOrCreateDirect,
   searchUsers,
+  leaveChannel,
+  muteChannel,
+  unmuteChannel,
+  blockUser,
+  unblockUser,
+  getBlockedUsers,
+  reportMessage,
+  getReports,
+  reviewReport,
+  getAcademySettings,
+  updateAcademySettings,
 };
