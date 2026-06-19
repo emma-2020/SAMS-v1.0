@@ -290,6 +290,19 @@ const validateMemberStatusBody = runChecks([
   },
 ]);
 
+const validateUpdateMemberBody = runChecks([
+  ({ body }) => {
+    const { first_name, last_name } = body;
+    if (!first_name && !last_name) return 'At least one field (first_name, last_name) is required.';
+    if (first_name !== undefined && (typeof first_name !== 'string' || !first_name.trim())) {
+      return '"first_name" must be a non-empty string.';
+    }
+    if (last_name !== undefined && (typeof last_name !== 'string' || !last_name.trim())) {
+      return '"last_name" must be a non-empty string.';
+    }
+  },
+]);
+
 module.exports = {
   validateScheduleQuery,
   validateCreateEventBody,
@@ -303,4 +316,5 @@ module.exports = {
   validateDirectBody,
   validateInviteBody,
   validateMemberStatusBody,
+  validateUpdateMemberBody,
 };

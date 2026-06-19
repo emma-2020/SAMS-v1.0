@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { adminApi } from '@sams/api';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import { adminApi, chatApi } from '@sams/api';
 import { useAuthStore } from '@sams/store';
 import type { UserProfile, MemberDetail, HealthLogEntry } from '@sams/api';
 
@@ -271,7 +272,23 @@ function WellnessBar({ label, value }: { label: string; value: number }) {
 }
 
 // ─── ActionBar ────────────────────────────────────────────────────────
-function ActionBar({ onMessage, onEdit }: { onMessage?: () => void; onEdit?: () => void }) {
+function ActionBar({
+  onMessage, onEdit, onCopyEmail, onResetLink, msgLoading, isSelf,
+}: {
+  onMessage: () => void; onEdit: () => void;
+  onCopyEmail: () => void; onResetLink: () => void;
+  msgLoading: boolean; isSelf: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function close(e: MouseEvent) { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); }
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [open]);
+
   const btn: React.CSSProperties = {
     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
     height: 32, padding: '0 14px', borderRadius: 9,
@@ -279,17 +296,49 @@ function ActionBar({ onMessage, onEdit }: { onMessage?: () => void; onEdit?: () 
     color: C.slate700, fontSize: '0.75rem', fontWeight: 600,
     cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
   };
+
+  const menuItem: React.CSSProperties = {
+    display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+    padding: '9px 14px', border: 'none', background: 'none',
+    color: C.slate700, fontSize: '0.8rem', fontWeight: 500,
+    cursor: 'pointer', textAlign: 'left', borderRadius: 8,
+  };
+
   return (
     <div style={{ display: 'flex', gap: 7, paddingTop: 14 }}>
-      <button style={btn} onClick={onMessage ?? (() => {})}>
-        <Ico.MessageSquare /> Message
-      </button>
-      <button style={btn} onClick={onEdit ?? (() => {})}>
+      {!isSelf && (
+        <button style={{ ...btn, opacity: msgLoading ? 0.6 : 1, cursor: msgLoading ? 'wait' : 'pointer' }} onClick={onMessage} disabled={msgLoading}>
+          <Ico.MessageSquare /> {msgLoading ? 'Opening…' : 'Message'}
+        </button>
+      )}
+      <button style={btn} onClick={onEdit}>
         <Ico.Pencil /> Edit
       </button>
-      <button style={{ ...btn, padding: '0 10px', color: C.slate400 }}>
-        <Ico.Dots />
-      </button>
+      {/* ⋯ More dropdown */}
+      <div ref={ref} style={{ position: 'relative' }}>
+        <button style={{ ...btn, padding: '0 10px', color: open ? C.indigo : C.slate400, borderColor: open ? '#C7D2FE' : C.slate200, background: open ? '#EEF2FF' : '#FFF' }}
+          onClick={() => setOpen(p => !p)}>
+          <Ico.Dots />
+        </button>
+        {open && (
+          <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, background: '#FFF', border: `1px solid ${C.slate200}`, borderRadius: 12, boxShadow: '0 8px 24px rgba(15,23,42,0.12)', zIndex: 100, minWidth: 200, overflow: 'hidden', padding: '4px' }}>
+            <button style={menuItem} onClick={() => { onCopyEmail(); setOpen(false); }}
+              onMouseEnter={e => e.currentTarget.style.background = C.slate50}
+              onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+              <span style={{ color: C.indigo }}><Ico.Mail /></span>
+              Copy email address
+            </button>
+            {!isSelf && (
+              <button style={menuItem} onClick={() => { onResetLink(); setOpen(false); }}
+                onMouseEnter={e => e.currentTarget.style.background = C.slate50}
+                onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+                <span style={{ color: C.amber }}><Ico.Shield /></span>
+                Copy password reset link
+              </button>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -604,12 +653,15 @@ function FamilyTab({ detail }: { detail: MemberDetail }) {
 // ─── Member Detail Panel ──────────────────────────────────────────────
 type TabId = 'overview' | 'teams' | 'wellness' | 'family';
 
-function MemberDetailPanel({ memberId, onClose, onToggleStatus, currentUserId }: {
+function MemberDetailPanel({ memberId, onClose, onToggleStatus, onMemberUpdated, currentUserId }: {
   memberId: string;
   onClose: () => void;
   onToggleStatus: (m: UserProfile) => void;
+  onMemberUpdated: (m: UserProfile) => void;
   currentUserId?: string;
 }) {
+  const router = useRouter();
+
   const [detail,     setDetail]     = useState<MemberDetail | null>(null);
   const [loading,    setLoading]    = useState(true);
   const [error,      setError]      = useState('');
@@ -617,14 +669,86 @@ function MemberDetailPanel({ memberId, onClose, onToggleStatus, currentUserId }:
   const [confirming, setConfirming] = useState(false);
   const [actLoad,    setActLoad]    = useState(false);
 
+  // Edit mode
+  const [isEditing, setIsEditing] = useState(false);
+  const [editFirst, setEditFirst] = useState('');
+  const [editLast,  setEditLast]  = useState('');
+  const [saveLoad,  setSaveLoad]  = useState(false);
+  const [saveErr,   setSaveErr]   = useState('');
+
+  // Toast
+  const [toast, setToast] = useState('');
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Message loading
+  const [msgLoad, setMsgLoad] = useState(false);
+
+  function showToast(msg: string) {
+    setToast(msg);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(''), 3000);
+  }
+
   const load = useCallback(async () => {
-    setLoading(true); setError('');
+    setLoading(true); setError(''); setIsEditing(false);
     try { setDetail(await adminApi.getMemberDetail(memberId)); }
     catch (e: unknown) { setError(e instanceof Error ? e.message : 'Failed to load member.'); }
     finally { setLoading(false); }
   }, [memberId]);
 
   useEffect(() => { load(); setTab('overview'); setConfirming(false); }, [load]);
+
+  // ── Action handlers ──────────────────────────────────────────────────
+
+  async function handleMessage() {
+    if (!detail) return;
+    setMsgLoad(true);
+    try {
+      const channel = await chatApi.getOrCreateDirect(detail.id);
+      router.push(`/dashboard/admin/chat?open=${channel.id}`);
+    } catch {
+      router.push('/dashboard/admin/chat');
+    } finally { setMsgLoad(false); }
+  }
+
+  function startEdit() {
+    if (!detail) return;
+    setEditFirst(detail.first_name);
+    setEditLast(detail.last_name);
+    setSaveErr('');
+    setIsEditing(true);
+  }
+
+  async function handleSave() {
+    if (!detail) return;
+    setSaveLoad(true); setSaveErr('');
+    try {
+      const updated = await adminApi.updateMember(detail.id, { first_name: editFirst.trim(), last_name: editLast.trim() });
+      setDetail(d => d ? { ...d, first_name: updated.first_name, last_name: updated.last_name } : d);
+      onMemberUpdated(updated);
+      setIsEditing(false);
+      showToast('Profile updated successfully.');
+    } catch (e: unknown) {
+      setSaveErr(e instanceof Error ? e.message : 'Save failed.');
+    } finally { setSaveLoad(false); }
+  }
+
+  async function handleCopyEmail() {
+    if (!detail) return;
+    try { await navigator.clipboard.writeText(detail.email); showToast('Email copied to clipboard.'); }
+    catch { showToast('Copy failed — please copy manually: ' + detail.email); }
+  }
+
+  async function handleResetLink() {
+    if (!detail) return;
+    try {
+      const { reset_link, email } = await adminApi.getMemberResetLink(detail.id);
+      await navigator.clipboard.writeText(reset_link);
+      showToast(`Reset link copied — share with ${email}`);
+    } catch (e: unknown) {
+      showToast(e instanceof Error ? e.message : 'Failed to generate reset link.');
+    }
+  }
 
   async function handleToggle() {
     if (!detail) return;
@@ -679,6 +803,13 @@ function MemberDetailPanel({ memberId, onClose, onToggleStatus, currentUserId }:
         {/* ── Hero body ── */}
         <div style={{ background: `linear-gradient(180deg, ${loading ? '#FFF' : meta.tint} 0%, #FFF 100%)`, padding: '24px 24px 20px', borderBottom: `1px solid ${C.slate100}`, flexShrink: 0 }}>
 
+          {/* Toast notification */}
+          {toast && (
+            <div style={{ marginBottom: 14, padding: '9px 14px', borderRadius: 10, background: '#F0FDF4', border: '1px solid #BBF7D0', fontSize: '0.78rem', fontWeight: 600, color: '#15803D', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span>✓</span> {toast}
+            </div>
+          )}
+
           {loading ? (
             <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
               <div className="skeleton" style={{ width: 80, height: 80, borderRadius: 22, flexShrink: 0 }}/>
@@ -689,45 +820,97 @@ function MemberDetailPanel({ memberId, onClose, onToggleStatus, currentUserId }:
               </div>
             </div>
           ) : detail ? (
-            <div style={{ display: 'flex', gap: 18, alignItems: 'flex-start' }}>
-              {/* Avatar with glow ring */}
-              <div style={{ position: 'relative', flexShrink: 0 }}>
-                <div style={{
-                  width: 80, height: 80, borderRadius: 22,
-                  background: meta.gradient,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: 'white', fontSize: '1.6rem', fontWeight: 800,
-                  boxShadow: `0 8px 28px ${meta.color}55, 0 0 0 3px #FFF, 0 0 0 5px ${meta.border}`,
-                }}>
-                  {initials(fullName)}
+            isEditing ? (
+              /* ── Edit mode ── */
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18 }}>
+                  <div style={{ width: 56, height: 56, borderRadius: 16, background: meta.gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '1.1rem', fontWeight: 800, flexShrink: 0 }}>
+                    {initials(`${editFirst} ${editLast}`) || initials(fullName)}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.72rem', fontWeight: 700, color: C.slate400, marginBottom: 2 }}>Editing profile</div>
+                    <div style={{ fontSize: '0.82rem', color: C.slate500 }}>Changes saved to academy roster</div>
+                  </div>
                 </div>
-                {/* Online/active indicator */}
-                <div style={{ position: 'absolute', bottom: 4, right: 4, width: 14, height: 14, borderRadius: '50%', background: isActive ? C.green : C.slate300, border: '2.5px solid #FFF', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}/>
+                <div style={{ display: 'flex', gap: 10, marginBottom: saveErr ? 10 : 0 }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ display: 'block', fontSize: '0.63rem', fontWeight: 700, color: C.slate400, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5 }}>First name</label>
+                    <input
+                      value={editFirst} onChange={e => setEditFirst(e.target.value)}
+                      style={{ width: '100%', padding: '9px 12px', border: `1.5px solid ${C.slate200}`, borderRadius: 10, fontSize: '0.88rem', fontWeight: 600, color: C.slate900, outline: 'none', boxSizing: 'border-box' }}
+                      onFocus={e => e.target.style.borderColor = C.indigo}
+                      onBlur={e => e.target.style.borderColor = C.slate200}
+                    />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ display: 'block', fontSize: '0.63rem', fontWeight: 700, color: C.slate400, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5 }}>Last name</label>
+                    <input
+                      value={editLast} onChange={e => setEditLast(e.target.value)}
+                      style={{ width: '100%', padding: '9px 12px', border: `1.5px solid ${C.slate200}`, borderRadius: 10, fontSize: '0.88rem', fontWeight: 600, color: C.slate900, outline: 'none', boxSizing: 'border-box' }}
+                      onFocus={e => e.target.style.borderColor = C.indigo}
+                      onBlur={e => e.target.style.borderColor = C.slate200}
+                    />
+                  </div>
+                </div>
+                {saveErr && <div style={{ fontSize: '0.75rem', color: C.red, marginBottom: 10 }}>⚠ {saveErr}</div>}
+                <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+                  <button onClick={() => setIsEditing(false)} style={{ flex: 1, padding: '9px', border: `1.5px solid ${C.slate200}`, borderRadius: 9, background: 'none', color: C.slate500, fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer' }}>
+                    Cancel
+                  </button>
+                  <button onClick={handleSave} disabled={saveLoad || !editFirst.trim() || !editLast.trim()}
+                    style={{ flex: 2, padding: '9px', border: 'none', borderRadius: 9, background: C.indigo, color: '#FFF', fontWeight: 700, fontSize: '0.8rem', cursor: (saveLoad || !editFirst.trim() || !editLast.trim()) ? 'not-allowed' : 'pointer', opacity: (saveLoad || !editFirst.trim() || !editLast.trim()) ? 0.65 : 1 }}>
+                    {saveLoad ? 'Saving…' : 'Save changes'}
+                  </button>
+                </div>
               </div>
+            ) : (
+              /* ── Normal view ── */
+              <div style={{ display: 'flex', gap: 18, alignItems: 'flex-start' }}>
+                {/* Avatar with glow ring */}
+                <div style={{ position: 'relative', flexShrink: 0 }}>
+                  <div style={{
+                    width: 80, height: 80, borderRadius: 22,
+                    background: meta.gradient,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: 'white', fontSize: '1.6rem', fontWeight: 800,
+                    boxShadow: `0 8px 28px ${meta.color}55, 0 0 0 3px #FFF, 0 0 0 5px ${meta.border}`,
+                  }}>
+                    {initials(fullName)}
+                  </div>
+                  <div style={{ position: 'absolute', bottom: 4, right: 4, width: 14, height: 14, borderRadius: '50%', background: isActive ? C.green : C.slate300, border: '2.5px solid #FFF', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}/>
+                </div>
 
-              {/* Name + meta */}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: '1.35rem', fontWeight: 800, color: C.slate900, lineHeight: 1.2, marginBottom: 7, letterSpacing: '-0.02em' }}>
-                  {fullName}
+                {/* Name + meta + action bar */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 800, color: C.slate900, lineHeight: 1.2, marginBottom: 7, letterSpacing: '-0.02em' }}>
+                    {fullName}
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginBottom: 2 }}>
+                    <RoleBadge role={detail.role} />
+                    <StatusDot active={isActive} />
+                    {teamCount > 0 && (
+                      <span style={{ fontSize: '0.72rem', color: C.slate400, fontWeight: 500 }}>
+                        · {teamCount} team{teamCount !== 1 ? 's' : ''}{sports.length > 0 ? ` in ${sports[0]}` : ''}
+                      </span>
+                    )}
+                  </div>
+                  <ActionBar
+                    onMessage={handleMessage}
+                    onEdit={startEdit}
+                    onCopyEmail={handleCopyEmail}
+                    onResetLink={handleResetLink}
+                    msgLoading={msgLoad}
+                    isSelf={isSelf}
+                  />
                 </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginBottom: 2 }}>
-                  <RoleBadge role={detail.role} />
-                  <StatusDot active={isActive} />
-                  {teamCount > 0 && (
-                    <span style={{ fontSize: '0.72rem', color: C.slate400, fontWeight: 500 }}>
-                      · {teamCount} team{teamCount !== 1 ? 's' : ''}{sports.length > 0 ? ` in ${sports[0]}` : ''}
-                    </span>
-                  )}
-                </div>
-                <ActionBar />
-              </div>
 
-              {/* Completion ring */}
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, flexShrink: 0, paddingTop: 2 }}>
-                <CompletionRing pct={pct} size={48} />
-                <div style={{ fontSize: '0.6rem', fontWeight: 600, color: C.slate400, textAlign: 'center', lineHeight: 1.2 }}>Profile<br/>Complete</div>
+                {/* Completion ring */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, flexShrink: 0, paddingTop: 2 }}>
+                  <CompletionRing pct={pct} size={48} />
+                  <div style={{ fontSize: '0.6rem', fontWeight: 600, color: C.slate400, textAlign: 'center', lineHeight: 1.2 }}>Profile<br/>Complete</div>
+                </div>
               </div>
-            </div>
+            )
           ) : null}
         </div>
 
@@ -1040,6 +1223,7 @@ export default function RosterPage() {
           memberId={selectedId}
           onClose={() => setSelectedId(null)}
           onToggleStatus={u => setMembers(prev => prev.map(m => m.id === u.id ? u : m))}
+          onMemberUpdated={u => setMembers(prev => prev.map(m => m.id === u.id ? u : m))}
           currentUserId={currentUserId}
         />
       )}

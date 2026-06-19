@@ -20,7 +20,7 @@
 const { Router }       = require('express');
 const controller       = require('../controllers/admin.controller');
 const { authenticate, extractTenant, requireRole } = require('../middleware/auth.middleware');
-const { validateInviteBody, validateMemberStatusBody } = require('../middleware/validate');
+const { validateInviteBody, validateMemberStatusBody, validateUpdateMemberBody } = require('../middleware/validate');
 
 const router = Router();
 
@@ -32,6 +32,8 @@ router.get(    '/invite',                          controller.listInvitations);
 router.delete( '/invite/:id',                      controller.revokeInvitation);
 router.get(    '/roster',                          controller.listRoster);
 router.get(    '/roster/:id',                      controller.getMemberDetail);
-router.patch(  '/roster/:id/status', validateMemberStatusBody, controller.setMemberStatus);
+router.patch(  '/roster/:id',         validateUpdateMemberBody, controller.updateMember);
+router.patch(  '/roster/:id/status',  validateMemberStatusBody, controller.setMemberStatus);
+router.post(   '/roster/:id/reset-link',                        controller.getMemberResetLink);
 
 module.exports = router;

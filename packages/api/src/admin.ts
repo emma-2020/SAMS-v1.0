@@ -73,6 +73,24 @@ export async function getMemberDetail(id: string): Promise<MemberDetail> {
   return res.data.member;
 }
 
+// Backend: PATCH /admin/roster/:id — update first/last name
+export async function updateMember(id: string, payload: { first_name?: string; last_name?: string }): Promise<UserProfile> {
+  const res = (await apiClient.patch(`/admin/roster/${id}`, payload)) as {
+    success: boolean;
+    data: { member: UserProfile };
+  };
+  return res.data.member;
+}
+
+// Backend: POST /admin/roster/:id/reset-link
+export async function getMemberResetLink(id: string): Promise<{ reset_link: string; email: string }> {
+  const res = (await apiClient.post(`/admin/roster/${id}/reset-link`, {})) as {
+    success: boolean;
+    data: { reset_link: string; email: string };
+  };
+  return res.data;
+}
+
 // Backend: PATCH /admin/roster/:id/status
 export async function setMemberStatus(id: string, isActive: boolean): Promise<UserProfile> {
   const res = (await apiClient.patch(`/admin/roster/${id}/status`, { is_active: isActive })) as {

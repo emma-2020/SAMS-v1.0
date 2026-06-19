@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback, useReducer } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { chatApi } from '@sams/api';
 import type { ChatChannel, ChatChannelMember, ChatMessage, ChatAttachment, TeamMember, ReportedMessage } from '@sams/api';
 import { useAuthStore } from '@sams/store';
@@ -1156,6 +1157,8 @@ export default function ChatPage() {
   const mobile = useIsMobile();
   const user   = useAuthStore(s => s.user);
   const isAdmin = user?.role === 'Admin';
+  const searchParams = useSearchParams();
+  const openChannelId = searchParams.get('open');
 
   // Channels state
   const [channels,      setChannels]      = useState<ChatChannel[]>([]);
@@ -1185,15 +1188,18 @@ export default function ChatPage() {
   const bottomRef  = useRef<HTMLDivElement>(null);
   const listRef    = useRef<HTMLDivElement>(null);
 
-  // Load channels on mount
+  // Load channels on mount; honour ?open= param from roster Message button
   useEffect(() => {
     chatApi.listChannels()
       .then(chs => {
         setChannels(chs);
-        if (chs[0]) setActiveChannel(chs[0]);
+        const target = openChannelId ? chs.find(c => c.id === openChannelId) : null;
+        setActiveChannel(target ?? chs[0] ?? null);
+        if (target && mobile) setMobileView('chat');
       })
       .catch(err => setChError(err.message || 'Failed to load channels.'))
       .finally(() => setLoadingCh(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Load messages when active channel changes

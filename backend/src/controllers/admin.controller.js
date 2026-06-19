@@ -211,4 +211,66 @@ async function setMemberStatus(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { createInvitation, listInvitations, revokeInvitation, listRoster, getMemberDetail, setMemberStatus };
+async function updateMember(req, res, next) {
+  try {
+    const { supabaseAdmin } = require('../config/supabase');
+    const { NotFoundError, BadRequestError, InternalError } = require('../utils/errors');
+    const { first_name, last_name } = req.body;
+    const memberId = req.params.id;
+
+    const { data: existing } = await supabaseAdmin
+      .from('users')
+      .select('id')
+      .eq('id', memberId)
+      .eq('academy_id', req.academyId)
+      .single();
+    if (!existing) throw new NotFoundError('Member not found.');
+
+    const updates = {};
+    if (first_name?.trim()) updates.first_name = first_name.trim();
+    if (last_name?.trim())  updates.last_name  = last_name.trim();
+    if (!Object.keys(updates).length) throw new BadRequestError('No valid fields to update.');
+
+    const { data: updated, error } = await supabaseAdmin
+      .from('users')
+      .update(updates)
+      .eq('id', memberId)
+      .eq('academy_id', req.academyId)
+      .select('id, first_name, last_name, email, role, is_active, created_at, avatar_url')
+      .single();
+    if (error) throw new InternalError('Failed to update member.');
+
+    return res.status(200).json({ success: true, data: { member: updated } });
+  } catch (err) { next(err); }
+}
+
+async function getMemberResetLink(req, res, next) {
+  try {
+    const { supabaseAdmin } = require('../config/supabase');
+    const { NotFoundError, BadRequestError, InternalError } = require('../utils/errors');
+    const memberId = req.params.id;
+
+    if (memberId === req.user.id) throw new BadRequestError('Use Settings to reset your own password.');
+
+    const { data: user } = await supabaseAdmin
+      .from('users')
+      .select('id, email')
+      .eq('id', memberId)
+      .eq('academy_id', req.academyId)
+      .single();
+    if (!user) throw new NotFoundError('Member not found.');
+
+    const { data, error } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'recovery',
+      email: user.email,
+    });
+    if (error) throw new InternalError(`Failed to generate reset link: ${error.message}`);
+
+    return res.status(200).json({
+      success: true,
+      data: { reset_link: data.properties.action_link, email: user.email },
+    });
+  } catch (err) { next(err); }
+}
+
+module.exports = { createInvitation, listInvitations, revokeInvitation, listRoster, getMemberDetail, setMemberStatus, updateMember, getMemberResetLink };
