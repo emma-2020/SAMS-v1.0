@@ -1,5 +1,6 @@
 import { apiClient } from './client';
-import type { InvitationRecord, UserProfile } from './types';
+import type { InvitationRecord, UserProfile, MemberDetail } from './types';
+export type { MemberDetail };
 
 interface DashboardStats {
   total_members: number;
@@ -61,6 +62,15 @@ export async function sendInvitation(payload: {
 // Backend: DELETE /admin/invite/:id
 export async function revokeInvitation(id: string): Promise<void> {
   await apiClient.delete(`/admin/invite/${id}`);
+}
+
+// Backend: GET /admin/roster/:id
+export async function getMemberDetail(id: string): Promise<MemberDetail> {
+  const res = (await apiClient.get(`/admin/roster/${id}`)) as {
+    success: boolean;
+    data: { member: MemberDetail };
+  };
+  return res.data.member;
 }
 
 // Backend: PATCH /admin/roster/:id/status

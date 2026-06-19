@@ -161,6 +161,36 @@ export interface ChatChannelMember {
   joined_at: string;
 }
 
+export interface HealthLogEntry {
+  id: string;
+  fatigue: number;
+  soreness: number;
+  sleep_quality: number;
+  notes?: string | null;
+  log_date: string;
+  logged_at: string;
+  is_flagged: boolean;
+}
+
+export interface TeamSummary {
+  id: string;
+  name: string;
+  sport?: string | null;
+  division?: string | null;
+  is_active: boolean;
+  player_count?: number;
+}
+
+export interface MemberDetail extends UserProfile {
+  teams?: TeamSummary[];
+  parent?: { id: string; first_name: string; last_name: string; email: string; is_active: boolean } | null;
+  health_logs?: HealthLogEntry[];
+  children?: Array<{
+    player: { id: string; first_name: string; last_name: string; email: string; is_active: boolean; avatar_url?: string | null };
+    teams: Array<{ id: string; name: string; sport?: string | null; division?: string | null }>;
+  }>;
+}
+
 export interface InvitationRecord {
   id: string;
   email: string;
