@@ -150,10 +150,18 @@ function CompletionRing({ pct, size = 44 }: { pct: number; size?: number }) {
 }
 
 // ─── Atoms ────────────────────────────────────────────────────────────
-function Avatar({ name, role, size = 36 }: { name: string; role: string; size?: number }) {
+function Avatar({ name, role, size = 36, url, borderRadius = '50%' }: { name: string; role: string; size?: number; url?: string | null; borderRadius?: string | number }) {
+  const [imgErr, setImgErr] = useState(false);
   const m = ROLE_META[role] ?? ROLE_META.Admin;
+  if (url && !imgErr) {
+    return (
+      <div style={{ width: size, height: size, borderRadius, flexShrink: 0, overflow: 'hidden', border: `2px solid ${m.border}` }}>
+        <img src={url} alt={name} onError={() => setImgErr(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+      </div>
+    );
+  }
   return (
-    <div style={{ width: size, height: size, borderRadius: '50%', flexShrink: 0, background: m.bg, border: `2px solid ${m.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: m.color, fontSize: Math.round(size * 0.3), fontWeight: 800 }}>
+    <div style={{ width: size, height: size, borderRadius, flexShrink: 0, background: m.bg, border: `2px solid ${m.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: m.color, fontSize: Math.round(size * 0.3), fontWeight: 800 }}>
       {initials(name)}
     </div>
   );
@@ -628,7 +636,7 @@ function FamilyTab({ detail }: { detail: MemberDetail }) {
       {children.map((c, i) => (
         <div key={c.player.id || i} style={{ background: '#FFF', border: `1.5px solid ${C.greenBdr}`, borderRadius: 14, padding: '16px', marginBottom: 10, boxShadow: '0 1px 6px rgba(16,185,129,0.07)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: c.teams.length > 0 ? 12 : 0 }}>
-            <Avatar name={`${c.player.first_name} ${c.player.last_name}`} role="Player" size={46} />
+            <Avatar name={`${c.player.first_name} ${c.player.last_name}`} role="Player" size={46} url={c.player.avatar_url} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 700, fontSize: '0.95rem', color: C.slate900 }}>{c.player.first_name} {c.player.last_name}</div>
               <div style={{ fontSize: '0.72rem', color: C.slate400, fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 2 }}>{c.player.email}</div>
@@ -683,6 +691,9 @@ function MemberDetailPanel({ memberId, onClose, onToggleStatus, onMemberUpdated,
   // Message loading
   const [msgLoad, setMsgLoad] = useState(false);
 
+  // Avatar fallback (if img fails to load)
+  const [avatarErr, setAvatarErr] = useState(false);
+
   function showToast(msg: string) {
     setToast(msg);
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -690,7 +701,7 @@ function MemberDetailPanel({ memberId, onClose, onToggleStatus, onMemberUpdated,
   }
 
   const load = useCallback(async () => {
-    setLoading(true); setError(''); setIsEditing(false);
+    setLoading(true); setError(''); setIsEditing(false); setAvatarErr(false);
     try { setDetail(await adminApi.getMemberDetail(memberId)); }
     catch (e: unknown) { setError(e instanceof Error ? e.message : 'Failed to load member.'); }
     finally { setLoading(false); }
@@ -824,9 +835,15 @@ function MemberDetailPanel({ memberId, onClose, onToggleStatus, onMemberUpdated,
               /* ── Edit mode ── */
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18 }}>
-                  <div style={{ width: 56, height: 56, borderRadius: 16, background: meta.gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '1.1rem', fontWeight: 800, flexShrink: 0 }}>
-                    {initials(`${editFirst} ${editLast}`) || initials(fullName)}
-                  </div>
+                  {detail.avatar_url && !avatarErr ? (
+                    <div style={{ width: 56, height: 56, borderRadius: 16, overflow: 'hidden', flexShrink: 0, border: `2px solid ${meta.border}` }}>
+                      <img src={detail.avatar_url} alt={fullName} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    </div>
+                  ) : (
+                    <div style={{ width: 56, height: 56, borderRadius: 16, background: meta.gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '1.1rem', fontWeight: 800, flexShrink: 0 }}>
+                      {initials(`${editFirst} ${editLast}`) || initials(fullName)}
+                    </div>
+                  )}
                   <div>
                     <div style={{ fontSize: '0.72rem', fontWeight: 700, color: C.slate400, marginBottom: 2 }}>Editing profile</div>
                     <div style={{ fontSize: '0.82rem', color: C.slate500 }}>Changes saved to academy roster</div>
@@ -868,15 +885,21 @@ function MemberDetailPanel({ memberId, onClose, onToggleStatus, onMemberUpdated,
               <div style={{ display: 'flex', gap: 18, alignItems: 'flex-start' }}>
                 {/* Avatar with glow ring */}
                 <div style={{ position: 'relative', flexShrink: 0 }}>
-                  <div style={{
-                    width: 80, height: 80, borderRadius: 22,
-                    background: meta.gradient,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: 'white', fontSize: '1.6rem', fontWeight: 800,
-                    boxShadow: `0 8px 28px ${meta.color}55, 0 0 0 3px #FFF, 0 0 0 5px ${meta.border}`,
-                  }}>
-                    {initials(fullName)}
-                  </div>
+                  {detail.avatar_url && !avatarErr ? (
+                    <div style={{ width: 80, height: 80, borderRadius: 22, overflow: 'hidden', flexShrink: 0, boxShadow: `0 8px 28px ${meta.color}55, 0 0 0 3px #FFF, 0 0 0 5px ${meta.border}` }}>
+                      <img src={detail.avatar_url} alt={fullName} onError={() => setAvatarErr(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    </div>
+                  ) : (
+                    <div style={{
+                      width: 80, height: 80, borderRadius: 22,
+                      background: meta.gradient,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: 'white', fontSize: '1.6rem', fontWeight: 800,
+                      boxShadow: `0 8px 28px ${meta.color}55, 0 0 0 3px #FFF, 0 0 0 5px ${meta.border}`,
+                    }}>
+                      {initials(fullName)}
+                    </div>
+                  )}
                   <div style={{ position: 'absolute', bottom: 4, right: 4, width: 14, height: 14, borderRadius: '50%', background: isActive ? C.green : C.slate300, border: '2.5px solid #FFF', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}/>
                 </div>
 
@@ -1156,9 +1179,15 @@ export default function RosterPage() {
 
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                          <div style={{ width: 40, height: 40, borderRadius: 12, background: isSelected ? meta.gradient : meta.bg, border: `2px solid ${meta.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: isSelected ? 'white' : meta.color, fontSize: '0.8rem', fontWeight: 800, flexShrink: 0, transition: 'all 0.15s' }}>
-                            {initials(`${m.first_name} ${m.last_name}`)}
-                          </div>
+                          {m.avatar_url ? (
+                            <div style={{ width: 40, height: 40, borderRadius: 12, overflow: 'hidden', border: `2px solid ${meta.border}`, flexShrink: 0, transition: 'all 0.15s' }}>
+                              <img src={m.avatar_url} alt={`${m.first_name} ${m.last_name}`} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                            </div>
+                          ) : (
+                            <div style={{ width: 40, height: 40, borderRadius: 12, background: isSelected ? meta.gradient : meta.bg, border: `2px solid ${meta.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: isSelected ? 'white' : meta.color, fontSize: '0.8rem', fontWeight: 800, flexShrink: 0, transition: 'all 0.15s' }}>
+                              {initials(`${m.first_name} ${m.last_name}`)}
+                            </div>
+                          )}
                           <div>
                             <div style={{ fontWeight: 700, fontSize: '0.875rem', color: isSelected ? meta.color : 'var(--text-primary)' }}>{m.first_name} {m.last_name}</div>
                             <div style={{ fontSize: '0.67rem', color: C.slate400, marginTop: 1 }}>{isSelected ? 'Profile open →' : 'Click to view profile'}</div>
