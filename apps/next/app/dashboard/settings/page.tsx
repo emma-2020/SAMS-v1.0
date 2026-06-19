@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { UploadCloud } from 'lucide-react';
 import { useAuthStore } from '@sams/store';
-import { apiClient } from '@sams/api';
+import { apiClient, chatApi } from '@sams/api';
+import type { BlockedUser, AcademySettings } from '@sams/api';
 import { useTheme } from '@/lib/theme/provider';
 
 type Density = 'comfortable' | 'compact' | 'spacious';
@@ -40,10 +41,11 @@ const ROLE_META: Record<string, { color: string; hex: string; label: string }> =
 };
 
 const TABS = [
-  { id: 'profile',    label: 'Profile',    icon: <IcoUser />    },
-  { id: 'security',   label: 'Security',   icon: <IcoLock />    },
-  { id: 'appearance', label: 'Appearance', icon: <IcoPalette /> },
-  { id: 'academy',    label: 'Academy',    icon: <IcoBldg />    },
+  { id: 'profile',    label: 'Profile',            icon: <IcoUser />    },
+  { id: 'security',   label: 'Security',           icon: <IcoLock />    },
+  { id: 'appearance', label: 'Appearance',         icon: <IcoPalette /> },
+  { id: 'academy',    label: 'Academy',            icon: <IcoBldg />    },
+  { id: 'privacy',    label: 'Privacy & Safety',   icon: <IcoShield />  },
 ];
 
 // ─── StyledInput ──────────────────────────────────────────────────────────────
@@ -280,6 +282,48 @@ export default function SettingsPage() {
   function copyAcademyId() {
     navigator.clipboard.writeText(user?.academy_id ?? '');
     setCopied(true); setTimeout(() => setCopied(false), 2000);
+  }
+
+  // ── Blocked users (Privacy & Safety tab) ───────────────────────────────────
+  const [blockedUsers,    setBlockedUsers]    = useState<BlockedUser[]>([]);
+  const [blockLoading,    setBlockLoading]    = useState(false);
+  const [unblockingId,    setUnblockingId]    = useState<string | null>(null);
+
+  useEffect(() => {
+    if (activeTab === 'privacy') {
+      setBlockLoading(true);
+      chatApi.getBlockedUsers().then(setBlockedUsers).finally(() => setBlockLoading(false));
+    }
+  }, [activeTab]);
+
+  async function handleUnblock(userId: string) {
+    setUnblockingId(userId);
+    try {
+      await chatApi.unblockUser(userId);
+      setBlockedUsers(prev => prev.filter(u => u.id !== userId));
+    } catch { /* ignore */ }
+    finally { setUnblockingId(null); }
+  }
+
+  // ── Admin chat policy (Academy tab, Admin only) ────────────────────────────
+  const [chatSettings,       setChatSettings]       = useState<AcademySettings>({});
+  const [chatSettingsLoading,setChatSettingsLoading] = useState(false);
+  const [togglingDmPolicy,   setTogglingDmPolicy]   = useState(false);
+
+  useEffect(() => {
+    if (activeTab === 'academy' && user?.role === 'Admin') {
+      setChatSettingsLoading(true);
+      chatApi.getChatSettings().then(setChatSettings).finally(() => setChatSettingsLoading(false));
+    }
+  }, [activeTab, user?.role]);
+
+  async function handleToggleDmPolicy() {
+    setTogglingDmPolicy(true);
+    try {
+      const updated = await chatApi.updateChatSettings({ chat_coach_player_dm: !chatSettings.chat_coach_player_dm });
+      setChatSettings(updated);
+    } catch { /* ignore */ }
+    finally { setTogglingDmPolicy(false); }
   }
 
   const initials = `${user?.first_name?.[0] ?? ''}${user?.last_name?.[0] ?? ''}`.toUpperCase();
@@ -571,6 +615,127 @@ export default function SettingsPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <InfoRow label="Version"     value="SAMS v1.0" />
               <InfoRow label="Environment" value={process.env.NODE_ENV ?? 'development'} mono />
+            </div>
+          </SettingsCard>
+
+          {user?.role === 'Admin' && (
+            <SettingsCard icon={<IcoShield />} title="Chat Policy" subtitle="Control messaging between roles in your academy">
+              {chatSettingsLoading ? (
+                <div className="skeleton" style={{ height: 72, borderRadius: 12 }} />
+              ) : (
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 18px', background: 'var(--bg-elevated)', borderRadius: 14, border: '1.5px solid var(--border-subtle)' }}>
+                    <div style={{ flex: 1, paddingRight: 20 }}>
+                      <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-primary)', marginBottom: 4 }}>
+                        Allow Coach ↔ Player direct messages
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                        When off, coaches and players cannot open 1-on-1 chats. They must communicate through team groups or via the player&apos;s parent.
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleToggleDmPolicy}
+                      disabled={togglingDmPolicy}
+                      aria-label="Toggle coach-player DMs"
+                      style={{
+                        width: 48, height: 26, borderRadius: 99, border: 'none', cursor: 'pointer', flexShrink: 0,
+                        background: chatSettings.chat_coach_player_dm ? 'linear-gradient(135deg, #6366F1, #8B5CF6)' : 'var(--border-default)',
+                        position: 'relative', transition: 'background 0.25s', opacity: togglingDmPolicy ? 0.7 : 1,
+                        boxShadow: chatSettings.chat_coach_player_dm ? '0 2px 8px rgba(99,102,241,0.4)' : 'none',
+                      }}
+                    >
+                      <span style={{
+                        position: 'absolute', top: 3, left: chatSettings.chat_coach_player_dm ? 25 : 3,
+                        width: 20, height: 20, borderRadius: '50%', background: '#FFFFFF',
+                        boxShadow: '0 1px 4px rgba(15,23,42,0.2)',
+                        transition: 'left 0.25s cubic-bezier(0.4,0,0.2,1)',
+                      }} />
+                    </button>
+                  </div>
+                  <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 10, background: chatSettings.chat_coach_player_dm ? '#F0FDF4' : '#FFFBEB', border: `1px solid ${chatSettings.chat_coach_player_dm ? '#BBF7D0' : '#FDE68A'}`, fontSize: '0.76rem', fontWeight: 600, color: chatSettings.chat_coach_player_dm ? '#15803D' : '#D97706' }}>
+                    {chatSettings.chat_coach_player_dm
+                      ? '✓ Coach ↔ Player DMs are currently enabled for your academy'
+                      : '⚠ Coach ↔ Player DMs are currently blocked (recommended for safeguarding)'}
+                  </div>
+                </div>
+              )}
+            </SettingsCard>
+          )}
+        </div>
+      )}
+
+      {/* ── Privacy & Safety Tab ─────────────────────────────────────────── */}
+      {activeTab === 'privacy' && (
+        <div style={{ animation: 'fadeIn 0.2s ease', display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <SettingsCard icon={<IcoShield />} title="Blocked Users" subtitle="People you have blocked cannot send you direct messages">
+            {blockLoading ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {[1,2].map(i => <div key={i} className="skeleton" style={{ height: 62, borderRadius: 12 }} />)}
+              </div>
+            ) : blockedUsers.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                <div style={{ fontSize: '2rem', marginBottom: 10 }}>🛡️</div>
+                <div style={{ fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>No blocked users</div>
+                <div>You haven&apos;t blocked anyone</div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {blockedUsers.map(u => (
+                  <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', background: 'var(--bg-elevated)', borderRadius: 14, border: '1.5px solid var(--border-subtle)' }}>
+                    <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--accent-subtle)', border: '1.5px solid var(--accent-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontWeight: 800, fontSize: '0.85rem', color: '#6366F1' }}>
+                      {u.first_name[0]}{u.last_name[0]}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-primary)' }}>{u.first_name} {u.last_name}</div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 1 }}>{u.role} · Blocked {new Date(u.blocked_at).toLocaleDateString()}</div>
+                    </div>
+                    <button
+                      onClick={() => handleUnblock(u.id)}
+                      disabled={unblockingId === u.id}
+                      style={{ padding: '7px 16px', borderRadius: 10, border: '1.5px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-secondary)', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', opacity: unblockingId === u.id ? 0.6 : 1, transition: 'all 0.15s', flexShrink: 0 }}
+                      onMouseEnter={e => { if (unblockingId !== u.id) { e.currentTarget.style.borderColor = '#6366F1'; e.currentTarget.style.color = '#6366F1'; } }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+                    >
+                      {unblockingId === u.id ? 'Unblocking…' : 'Unblock'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </SettingsCard>
+
+          <SettingsCard icon={<IcoLock />} title="Who Can Message You" subtitle="Based on your role and academy policy">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {(user?.role === 'Coach'
+                ? [
+                    { label: 'Admins', allowed: true },
+                    { label: 'Other Coaches', allowed: true },
+                    { label: 'Parents', allowed: true },
+                    { label: 'Players', allowed: false, note: 'Controlled by academy chat policy' },
+                  ]
+                : user?.role === 'Player'
+                ? [
+                    { label: 'Admins', allowed: true },
+                    { label: 'Other Players', allowed: true },
+                    { label: 'Parents (your own)', allowed: true },
+                    { label: 'Coaches', allowed: false, note: 'Controlled by academy chat policy' },
+                  ]
+                : [
+                    { label: 'All academy members', allowed: true },
+                  ]
+              ).map(item => (
+                <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: 'var(--bg-elevated)', borderRadius: 10, border: '1.5px solid var(--border-subtle)' }}>
+                  <span style={{ width: 20, height: 20, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: item.allowed ? '#F0FDF4' : '#FFF7ED', border: `1px solid ${item.allowed ? '#BBF7D0' : '#FED7AA'}` }}>
+                    {item.allowed
+                      ? <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#15803D" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                      : <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>}
+                  </span>
+                  <div style={{ flex: 1 }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>{item.label}</span>
+                    {('note' in item) && <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginLeft: 8 }}>{item.note}</span>}
+                  </div>
+                </div>
+              ))}
             </div>
           </SettingsCard>
         </div>

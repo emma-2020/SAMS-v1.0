@@ -1151,40 +1151,6 @@ function useIsMobile(bp = 768) {
   return mobile;
 }
 
-// ─── Stub modals (full implementation pending backend endpoints) ──────
-function ReportMsgModal({ messageId, onClose }: { messageId: string; onClose: () => void }) {
-  return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={onClose}>
-      <div style={{ background: '#FFF', borderRadius: 16, padding: 24, maxWidth: 360, width: '90%', boxShadow: '0 20px 60px rgba(15,23,42,0.2)' }} onClick={e => e.stopPropagation()}>
-        <div style={{ fontWeight: 800, fontSize: '1rem', color: '#0F172A', marginBottom: 8 }}>Report Message</div>
-        <p style={{ fontSize: '0.82rem', color: '#64748B', margin: '0 0 16px' }}>Report this message to academy administrators for review.</p>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={onClose} style={{ flex: 1, padding: '9px', border: '1.5px solid #E2E8F0', borderRadius: 10, background: 'none', color: '#475569', fontWeight: 600, cursor: 'pointer', fontSize: '0.82rem' }}>Cancel</button>
-          <button onClick={onClose} style={{ flex: 1, padding: '9px', border: 'none', borderRadius: 10, background: '#EF4444', color: '#FFF', fontWeight: 700, cursor: 'pointer', fontSize: '0.82rem' }}>Report</button>
-        </div>
-        <div style={{ display: 'none' }}>{messageId}</div>
-      </div>
-    </div>
-  );
-}
-
-function AdminReportsPanel({ onClose }: { onClose: () => void }) {
-  return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={onClose}>
-      <div style={{ background: '#FFF', borderRadius: 16, padding: 24, maxWidth: 480, width: '90%', boxShadow: '0 20px 60px rgba(15,23,42,0.2)' }} onClick={e => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <div style={{ fontWeight: 800, fontSize: '1rem', color: '#0F172A' }}>Message Reports</div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', fontSize: '1rem' }}>✕</button>
-        </div>
-        <div style={{ textAlign: 'center', padding: '32px 0', color: '#94A3B8' }}>
-          <div style={{ fontSize: '2rem', marginBottom: 10 }}>📋</div>
-          <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>No reports yet</div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ─── MAIN CHAT PAGE ───────────────────────────────────────────────────
 export default function ChatPage() {
   const mobile = useIsMobile();
@@ -1613,5 +1579,159 @@ function ChannelRow({ ch, isActive, onClick }: { ch: ChatChannel; isActive: bool
         </div>
       </div>
     </button>
+  );
+}
+
+// ─── Report Message Modal ────────────────────────────────────────────
+function ReportMsgModal({ messageId, onClose }: { messageId: string; onClose: () => void }) {
+  const REASONS = ['Harassment', 'Inappropriate content', 'Spam', 'Other'];
+  const [reason,     setReason]     = useState(REASONS[0]);
+  const [notes,      setNotes]      = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [done,       setDone]       = useState(false);
+
+  async function handleSubmit() {
+    setSubmitting(true);
+    try {
+      await chatApi.reportMessage(messageId, reason, notes || undefined);
+      setDone(true);
+      setTimeout(onClose, 1800);
+    } catch { setSubmitting(false); }
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={onClose}>
+      <div style={{ background: '#FFFFFF', borderRadius: 18, width: '100%', maxWidth: 380, boxShadow: '0 24px 64px rgba(15,23,42,0.22)', animation: 'fadeIn 0.2s ease' }} onClick={e => e.stopPropagation()}>
+        <div style={{ padding: '20px 20px 14px', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 800, fontSize: '1rem', color: '#0F172A' }}>Report Message</div>
+            <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginTop: 1 }}>This will be sent to your academy admin for review</div>
+          </div>
+          <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: '50%', border: 'none', background: '#F1F5F9', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}><IcoX size={13} /></button>
+        </div>
+        <div style={{ padding: '16px 20px' }}>
+          {done ? (
+            <div style={{ textAlign: 'center', padding: '20px 0', color: '#15803D', fontWeight: 700, fontSize: '0.9rem' }}>✓ Report submitted</div>
+          ) : (
+            <>
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Reason</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {REASONS.map(r => (
+                    <label key={r} style={{ display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer', padding: '8px 12px', borderRadius: 8, border: `1.5px solid ${reason === r ? '#6366F1' : '#E2E8F0'}`, background: reason === r ? '#F5F3FF' : '#F8FAFC', transition: 'all 0.1s' }}>
+                      <input type="radio" value={r} checked={reason === r} onChange={() => setReason(r)} style={{ accentColor: '#6366F1' }} />
+                      <span style={{ fontSize: '0.85rem', fontWeight: reason === r ? 600 : 400, color: reason === r ? '#4338CA' : '#1E293B' }}>{r}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Additional notes (optional)</div>
+                <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} maxLength={500} placeholder="Any additional context…"
+                  style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1.5px solid #E2E8F0', fontSize: '0.83rem', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', resize: 'none' }}
+                  onFocus={e => e.currentTarget.style.borderColor = '#6366F1'}
+                  onBlur={e  => e.currentTarget.style.borderColor = '#E2E8F0'}
+                />
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button onClick={onClose} style={{ flex: 1, padding: '10px', borderRadius: 10, border: '1.5px solid #E2E8F0', background: 'none', color: '#64748B', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}>Cancel</button>
+                <button onClick={handleSubmit} disabled={submitting}
+                  style={{ flex: 2, padding: '10px', borderRadius: 10, border: 'none', background: '#EF4444', color: 'white', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', opacity: submitting ? 0.6 : 1 }}>
+                  {submitting ? 'Submitting…' : 'Submit Report'}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Admin Reports Panel ─────────────────────────────────────────────
+function AdminReportsPanel({ onClose }: { onClose: () => void }) {
+  const [reports,     setReports]     = useState<ReportedMessage[]>([]);
+  const [loading,     setLoading]     = useState(true);
+  const [reviewingId, setReviewingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    chatApi.getReports()
+      .then(setReports)
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function handleReview(reportId: string, status: 'reviewed' | 'dismissed') {
+    setReviewingId(reportId);
+    try {
+      await chatApi.reviewReport(reportId, status);
+      setReports(prev => prev.map(r => r.id === reportId ? { ...r, status } : r));
+    } catch { /* ignore */ }
+    finally { setReviewingId(null); }
+  }
+
+  const STATUS_BG: Record<string, string> = { pending: '#FFFBEB', reviewed: '#F0FDF4', dismissed: '#F8FAFC' };
+  const STATUS_FG: Record<string, string> = { pending: '#D97706', reviewed: '#15803D', dismissed: '#64748B' };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', zIndex: 1000, display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-end' }} onClick={onClose}>
+      <div style={{ background: '#FFFFFF', width: '100%', maxWidth: 420, height: '100vh', overflowY: 'auto', boxShadow: '-8px 0 40px rgba(15,23,42,0.15)', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+        <div style={{ padding: '18px 20px', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: '50%', border: 'none', background: '#F1F5F9', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}><IcoChevronLeft /></button>
+          <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#0F172A', flex: 1 }}>Message Reports</div>
+          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#D97706', background: '#FFFBEB', padding: '2px 8px', borderRadius: 99 }}>
+            {reports.filter(r => r.status === 'pending').length} pending
+          </span>
+        </div>
+        <div style={{ flex: 1, padding: '16px 20px', overflowY: 'auto' }}>
+          {loading ? (
+            [1,2,3].map(i => <div key={i} className="skeleton" style={{ height: 100, borderRadius: 12, marginBottom: 10 }} />)
+          ) : reports.length === 0 ? (
+            <div style={{ textAlign: 'center', color: '#94A3B8', padding: '40px 0', fontSize: '0.85rem' }}>No reports yet</div>
+          ) : reports.map(r => {
+            const msg      = r.messages;
+            const reporter = r.reporter;
+            const sender   = msg?.users;
+            return (
+              <div key={r.id} style={{ border: '1px solid #F1F5F9', borderRadius: 12, marginBottom: 10, overflow: 'hidden' }}>
+                <div style={{ padding: '12px 14px', background: '#F8FAFC' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#D97706', background: '#FFFBEB', padding: '2px 8px', borderRadius: 99 }}>{r.reason}</span>
+                    <span style={{ fontSize: '0.65rem', fontWeight: 700, color: STATUS_FG[r.status] ?? '#64748B', background: STATUS_BG[r.status] ?? '#F8FAFC', padding: '2px 8px', borderRadius: 99, textTransform: 'capitalize' }}>{r.status}</span>
+                  </div>
+                  {msg && (
+                    <div style={{ padding: '8px 10px', background: 'white', borderRadius: 8, border: '1px solid #E2E8F0', fontSize: '0.8rem', color: '#1E293B', marginBottom: 6 }}>
+                      <div style={{ fontSize: '0.65rem', color: '#94A3B8', marginBottom: 3, fontWeight: 600 }}>
+                        {sender ? `${sender.first_name} ${sender.last_name} · ${sender.role}` : 'Unknown'}
+                      </div>
+                      {msg.message_text ?? <span style={{ color: '#94A3B8', fontStyle: 'italic' }}>📎 Attachment</span>}
+                    </div>
+                  )}
+                  {r.notes && <div style={{ fontSize: '0.72rem', color: '#64748B', fontStyle: 'italic', marginBottom: 4 }}>Notes: {r.notes}</div>}
+                  <div style={{ fontSize: '0.65rem', color: '#94A3B8' }}>
+                    Reported by {reporter ? `${reporter.first_name} ${reporter.last_name}` : 'Unknown'} · {new Date(r.created_at).toLocaleDateString()}
+                  </div>
+                </div>
+                {r.status === 'pending' && (
+                  <div style={{ display: 'flex', borderTop: '1px solid #F1F5F9' }}>
+                    <button onClick={() => handleReview(r.id, 'reviewed')} disabled={reviewingId === r.id}
+                      style={{ flex: 1, padding: '9px', background: 'none', border: 'none', borderRight: '1px solid #F1F5F9', color: '#15803D', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer' }}
+                      onMouseEnter={e => e.currentTarget.style.background = '#F0FDF4'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+                      {reviewingId === r.id ? '…' : '✓ Reviewed'}
+                    </button>
+                    <button onClick={() => handleReview(r.id, 'dismissed')} disabled={reviewingId === r.id}
+                      style={{ flex: 1, padding: '9px', background: 'none', border: 'none', color: '#64748B', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer' }}
+                      onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+                      Dismiss
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
   );
 }
