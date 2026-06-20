@@ -2,30 +2,58 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { platformApi } from '@sams/api';
-import { setPlatformToken } from '@sams/api';
+import { platformApi, setPlatformToken } from '@sams/api';
 
 export default function PlatformLoginPage() {
   const router = useRouter();
+
+  // Step 1: credentials  |  Step 2: TOTP code
+  const [step,     setStep]     = useState<'credentials' | 'totp'>('credentials');
+  const [mfaToken, setMfaToken] = useState('');
+
   const [email,    setEmail]    = useState('');
   const [password, setPassword] = useState('');
+  const [totp,     setTotp]     = useState('');
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState('');
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleCredentials(e: React.FormEvent) {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      const { token } = await platformApi.loginPlatform(email.trim(), password);
-      setPlatformToken(token);
-      router.replace('/platform/dashboard');
+      const result = await platformApi.loginPlatform(email.trim(), password);
+      if ('mfa_required' in result && result.mfa_required) {
+        setMfaToken(result.mfa_token);
+        setStep('totp');
+      } else {
+        setPlatformToken((result as any).token);
+        router.replace('/platform/dashboard');
+      }
     } catch (err: any) {
       setError(err?.response?.data?.error || err?.message || 'Login failed.');
     } finally {
       setLoading(false);
     }
   }
+
+  async function handleTotp(e: React.FormEvent) {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const { token } = await platformApi.verifyPlatformMfa(mfaToken, totp.trim());
+      setPlatformToken(token);
+      router.replace('/platform/dashboard');
+    } catch (err: any) {
+      setError(err?.response?.data?.error || err?.message || 'Invalid code. Try again.');
+      setTotp('');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const handleSubmit = step === 'credentials' ? handleCredentials : handleTotp;
 
   return (
     <div style={{
@@ -117,76 +145,112 @@ export default function PlatformLoginPage() {
             </div>
           )}
 
-          <div style={{ marginBottom: 20 }}>
-            <label style={{
-              display: 'block', fontSize: '0.68rem', fontWeight: 700,
-              color: 'rgba(255,255,255,0.4)', marginBottom: 8,
-              letterSpacing: '0.1em', textTransform: 'uppercase',
-            }}>
-              Email
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              required
-              autoFocus
-              style={{
-                width: '100%', padding: '12px 16px', borderRadius: 12,
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.09)',
-                color: '#F1F5F9', fontSize: '0.9rem',
-                outline: 'none', boxSizing: 'border-box',
-                transition: 'all 0.2s',
-              }}
-              onFocus={e => {
-                e.target.style.borderColor = 'rgba(124,58,237,0.65)';
-                e.target.style.boxShadow = '0 0 0 3px rgba(124,58,237,0.18)';
-                e.target.style.background = 'rgba(124,58,237,0.07)';
-              }}
-              onBlur={e => {
-                e.target.style.borderColor = 'rgba(255,255,255,0.09)';
-                e.target.style.boxShadow = 'none';
-                e.target.style.background = 'rgba(255,255,255,0.05)';
-              }}
-              placeholder="platform@sams.io"
-            />
-          </div>
+          {step === 'credentials' ? (
+            <>
+              <div style={{ marginBottom: 20 }}>
+                <label style={{
+                  display: 'block', fontSize: '0.68rem', fontWeight: 700,
+                  color: 'rgba(255,255,255,0.4)', marginBottom: 8,
+                  letterSpacing: '0.1em', textTransform: 'uppercase',
+                }}>
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  required
+                  autoFocus
+                  style={{
+                    width: '100%', padding: '12px 16px', borderRadius: 12,
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid rgba(255,255,255,0.09)',
+                    color: '#F1F5F9', fontSize: '0.9rem',
+                    outline: 'none', boxSizing: 'border-box', transition: 'all 0.2s',
+                  }}
+                  onFocus={e => { e.target.style.borderColor = 'rgba(124,58,237,0.65)'; e.target.style.boxShadow = '0 0 0 3px rgba(124,58,237,0.18)'; e.target.style.background = 'rgba(124,58,237,0.07)'; }}
+                  onBlur={e =>  { e.target.style.borderColor = 'rgba(255,255,255,0.09)'; e.target.style.boxShadow = 'none'; e.target.style.background = 'rgba(255,255,255,0.05)'; }}
+                  placeholder="platform@sams.io"
+                />
+              </div>
 
-          <div style={{ marginBottom: 30 }}>
-            <label style={{
-              display: 'block', fontSize: '0.68rem', fontWeight: 700,
-              color: 'rgba(255,255,255,0.4)', marginBottom: 8,
-              letterSpacing: '0.1em', textTransform: 'uppercase',
-            }}>
-              Password
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-              style={{
-                width: '100%', padding: '12px 16px', borderRadius: 12,
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.09)',
-                color: '#F1F5F9', fontSize: '0.9rem',
-                outline: 'none', boxSizing: 'border-box',
-                transition: 'all 0.2s',
-              }}
-              onFocus={e => {
-                e.target.style.borderColor = 'rgba(124,58,237,0.65)';
-                e.target.style.boxShadow = '0 0 0 3px rgba(124,58,237,0.18)';
-                e.target.style.background = 'rgba(124,58,237,0.07)';
-              }}
-              onBlur={e => {
-                e.target.style.borderColor = 'rgba(255,255,255,0.09)';
-                e.target.style.boxShadow = 'none';
-                e.target.style.background = 'rgba(255,255,255,0.05)';
-              }}
-              placeholder="••••••••"
-            />
-          </div>
+              <div style={{ marginBottom: 30 }}>
+                <label style={{
+                  display: 'block', fontSize: '0.68rem', fontWeight: 700,
+                  color: 'rgba(255,255,255,0.4)', marginBottom: 8,
+                  letterSpacing: '0.1em', textTransform: 'uppercase',
+                }}>
+                  Password
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  required
+                  style={{
+                    width: '100%', padding: '12px 16px', borderRadius: 12,
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid rgba(255,255,255,0.09)',
+                    color: '#F1F5F9', fontSize: '0.9rem',
+                    outline: 'none', boxSizing: 'border-box', transition: 'all 0.2s',
+                  }}
+                  onFocus={e => { e.target.style.borderColor = 'rgba(124,58,237,0.65)'; e.target.style.boxShadow = '0 0 0 3px rgba(124,58,237,0.18)'; e.target.style.background = 'rgba(124,58,237,0.07)'; }}
+                  onBlur={e =>  { e.target.style.borderColor = 'rgba(255,255,255,0.09)'; e.target.style.boxShadow = 'none'; e.target.style.background = 'rgba(255,255,255,0.05)'; }}
+                  placeholder="••••••••"
+                />
+              </div>
+            </>
+          ) : (
+            /* ── TOTP step ── */
+            <div style={{ marginBottom: 30 }}>
+              <div style={{
+                background: 'rgba(124,58,237,0.08)',
+                border: '1px solid rgba(124,58,237,0.22)',
+                borderRadius: 10, padding: '14px 16px', marginBottom: 22,
+                fontSize: '0.83rem', color: 'rgba(255,255,255,0.55)', lineHeight: 1.6,
+              }}>
+                Open your authenticator app and enter the 6-digit code for <strong style={{ color: '#A78BFA' }}>SAMS Platform</strong>.
+              </div>
+              <label style={{
+                display: 'block', fontSize: '0.68rem', fontWeight: 700,
+                color: 'rgba(255,255,255,0.4)', marginBottom: 8,
+                letterSpacing: '0.1em', textTransform: 'uppercase',
+              }}>
+                Authentication Code
+              </label>
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]{6}"
+                maxLength={6}
+                value={totp}
+                onChange={e => setTotp(e.target.value.replace(/\D/g, ''))}
+                required
+                autoFocus
+                placeholder="000000"
+                style={{
+                  width: '100%', padding: '14px 16px', borderRadius: 12,
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(255,255,255,0.09)',
+                  color: '#F1F5F9', fontSize: '1.6rem', fontWeight: 700,
+                  letterSpacing: '0.4em', textAlign: 'center',
+                  outline: 'none', boxSizing: 'border-box', transition: 'all 0.2s',
+                }}
+                onFocus={e => { e.target.style.borderColor = 'rgba(124,58,237,0.65)'; e.target.style.boxShadow = '0 0 0 3px rgba(124,58,237,0.18)'; }}
+                onBlur={e =>  { e.target.style.borderColor = 'rgba(255,255,255,0.09)'; e.target.style.boxShadow = 'none'; }}
+              />
+              <button
+                type="button"
+                onClick={() => { setStep('credentials'); setError(''); setTotp(''); }}
+                style={{
+                  background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)',
+                  fontSize: '0.75rem', cursor: 'pointer', marginTop: 12, padding: 0,
+                }}
+              >
+                ← Back to login
+              </button>
+            </div>
+          )}
 
           <button
             type="submit"
@@ -200,25 +264,17 @@ export default function PlatformLoginPage() {
               border: 'none', borderRadius: 12,
               fontSize: '0.92rem', fontWeight: 800,
               cursor: loading ? 'not-allowed' : 'pointer',
-              letterSpacing: '0.04em',
-              transition: 'all 0.2s',
+              letterSpacing: '0.04em', transition: 'all 0.2s',
               boxShadow: loading ? 'none' : '0 8px 36px rgba(109,40,217,0.45)',
-              transform: 'translateY(0)',
             }}
-            onMouseEnter={e => {
-              if (!loading) {
-                (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-2px) scale(1.01)';
-                (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 14px 44px rgba(109,40,217,0.6)';
-              }
-            }}
-            onMouseLeave={e => {
-              if (!loading) {
-                (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0) scale(1)';
-                (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 8px 36px rgba(109,40,217,0.45)';
-              }
-            }}
+            onMouseEnter={e => { if (!loading) { (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-2px) scale(1.01)'; (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 14px 44px rgba(109,40,217,0.6)'; } }}
+            onMouseLeave={e => { if (!loading) { (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0) scale(1)';  (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 8px 36px rgba(109,40,217,0.45)'; } }}
           >
-            {loading ? 'Authenticating…' : 'Sign in to Control Plane'}
+            {loading
+              ? 'Authenticating…'
+              : step === 'credentials'
+              ? 'Sign in to Control Plane'
+              : 'Verify Code'}
           </button>
 
           <p style={{

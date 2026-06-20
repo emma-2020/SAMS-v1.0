@@ -21,11 +21,16 @@ const { platformAuthenticate } = require('../middleware/platformAuth.middleware'
 
 const router = Router();
 
-// ── Public: login ──────────────────────────────────────────────
-router.post('/login', controller.login);
+// ── Public: login + MFA verification (no platform auth required) ──
+router.post('/login',      controller.login);
+router.post('/mfa/verify', controller.mfaVerify);
 
-// ── All routes below require platform admin auth ───────────────
+// ── All routes below require a valid platform admin JWT ───────────
 router.use(platformAuthenticate);
+
+// MFA setup (authenticated admin enabling MFA for the first time)
+router.post('/mfa/setup',  controller.mfaSetup);
+router.post('/mfa/enable', controller.mfaEnable);
 
 router.get('/stats',                    controller.getStats);
 router.get('/requests',                 controller.listRequests);

@@ -58,4 +58,26 @@ function signPlatformToken(admin) {
   );
 }
 
-module.exports = { platformAuthenticate, signPlatformToken };
+// ─────────────────────────────────────────────────────────────────
+// MFA CHALLENGE TOKEN
+// Short-lived (5 min) token issued after password check when MFA is
+// enabled. Cannot be used to call any protected endpoint — only
+// POST /api/platform/mfa/verify accepts it.
+// ─────────────────────────────────────────────────────────────────
+function signMfaToken(adminId) {
+  return jwt.sign(
+    { type: 'platform_mfa_challenge' },
+    PLATFORM_JWT_SECRET,
+    { subject: adminId, expiresIn: '5m' }
+  );
+}
+
+function verifyMfaToken(token) {
+  const payload = jwt.verify(token, PLATFORM_JWT_SECRET);
+  if (payload.type !== 'platform_mfa_challenge') {
+    throw new Error('Not an MFA challenge token.');
+  }
+  return payload;
+}
+
+module.exports = { platformAuthenticate, signPlatformToken, signMfaToken, verifyMfaToken };

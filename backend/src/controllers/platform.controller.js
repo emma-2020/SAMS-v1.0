@@ -61,8 +61,41 @@ async function listAcademies(req, res, next) {
   } catch (err) { next(err); }
 }
 
+// POST /api/platform/mfa/setup — authenticated, generates TOTP secret + QR code
+async function mfaSetup(req, res, next) {
+  try {
+    const result = await service.mfaSetup(req.platformAdmin.id);
+    return res.json({ success: true, data: result });
+  } catch (err) { next(err); }
+}
+
+// POST /api/platform/mfa/enable — authenticated, verifies first code and activates MFA
+async function mfaEnable(req, res, next) {
+  try {
+    const { totp_code } = req.body;
+    if (!totp_code) return res.status(400).json({ success: false, error: '"totp_code" is required.' });
+    const result = await service.mfaEnable(req.platformAdmin.id, totp_code);
+    return res.json({ success: true, data: result });
+  } catch (err) { next(err); }
+}
+
+// POST /api/platform/mfa/verify — public, exchanges mfa_token + TOTP code for full JWT
+async function mfaVerify(req, res, next) {
+  try {
+    const { mfa_token, totp_code } = req.body;
+    if (!mfa_token || !totp_code) {
+      return res.status(400).json({ success: false, error: '"mfa_token" and "totp_code" are required.' });
+    }
+    const result = await service.mfaVerify(mfa_token, totp_code);
+    return res.json({ success: true, data: result });
+  } catch (err) { next(err); }
+}
+
 module.exports = {
   login,
+  mfaSetup,
+  mfaEnable,
+  mfaVerify,
   getStats,
   listRequests,
   getRequest,
