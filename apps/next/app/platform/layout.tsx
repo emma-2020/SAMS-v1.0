@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { label: 'Dashboard', path: '/platform/dashboard', icon: '⬡' },
   { label: 'Requests',  path: '/platform/requests',  icon: '📋' },
   { label: 'Academies', path: '/platform/academies',  icon: '🏫' },
+  { label: 'Security',  path: '/platform/dashboard/security', icon: '🔐' },
 ];
 
 export default function PlatformLayout({ children }: { children: React.ReactNode }) {

@@ -3,8 +3,8 @@
 const bcrypt = require('bcryptjs');
 const { supabaseAdmin } = require('../config/supabase');
 const { signPlatformToken, signMfaToken, verifyMfaToken } = require('../middleware/platformAuth.middleware');
-const { authenticator } = require('otplib');
-const QRCode            = require('qrcode');
+const { generateSecret, generateSync, generateURI, verifySync } = require('otplib');
+const QRCode = require('qrcode');
 const {
   UnauthorizedError,
   NotFoundError,
@@ -103,9 +103,9 @@ async function mfaSetup(adminId) {
   if (error || !admin) throw new NotFoundError('Platform admin not found.');
   if (admin.mfa_enabled) throw new ConflictError('MFA is already enabled for this account.');
 
-  const secret   = authenticator.generateSecret();
-  const otpauth  = authenticator.keyuri(admin.email, 'SAMS Platform', secret);
-  const qrCode   = await QRCode.toDataURL(otpauth);
+  const secret  = generateSecret();
+  const otpauth = generateURI({ secret, label: admin.email, issuer: 'SAMS Platform', type: 'totp' });
+  const qrCode  = await QRCode.toDataURL(otpauth);
 
   // Persist the secret (not yet active — mfa_enabled stays false until confirmed)
   await supabaseAdmin
@@ -131,8 +131,8 @@ async function mfaEnable(adminId, totpCode) {
   if (!admin.totp_secret) throw new BadRequestError('MFA setup not initiated. Call /mfa/setup first.');
   if (admin.mfa_enabled)  throw new ConflictError('MFA is already enabled.');
 
-  const isValid = authenticator.verify({ token: totpCode, secret: admin.totp_secret });
-  if (!isValid) throw new UnauthorizedError('Invalid authentication code. Please try again.');
+  const result = verifySync({ token: totpCode, secret: admin.totp_secret });
+  if (!result?.valid) throw new UnauthorizedError('Invalid authentication code. Please try again.');
 
   await supabaseAdmin
     .from('platform_admins')
@@ -165,8 +165,8 @@ async function mfaVerify(mfaToken, totpCode) {
   if (!admin.mfa_enabled)      throw new BadRequestError('MFA is not enabled for this account.');
   if (!admin.totp_secret)      throw new InternalError('MFA secret missing. Contact support.');
 
-  const isValid = authenticator.verify({ token: totpCode, secret: admin.totp_secret });
-  if (!isValid) throw new UnauthorizedError('Invalid authentication code. Please try again.');
+  const result = verifySync({ token: totpCode, secret: admin.totp_secret });
+  if (!result?.valid) throw new UnauthorizedError('Invalid authentication code. Please try again.');
 
   const token = signPlatformToken({ id: admin.id, name: admin.name, email: admin.email });
   return { token, admin: { id: admin.id, name: admin.name, email: admin.email } };
