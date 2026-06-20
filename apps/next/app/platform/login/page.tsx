@@ -8,14 +8,16 @@ export default function PlatformLoginPage() {
   const router = useRouter();
 
   // Step 1: credentials  |  Step 2: TOTP code
-  const [step,     setStep]     = useState<'credentials' | 'totp'>('credentials');
-  const [mfaToken, setMfaToken] = useState('');
+  const [step,        setStep]        = useState<'credentials' | 'totp'>('credentials');
+  const [mfaToken,    setMfaToken]    = useState('');
+  const [useRecovery, setUseRecovery] = useState(false);
 
-  const [email,    setEmail]    = useState('');
-  const [password, setPassword] = useState('');
-  const [totp,     setTotp]     = useState('');
-  const [loading,  setLoading]  = useState(false);
-  const [error,    setError]    = useState('');
+  const [email,        setEmail]        = useState('');
+  const [password,     setPassword]     = useState('');
+  const [totp,         setTotp]         = useState('');
+  const [recoveryCode, setRecoveryCode] = useState('');
+  const [loading,      setLoading]      = useState(false);
+  const [error,        setError]        = useState('');
 
   async function handleCredentials(e: React.FormEvent) {
     e.preventDefault();
@@ -42,15 +44,30 @@ export default function PlatformLoginPage() {
     setError('');
     setLoading(true);
     try {
-      const { token } = await platformApi.verifyPlatformMfa(mfaToken, totp.trim());
+      let token: string;
+      if (useRecovery) {
+        const result = await platformApi.verifyPlatformMfaWithRecovery(mfaToken, recoveryCode.trim().toUpperCase());
+        token = result.token;
+      } else {
+        const result = await platformApi.verifyPlatformMfa(mfaToken, totp.trim());
+        token = result.token;
+      }
       setPlatformToken(token);
       router.replace('/platform/dashboard');
     } catch (err: any) {
       setError(err?.response?.data?.error || err?.message || 'Invalid code. Try again.');
       setTotp('');
+      setRecoveryCode('');
     } finally {
       setLoading(false);
     }
+  }
+
+  function toggleRecovery() {
+    setUseRecovery(v => !v);
+    setTotp('');
+    setRecoveryCode('');
+    setError('');
   }
 
   const handleSubmit = step === 'credentials' ? handleCredentials : handleTotp;
@@ -201,60 +218,100 @@ export default function PlatformLoginPage() {
               </div>
             </>
           ) : (
-            /* ── TOTP step ── */
+            /* ── TOTP / Recovery step ── */
             <div style={{ marginBottom: 30 }}>
               <div style={{
-                background: 'rgba(124,58,237,0.08)',
-                border: '1px solid rgba(124,58,237,0.22)',
+                background: useRecovery ? 'rgba(245,158,11,0.08)' : 'rgba(124,58,237,0.08)',
+                border: `1px solid ${useRecovery ? 'rgba(245,158,11,0.22)' : 'rgba(124,58,237,0.22)'}`,
                 borderRadius: 10, padding: '14px 16px', marginBottom: 22,
                 fontSize: '0.83rem', color: 'rgba(255,255,255,0.55)', lineHeight: 1.6,
               }}>
-                Open your authenticator app and enter the 6-digit code for <strong style={{ color: '#A78BFA' }}>SAMS Platform</strong>.
+                {useRecovery
+                  ? <>Enter one of your <strong style={{ color: '#FCD34D' }}>8-character recovery codes</strong> (format: <code style={{ color: '#FCD34D' }}>XXXX-XXXX</code>). Each code can only be used once.</>
+                  : <>Open your authenticator app and enter the 6-digit code for <strong style={{ color: '#A78BFA' }}>SAMS Platform</strong>.</>
+                }
               </div>
+
               <label style={{
                 display: 'block', fontSize: '0.68rem', fontWeight: 700,
                 color: 'rgba(255,255,255,0.4)', marginBottom: 8,
                 letterSpacing: '0.1em', textTransform: 'uppercase',
               }}>
-                Authentication Code
+                {useRecovery ? 'Recovery Code' : 'Authentication Code'}
               </label>
-              <input
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]{6}"
-                maxLength={6}
-                value={totp}
-                onChange={e => setTotp(e.target.value.replace(/\D/g, ''))}
-                required
-                autoFocus
-                placeholder="000000"
-                style={{
-                  width: '100%', padding: '14px 16px', borderRadius: 12,
-                  background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid rgba(255,255,255,0.09)',
-                  color: '#F1F5F9', fontSize: '1.6rem', fontWeight: 700,
-                  letterSpacing: '0.4em', textAlign: 'center',
-                  outline: 'none', boxSizing: 'border-box', transition: 'all 0.2s',
-                }}
-                onFocus={e => { e.target.style.borderColor = 'rgba(124,58,237,0.65)'; e.target.style.boxShadow = '0 0 0 3px rgba(124,58,237,0.18)'; }}
-                onBlur={e =>  { e.target.style.borderColor = 'rgba(255,255,255,0.09)'; e.target.style.boxShadow = 'none'; }}
-              />
-              <button
-                type="button"
-                onClick={() => { setStep('credentials'); setError(''); setTotp(''); }}
-                style={{
-                  background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)',
-                  fontSize: '0.75rem', cursor: 'pointer', marginTop: 12, padding: 0,
-                }}
-              >
-                ← Back to login
-              </button>
+
+              {useRecovery ? (
+                <input
+                  key="recovery"
+                  type="text"
+                  value={recoveryCode}
+                  onChange={e => {
+                    const v = e.target.value.toUpperCase().replace(/[^A-F0-9-]/g, '');
+                    setRecoveryCode(v);
+                  }}
+                  required
+                  autoFocus
+                  placeholder="XXXX-XXXX"
+                  maxLength={9}
+                  style={{
+                    width: '100%', padding: '14px 16px', borderRadius: 12,
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid rgba(255,255,255,0.09)',
+                    color: '#F1F5F9', fontSize: '1.4rem', fontWeight: 700,
+                    letterSpacing: '0.25em', textAlign: 'center',
+                    outline: 'none', boxSizing: 'border-box', transition: 'all 0.2s',
+                    fontFamily: 'monospace',
+                  }}
+                  onFocus={e => { e.target.style.borderColor = 'rgba(245,158,11,0.65)'; e.target.style.boxShadow = '0 0 0 3px rgba(245,158,11,0.18)'; }}
+                  onBlur={e =>  { e.target.style.borderColor = 'rgba(255,255,255,0.09)'; e.target.style.boxShadow = 'none'; }}
+                />
+              ) : (
+                <input
+                  key="totp"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]{6}"
+                  maxLength={6}
+                  value={totp}
+                  onChange={e => setTotp(e.target.value.replace(/\D/g, ''))}
+                  required
+                  autoFocus
+                  placeholder="000000"
+                  style={{
+                    width: '100%', padding: '14px 16px', borderRadius: 12,
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid rgba(255,255,255,0.09)',
+                    color: '#F1F5F9', fontSize: '1.6rem', fontWeight: 700,
+                    letterSpacing: '0.4em', textAlign: 'center',
+                    outline: 'none', boxSizing: 'border-box', transition: 'all 0.2s',
+                  }}
+                  onFocus={e => { e.target.style.borderColor = 'rgba(124,58,237,0.65)'; e.target.style.boxShadow = '0 0 0 3px rgba(124,58,237,0.18)'; }}
+                  onBlur={e =>  { e.target.style.borderColor = 'rgba(255,255,255,0.09)'; e.target.style.boxShadow = 'none'; }}
+                />
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12 }}>
+                <button
+                  type="button"
+                  onClick={() => { setStep('credentials'); setError(''); setTotp(''); setRecoveryCode(''); setUseRecovery(false); }}
+                  style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', fontSize: '0.75rem', cursor: 'pointer', padding: 0 }}
+                >
+                  ← Back to login
+                </button>
+                <button
+                  type="button"
+                  onClick={toggleRecovery}
+                  style={{ background: 'none', border: 'none', color: useRecovery ? '#A78BFA' : 'rgba(245,158,11,0.7)', fontSize: '0.75rem', cursor: 'pointer', padding: 0 }}
+                >
+                  {useRecovery ? 'Use authenticator instead' : 'Lost access? Use recovery code'}
+                </button>
+              </div>
             </div>
           )}
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || (step === 'totp' && !useRecovery && totp.length !== 6) || (step === 'totp' && useRecovery && recoveryCode.length !== 9)}
             style={{
               width: '100%', padding: '14px',
               background: loading
@@ -274,7 +331,7 @@ export default function PlatformLoginPage() {
               ? 'Authenticating…'
               : step === 'credentials'
               ? 'Sign in to Control Plane'
-              : 'Verify Code'}
+              : useRecovery ? 'Verify Recovery Code' : 'Verify Code'}
           </button>
 
           <p style={{
