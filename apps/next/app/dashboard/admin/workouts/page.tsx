@@ -220,8 +220,8 @@ export default function AdminWorkoutsPage() {
   return (
     <div style={{ animation: 'fadeIn 0.3s ease' }}>
 
-      {/* ── Navy header ─────────────────────────────────────────────────────── */}
-      <div style={{ background: 'linear-gradient(135deg, #0D1B3E, #1a2d5a)', borderRadius: 16, padding: '24px 28px', marginBottom: 24, position: 'relative', overflow: 'hidden' }}>
+      {/* ── Hero header ─────────────────────────────────────────────────────── */}
+      <div style={{ background: 'linear-gradient(135deg, #4F46E5, #7C3AED)', borderRadius: 16, padding: '24px 28px', marginBottom: 24, position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', right: -30, top: -30, width: 160, height: 160, borderRadius: '50%', background: 'rgba(99,102,241,0.08)', pointerEvents: 'none' }} />
         <div style={{ position: 'relative', zIndex: 1 }}>
           <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>Admin</div>

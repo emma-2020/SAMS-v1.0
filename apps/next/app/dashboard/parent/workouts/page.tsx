@@ -37,7 +37,7 @@ function daysDue(iso?: string | null): { label: string; color: string; bg: strin
   return           { label: `Due ${fmtDate(iso)}`,  color: '#64748B', bg: 'rgba(100,116,139,0.08)' };
 }
 
-const ACCENT_COLORS = ['#6366F1', '#2563EB', '#059669', '#D97706', '#7C3AED'];
+const ACCENT_COLORS = ['#6366F1', '#7C3AED', '#059669', '#D97706', '#EC4899'];
 function accentFor(str?: string) {
   return ACCENT_COLORS[(str?.charCodeAt(0) ?? 0) % ACCENT_COLORS.length];
 }
@@ -205,7 +205,7 @@ export default function ParentWorkoutsPage() {
 
       {/* ── Navy header banner ──────────────────────────────────────────────── */}
       <div style={{
-        background: 'linear-gradient(135deg, #0D1B3E, #1a2d5a)',
+        background: 'linear-gradient(135deg, #4F46E5, #7C3AED)',
         borderRadius: 16, padding: '24px 28px',
         marginBottom: 24, position: 'relative', overflow: 'hidden',
       }}>
@@ -235,7 +235,7 @@ export default function ParentWorkoutsPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: 14, marginBottom: 24 }}>
           {([
             { label: 'Workout Plans',   value: workouts.length, color: '#6366F1', Icon: ClipboardList },
-            { label: 'Total Exercises', value: totalExercises,  color: '#2563EB', Icon: Dumbbell      },
+            { label: 'Total Exercises', value: totalExercises,  color: '#7C3AED', Icon: Dumbbell      },
           ]).map(({ label, value, color, Icon }) => (
             <div key={label} style={{
               background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)',

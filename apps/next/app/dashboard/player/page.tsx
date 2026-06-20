@@ -11,7 +11,7 @@ function daysUntil(iso: string) {
   const d = Math.ceil((new Date(iso).getTime() - Date.now()) / 86400000);
   if (d < 0)   return { text: 'Past',     color: '#94A3B8' };
   if (d === 0) return { text: 'Today',    color: '#10B981' };
-  if (d === 1) return { text: 'Tomorrow', color: '#6366F1' };
+  if (d === 1) return { text: 'Tomorrow', color: '#7C3AED' };
   return { text: `In ${d}d`, color: '#F59E0B' };
 }
 function fmtTime(iso: string) {
@@ -62,7 +62,7 @@ export default function PlayerDashboardPage() {
     : fitnessScore >= 70 ? 'Fully Fit'
     : fitnessScore >= 45 ? 'Moderate'
     : 'Needs Rest';
-  const fitnessColor = fitnessScore === null ? '#6366F1'
+  const fitnessColor = fitnessScore === null ? '#7C3AED'
     : fitnessScore >= 70 ? '#10B981'
     : fitnessScore >= 45 ? '#F59E0B'
     : '#EF4444';
@@ -75,13 +75,13 @@ export default function PlayerDashboardPage() {
     {
       label: 'Sessions This Month',
       value: loading ? '…' : (events.length || '—'),
-      color: '#6366F1', icon: '📅',
+      color: '#7C3AED', icon: '📅',
       action: () => router.push('/dashboard/player/schedule'),
     },
     {
       label: "Today's Sessions",
       value: loading ? '…' : todayEvents.length,
-      color: '#3B82F6', icon: '⚽',
+      color: '#7C3AED', icon: '⚽',
       sub: todayEvents[0]?.title || 'None today',
     },
     {
@@ -103,13 +103,13 @@ export default function PlayerDashboardPage() {
 
       {/* ── Hero banner ─────────────────────────────────────────────────────── */}
       <div style={{
-        background: 'linear-gradient(135deg, #0D1B3E 0%, #1a2d5a 50%, #0f2244 100%)',
+        background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 45%, #EC4899 100%)',
         borderRadius: 18, padding: '28px 32px 24px',
         marginBottom: 24, position: 'relative', overflow: 'hidden',
       }}>
         {/* Decorative orbs */}
-        <div style={{ position: 'absolute', right: -50, top: -50, width: 220, height: 220, borderRadius: '50%', background: 'rgba(99,102,241,0.06)', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', right: 60, bottom: -80, width: 180, height: 180, borderRadius: '50%', background: 'rgba(16,185,129,0.04)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', right: -50, top: -50, width: 220, height: 220, borderRadius: '50%', background: 'rgba(236,72,153,0.08)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', right: 60, bottom: -80, width: 180, height: 180, borderRadius: '50%', background: 'rgba(139,92,246,0.08)', pointerEvents: 'none' }} />
 
         <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 20 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -131,7 +131,7 @@ export default function PlayerDashboardPage() {
                 onClick={() => router.push('/dashboard/player/health')}
                 style={{
                   padding: '10px 20px', borderRadius: 10,
-                  background: 'rgba(99,102,241,0.2)', border: '1px solid rgba(99,102,241,0.4)',
+                  background: 'rgba(139,92,246,0.2)', border: '1px solid rgba(139,92,246,0.4)',
                   color: '#A5B4FC', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer',
                   display: 'flex', alignItems: 'center', gap: 8,
                 }}
@@ -237,7 +237,7 @@ export default function PlayerDashboardPage() {
             </div>
             <button
               onClick={() => router.push('/dashboard/player/schedule')}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700, color: '#6366F1' }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700, color: '#7C3AED' }}
             >
               Full schedule →
             </button>
@@ -256,7 +256,7 @@ export default function PlayerDashboardPage() {
               {upcoming.map(ev => {
                 const lbl    = daysUntil(ev.start_time);
                 const isGame = ev.type === 'Game';
-                const color  = isGame ? '#EF4444' : '#6366F1';
+                const color  = isGame ? '#EF4444' : '#7C3AED';
                 return (
                   <div key={ev.id} style={{
                     display: 'flex', alignItems: 'center', gap: 12,
@@ -319,8 +319,8 @@ export default function PlayerDashboardPage() {
               {([
                 { label: 'Health Dashboard', path: '/dashboard/player/health',   color: '#10B981', icon: '💊', desc: 'View & log wellness'      },
                 { label: 'My Workouts',      path: '/dashboard/player/workouts', color: '#D97706', icon: '🏋️', desc: 'Training assignments'      },
-                { label: 'Full Schedule',    path: '/dashboard/player/schedule', color: '#6366F1', icon: '📅', desc: 'All sessions & matches'     },
-                { label: 'Team Chat',        path: '/dashboard/player/chat',     color: '#2563EB', icon: '💬', desc: 'Message teammates & coach'  },
+                { label: 'Full Schedule',    path: '/dashboard/player/schedule', color: '#7C3AED', icon: '📅', desc: 'All sessions & matches'     },
+                { label: 'Team Chat',        path: '/dashboard/player/chat',     color: '#7C3AED', icon: '💬', desc: 'Message teammates & coach'  },
               ] as const).map(({ label, path, color, icon, desc }) => (
                 <button
                   key={path}
@@ -409,7 +409,7 @@ export default function PlayerDashboardPage() {
                 style={{
                   padding: '7px 14px', borderRadius: 8,
                   background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.25)',
-                  color: '#6366F1', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer',
+                  color: '#7C3AED', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer',
                 }}
               >
                 Log check-in →

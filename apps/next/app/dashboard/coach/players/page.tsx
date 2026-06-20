@@ -200,7 +200,7 @@ function ProfileDrawer({ player, onClose }: { player: CRAPlayer; onClose: () => 
         <div style={{ display: 'flex', borderBottom: '1px solid var(--border-subtle)', padding: '0 20px', flexShrink: 0, background: 'var(--bg-surface)' }}>
           {TABS.map(({ key, label, icon }) => (
             <button key={key} onClick={() => setTab(key)}
-              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '11px 12px', background: 'none', border: 'none', borderBottom: tab === key ? '2px solid #2563EB' : '2px solid transparent', color: tab === key ? '#2563EB' : 'var(--text-muted)', fontWeight: tab === key ? 700 : 500, fontSize: '0.8rem', cursor: 'pointer', marginBottom: -1 }}>
+              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '11px 12px', background: 'none', border: 'none', borderBottom: tab === key ? '2px solid #7C3AED' : '2px solid transparent', color: tab === key ? '#7C3AED' : 'var(--text-muted)', fontWeight: tab === key ? 700 : 500, fontSize: '0.8rem', cursor: 'pointer', marginBottom: -1 }}>
               <span style={{ display: 'flex', opacity: tab === key ? 1 : 0.55 }}>{icon}</span>
               {label}
             </button>
@@ -247,7 +247,7 @@ function OverviewTab({ player, profile }: { player: CRAPlayer; profile: any }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ background: 'var(--bg-elevated)', borderRadius: 16, border: '1px solid var(--border-subtle)', overflow: 'hidden' }}>
-        <div style={{ padding: '11px 16px', borderBottom: '1px solid var(--border-subtle)', fontWeight: 700, fontSize: '0.84rem', color: 'var(--text-primary)', background: 'linear-gradient(90deg, rgba(37,99,235,0.05), transparent)' }}>
+        <div style={{ padding: '11px 16px', borderBottom: '1px solid var(--border-subtle)', fontWeight: 700, fontSize: '0.84rem', color: 'var(--text-primary)', background: 'linear-gradient(90deg, rgba(124,58,237,0.05), transparent)' }}>
           Player Info
         </div>
         <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 11 }}>
@@ -439,7 +439,7 @@ export default function PlayersPage() {
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {[{ id: 'all', name: 'All Players', count: players.length }, ...teams.map(t => ({ id: t.id, name: t.name, count: players.filter(p => (p.teams ?? []).some((pt: any) => pt.id === t.id)).length }))].map(t => (
             <button key={t.id} onClick={() => setActiveTeam(t.id)}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 99, cursor: 'pointer', border: activeTeam === t.id ? '1px solid #2563EB' : '1px solid var(--border-default)', background: activeTeam === t.id ? '#2563EB' : 'var(--bg-surface)', color: activeTeam === t.id ? '#fff' : 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: activeTeam === t.id ? 700 : 500, transition: 'all 0.14s' }}>
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 99, cursor: 'pointer', border: activeTeam === t.id ? '1px solid #7C3AED' : '1px solid var(--border-default)', background: activeTeam === t.id ? '#7C3AED' : 'var(--bg-surface)', color: activeTeam === t.id ? '#fff' : 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: activeTeam === t.id ? 700 : 500, transition: 'all 0.14s' }}>
               {t.name}
               <span style={{ minWidth: 18, height: 18, borderRadius: 99, display: 'flex', alignItems: 'center', justifyContent: 'center', background: activeTeam === t.id ? 'rgba(255,255,255,0.25)' : 'var(--bg-elevated)', fontSize: '0.67rem', fontWeight: 700, color: activeTeam === t.id ? '#fff' : 'var(--text-muted)' }}>{t.count}</span>
             </button>

@@ -47,15 +47,15 @@ export function CoachDashboardScreen() {
       {/* Hero banner */}
       <div style={{
         marginBottom: 24, borderRadius: 24, overflow: 'hidden', minHeight: 140,
-        background: 'linear-gradient(135deg,#1D4ED8 0%,#2563EB 55%,#60A5FA 100%)',
+        background: 'linear-gradient(135deg,#4F46E5 0%,#7C3AED 45%,#EC4899 100%)',
       }}>
         <div className="sams-hero-inner" style={{ padding: '28px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <p style={{ color: '#BFDBFE', fontSize: '0.85rem', fontWeight: 600, marginBottom: 4 }}>Welcome back,</p>
+            <p style={{ color: '#DDD6FE', fontSize: '0.85rem', fontWeight: 600, marginBottom: 4 }}>Welcome back,</p>
             <p style={{ color: 'white', fontSize: 'clamp(1.2rem,4vw,1.5rem)', fontWeight: 900, letterSpacing: -0.5, margin: 0 }}>
               {user?.first_name} {user?.last_name}
             </p>
-            <p style={{ color: '#BFDBFE', fontSize: '0.85rem', marginTop: 4 }}>
+            <p style={{ color: '#DDD6FE', fontSize: '0.85rem', marginTop: 4 }}>
               Coach · {players.length} player{players.length !== 1 ? 's' : ''} across your teams
             </p>
           </div>
@@ -111,7 +111,7 @@ export function CoachDashboardScreen() {
               </div>
               <button
                 onClick={() => router.push('/dashboard/coach/schedule')}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700, color: '#2563EB' }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700, color: '#7C3AED' }}
               >
                 View all →
               </button>
@@ -121,12 +121,12 @@ export function CoachDashboardScreen() {
                 ? <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', padding: '16px 0' }}>No sessions scheduled yet.</p>
                 : events.map(e => (
                   <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--border-subtle)' }}>
-                    <div style={{ width: 4, height: 40, borderRadius: 2, background: '#2563EB', flexShrink: 0 }} />
+                    <div style={{ width: 4, height: 40, borderRadius: 2, background: '#7C3AED', flexShrink: 0 }} />
                     <div style={{ flex: 1 }}>
                       <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{e.title}</p>
                       <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>{new Date(e.start_time).toLocaleDateString()}</p>
                     </div>
-                    <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '3px 10px', borderRadius: 99, background: '#2563EB15', color: '#2563EB', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '3px 10px', borderRadius: 99, background: '#7C3AED15', color: '#7C3AED', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                       {e.type}
                     </span>
                   </div>

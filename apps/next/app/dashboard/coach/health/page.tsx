@@ -68,7 +68,7 @@ const LEVEL_CONFIG: Record<string, { label: string; color: string; bg: string; b
 function PlayerAvatar({ firstName, lastName, level, size = 40 }: { firstName?: string; lastName?: string; level: string; size?: number }) {
   const cfg = LEVEL_CONFIG[level] ?? LEVEL_CONFIG.unknown;
   const ins = initials(firstName, lastName);
-  const palette = ['#2563EB', '#7C3AED', '#0891B2', '#0D9488'];
+  const palette = ['#7C3AED', '#7C3AED', '#0891B2', '#0D9488'];
   const ci = ((firstName?.charCodeAt(0) ?? 0) + (lastName?.charCodeAt(0) ?? 0)) % palette.length;
   return (
     <div style={{ width: size + 6, height: size + 6, borderRadius: '50%', flexShrink: 0, padding: 3, background: cfg.color, boxShadow: `0 0 0 2px ${cfg.color}30`, transition: 'box-shadow 0.2s' }}>
@@ -264,7 +264,7 @@ export default function CoachHealthPage() {
   });
 
   const metricCards = [
-    { label: 'Total Players',   count: players.length, color: '#2563EB', icon: '👥', filter: 'all',             total: null,           description: 'Active roster members'     },
+    { label: 'Total Players',   count: players.length, color: '#7C3AED', icon: '👥', filter: 'all',             total: null,           description: 'Active roster members'     },
     { label: 'Flagged / Low',   count: flaggedCount,   color: '#EF4444', icon: '🚨', filter: 'flagged',         total: players.length, description: 'Low wellness score'         },
     { label: 'Needs Attention', count: attentionCount, color: '#D97706', icon: '⚡', filter: 'needs-attention', total: players.length, description: 'Moderate to high concern'   },
     { label: 'Good',            count: goodCount,      color: '#059669', icon: '✅', filter: 'good',            total: players.length, description: 'Healthy & ready to train'   },

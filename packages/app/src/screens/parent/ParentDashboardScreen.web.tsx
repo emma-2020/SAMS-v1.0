@@ -4,11 +4,9 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { healthApi, scheduleApi, coachApi } from '@sams/api';
 import { useAuthStore } from '@sams/store';
-import { NAVY_DARK } from '@sams/ui';
 import type { HealthEntry, ScheduleEvent, Player } from '@sams/api';
 
-const NAVY_MID  = '#172B5E';
-const NAVY_LITE = '#1E3A7F';
+const BRAND = '#7C3AED';
 
 const AVATAR_PALETTE = ['#EF4444','#F59E0B','#10B981','#3B82F6','#8B5CF6','#EC4899','#06B6D4'];
 
@@ -40,7 +38,7 @@ export function ParentDashboardScreen() {
       scheduleApi.getEvents()    .catch((): ScheduleEvent[] => []),
       coachApi.getPlayers()      .catch(() => ({ players: [] as Player[] })),
     ]).then(([a, e, p]) => {
-      setAlerts(a);
+      setAlerts(Array.isArray(a) ? a : []);
       setEvents(e.slice(0, 5));
       const playerArr: Player[] = Array.isArray(p) ? p : ((p as any)?.players ?? []);
       setPlayers(playerArr);
@@ -52,7 +50,7 @@ export function ParentDashboardScreen() {
   const userInitials = `${user?.first_name?.[0] ?? ''}${user?.last_name?.[0] ?? ''}`;
 
   const kpis = [
-    { label: 'Upcoming Sessions', value: loading ? '…' : String(events.length), icon: '📅', bg: '#EFF6FF', accent: '#2563EB', path: '/dashboard/parent/schedule' },
+    { label: 'Upcoming Sessions', value: loading ? '…' : String(events.length), icon: '📅', bg: '#F5F3FF', accent: '#7C3AED', path: '/dashboard/parent/schedule' },
     { label: 'Wellness Alerts',   value: loading ? '…' : String(alerts.length), icon: '❤️', bg: '#FEF2F2', accent: '#EF4444', path: '/dashboard/parent/health'   },
     { label: 'Coach Messages',    value: '—',                                    icon: '💬', bg: '#F5F3FF', accent: '#7C3AED', path: '/dashboard/parent/chat'     },
   ];
@@ -66,10 +64,10 @@ export function ParentDashboardScreen() {
   return (
     <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 40 }}>
 
-      {/* ── NAVY HERO BANNER ── */}
+      {/* ── HERO BANNER ── */}
       <div style={{
         marginBottom: 24, borderRadius: 20, overflow: 'hidden',
-        background: `linear-gradient(135deg, ${NAVY_DARK} 0%, ${NAVY_MID} 55%, ${NAVY_LITE} 100%)`,
+        background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 45%, #EC4899 100%)',
         padding: '32px 36px', position: 'relative',
       }}>
         <div style={{
@@ -272,7 +270,7 @@ export function ParentDashboardScreen() {
                     <span style={{
                       display: 'inline-block', padding: '3px 10px',
                       borderRadius: 99, fontSize: '0.72rem', fontWeight: 700,
-                      background: '#EFF6FF', color: '#2563EB',
+                      background: '#F5F3FF', color: '#7C3AED',
                     }}>
                       Academy
                     </span>
@@ -295,7 +293,7 @@ export function ParentDashboardScreen() {
                     style={{
                       background: 'none', border: 'none', cursor: 'pointer',
                       fontSize: '0.8rem', fontWeight: 700,
-                      color: NAVY_DARK, padding: 0, textAlign: 'left',
+                      color: BRAND, padding: 0, textAlign: 'left',
                     }}
                     onMouseEnter={e => { e.currentTarget.style.opacity = '0.65'; }}
                     onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}
@@ -328,7 +326,7 @@ export function ParentDashboardScreen() {
               </div>
               <button
                 onClick={() => router.push('/dashboard/parent/schedule')}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700, color: NAVY_DARK }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700, color: BRAND }}
               >
                 Full schedule →
               </button>
@@ -346,7 +344,7 @@ export function ParentDashboardScreen() {
                   }}>
                     <div style={{
                       width: 4, height: 40, borderRadius: 2,
-                      background: NAVY_DARK, flexShrink: 0,
+                      background: BRAND, flexShrink: 0,
                     }} />
                     <div style={{ flex: 1 }}>
                       <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>

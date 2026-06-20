@@ -108,7 +108,7 @@ export default function PlayerSchedulePage() {
 
       {/* ── Dark-navy header banner ─────────────────────────────────────── */}
       <div style={{
-        background: 'linear-gradient(135deg, #0D1B3E, #1a2d5a)',
+        background: 'linear-gradient(135deg, #4F46E5, #7C3AED)',
         borderRadius: 16, padding: '24px 28px', marginBottom: 24,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         flexWrap: 'wrap', gap: 12,

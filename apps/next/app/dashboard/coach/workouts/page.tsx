@@ -27,7 +27,7 @@ function daysDue(iso?: string | null) {
   return           { label: `Due ${fmtDate(iso)}`,  color: '#64748B', bg: '#F8FAFC', border: '#E2E8F0', glow: 'none' };
 }
 const ACCENTS = [
-  { from: '#6366F1', to: '#8B5CF6' }, { from: '#2563EB', to: '#0891B2' },
+  { from: '#6366F1', to: '#8B5CF6' }, { from: '#7C3AED', to: '#EC4899' },
   { from: '#059669', to: '#0D9488' }, { from: '#D97706', to: '#EA580C' },
   { from: '#7C3AED', to: '#C026D3' },
 ];
@@ -83,9 +83,9 @@ function CreateWorkoutModal({ teams, players, onClose, onCreated }: {
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(12px)' }} />
       <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', zIndex: 301, width: 580, maxWidth: '96vw', maxHeight: '90vh', overflowY: 'auto', background: '#FFFFFF', borderRadius: 24, border: '1px solid rgba(226,232,240,0.8)', boxShadow: '0 32px 80px rgba(15,23,42,0.22)', animation: 'fadeIn 0.18s ease' }}>
         {/* Header */}
-        <div style={{ padding: '22px 26px 18px', background: 'linear-gradient(135deg, rgba(99,102,241,0.06), rgba(37,99,235,0.03))', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 2, borderRadius: '24px 24px 0 0' }}>
+        <div style={{ padding: '22px 26px 18px', background: 'linear-gradient(135deg, rgba(99,102,241,0.06), rgba(124,58,237,0.03))', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 2, borderRadius: '24px 24px 0 0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
-            <div style={{ width: 44, height: 44, borderRadius: 13, background: 'linear-gradient(135deg, #6366F1, #2563EB)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 14px rgba(99,102,241,0.3)' }}>
+            <div style={{ width: 44, height: 44, borderRadius: 13, background: 'linear-gradient(135deg, #6366F1, #7C3AED)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 14px rgba(99,102,241,0.3)' }}>
               <span style={{ fontSize: '1.25rem' }}>🏋️</span>
             </div>
             <div>
@@ -124,11 +124,11 @@ function CreateWorkoutModal({ teams, players, onClose, onCreated }: {
                 const active = form.targetType === key;
                 return (
                   <button key={key} type="button" onClick={() => setF('targetType', key)}
-                    style={{ padding: '12px 14px', borderRadius: 13, cursor: 'pointer', textAlign: 'left', border: active ? '2px solid #2563EB' : '1.5px solid #E2E8F0', background: active ? 'linear-gradient(135deg, #EFF6FF, #EEF2FF)' : '#F8FAFC', display: 'flex', alignItems: 'center', gap: 10, transition: 'all 0.2s', boxShadow: active ? '0 2px 12px rgba(37,99,235,0.12)' : 'none' }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: active ? 'linear-gradient(135deg, #2563EB, #6366F1)' : '#E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', transition: 'all 0.2s' }}>{icon}</div>
+                    style={{ padding: '12px 14px', borderRadius: 13, cursor: 'pointer', textAlign: 'left', border: active ? '2px solid #7C3AED' : '1.5px solid #E2E8F0', background: active ? 'linear-gradient(135deg, #F5F3FF, #EDE9FE)' : '#F8FAFC', display: 'flex', alignItems: 'center', gap: 10, transition: 'all 0.2s', boxShadow: active ? '0 2px 12px rgba(124,58,237,0.12)' : 'none' }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: active ? 'linear-gradient(135deg, #7C3AED, #6366F1)' : '#E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', transition: 'all 0.2s' }}>{icon}</div>
                     <div>
-                      <div style={{ fontWeight: 700, fontSize: '0.82rem', color: active ? '#1D4ED8' : '#334155' }}>{label}</div>
-                      <div style={{ fontSize: '0.67rem', color: active ? '#3B82F6' : '#94A3B8', marginTop: 1 }}>{desc}</div>
+                      <div style={{ fontWeight: 700, fontSize: '0.82rem', color: active ? '#4F46E5' : '#334155' }}>{label}</div>
+                      <div style={{ fontSize: '0.67rem', color: active ? '#7C3AED' : '#94A3B8', marginTop: 1 }}>{desc}</div>
                     </div>
                   </button>
                 );
@@ -168,7 +168,7 @@ function CreateWorkoutModal({ teams, players, onClose, onCreated }: {
                 <span style={{ fontSize: '0.65rem', fontWeight: 800, padding: '2px 7px', borderRadius: 99, background: 'rgba(99,102,241,0.1)', color: '#6366F1', border: '1px solid rgba(99,102,241,0.18)' }}>{exercises.length}</span>
               </div>
               <button type="button" onClick={addExercise}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 14px', borderRadius: 99, cursor: 'pointer', background: 'linear-gradient(135deg, #6366F1, #2563EB)', color: 'white', border: 'none', fontSize: '0.72rem', fontWeight: 700, boxShadow: '0 2px 8px rgba(99,102,241,0.28)' }}>
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 14px', borderRadius: 99, cursor: 'pointer', background: 'linear-gradient(135deg, #6366F1, #7C3AED)', color: 'white', border: 'none', fontSize: '0.72rem', fontWeight: 700, boxShadow: '0 2px 8px rgba(99,102,241,0.28)' }}>
                 + Add Exercise
               </button>
             </div>
@@ -176,7 +176,7 @@ function CreateWorkoutModal({ teams, players, onClose, onCreated }: {
               {exercises.map((ex, i) => (
                 <div key={i} style={{ borderRadius: 14, overflow: 'hidden', border: '1.5px solid #E8EEFB', background: '#FAFCFF' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', background: 'linear-gradient(90deg, rgba(99,102,241,0.05), transparent)', borderBottom: '1px solid #F1F5F9' }}>
-                    <div style={{ width: 26, height: 26, borderRadius: 8, flexShrink: 0, background: 'linear-gradient(135deg, #6366F1, #2563EB)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 900, color: 'white' }}>{i + 1}</div>
+                    <div style={{ width: 26, height: 26, borderRadius: 8, flexShrink: 0, background: 'linear-gradient(135deg, #6366F1, #7C3AED)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 900, color: 'white' }}>{i + 1}</div>
                     <span style={{ flex: 1, fontSize: '0.72rem', fontWeight: 600, color: '#94A3B8' }}>Exercise {i + 1}</span>
                     {exercises.length > 1 && (
                       <button type="button" onClick={() => removeExercise(i)}
@@ -206,7 +206,7 @@ function CreateWorkoutModal({ teams, players, onClose, onCreated }: {
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', paddingTop: 4 }}>
             <button type="button" onClick={onClose} style={{ padding: '10px 20px', borderRadius: 12, cursor: 'pointer', background: '#F8FAFC', border: '1.5px solid #E2E8F0', color: '#475569', fontSize: '0.875rem', fontWeight: 600 }}>Cancel</button>
             <button type="submit" disabled={loading}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '10px 22px', borderRadius: 12, cursor: loading ? 'not-allowed' : 'pointer', background: loading ? '#94A3B8' : 'linear-gradient(135deg, #6366F1, #2563EB)', color: 'white', border: 'none', fontWeight: 700, fontSize: '0.875rem', boxShadow: loading ? 'none' : '0 4px 14px rgba(99,102,241,0.32)' }}>
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '10px 22px', borderRadius: 12, cursor: loading ? 'not-allowed' : 'pointer', background: loading ? '#94A3B8' : 'linear-gradient(135deg, #6366F1, #7C3AED)', color: 'white', border: 'none', fontWeight: 700, fontSize: '0.875rem', boxShadow: loading ? 'none' : '0 4px 14px rgba(99,102,241,0.32)' }}>
               {loading ? 'Creating…' : '+ Create Training Plan'}
             </button>
           </div>

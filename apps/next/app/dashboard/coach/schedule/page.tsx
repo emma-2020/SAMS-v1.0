@@ -21,7 +21,7 @@ const IcoUsers   = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="n
 const EVENT_TYPES = ['Training', 'Match', 'Friendly', 'Recovery', 'Meeting'];
 
 const TYPE_CFG: Record<string, { color: string; bg: string; border: string; dot: string }> = {
-  Training: { color: '#2563EB', bg: '#EFF6FF', border: '#BFDBFE', dot: '#2563EB' },
+  Training: { color: '#7C3AED', bg: '#F5F3FF', border: '#DDD6FE', dot: '#7C3AED' },
   Match:    { color: '#DC2626', bg: '#FEF2F2', border: '#FECACA', dot: '#DC2626' },
   Friendly: { color: '#059669', bg: '#ECFDF5', border: '#A7F3D0', dot: '#059669' },
   Recovery: { color: '#D97706', bg: '#FFFBEB', border: '#FDE68A', dot: '#D97706' },
@@ -233,7 +233,7 @@ function EventCard({ event, onAttendance }: { event: ScheduleEvent; onAttendance
       {/* Attendance button */}
       <button onClick={() => onAttendance(event.id)}
         style={{ display: 'flex', alignItems: 'center', gap: 5, background: '#F8FAFC', border: '1.5px solid #E2E8F0', borderRadius: 9, padding: '7px 12px', cursor: 'pointer', flexShrink: 0, fontSize: '0.75rem', fontWeight: 700, color: '#475569', transition: 'all 0.14s' }}
-        onMouseEnter={e => { e.currentTarget.style.borderColor = '#2563EB'; e.currentTarget.style.color = '#2563EB'; e.currentTarget.style.background = '#EFF6FF'; }}
+        onMouseEnter={e => { e.currentTarget.style.borderColor = '#7C3AED'; e.currentTarget.style.color = '#7C3AED'; e.currentTarget.style.background = '#F5F3FF'; }}
         onMouseLeave={e => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.color = '#475569'; e.currentTarget.style.background = '#F8FAFC'; }}>
         Attendance <IcoArrow />
       </button>
@@ -349,11 +349,11 @@ export default function CoachSchedulePage() {
             return (
               <div key={dateKey}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                  <div style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: isToday ? '#2563EB' : isPast ? '#94A3B8' : '#475569' }}>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: isToday ? '#7C3AED' : isPast ? '#94A3B8' : '#475569' }}>
                     {fmtDate(dayEvents[0].start_time)}
                   </div>
-                  {isToday && <span style={{ padding: '2px 9px', borderRadius: 99, background: '#2563EB', color: '#fff', fontSize: '0.58rem', fontWeight: 900, letterSpacing: '0.06em' }}>TODAY</span>}
-                  <div style={{ flex: 1, height: 1, background: isToday ? '#BFDBFE' : '#F1F5F9' }} />
+                  {isToday && <span style={{ padding: '2px 9px', borderRadius: 99, background: '#7C3AED', color: '#fff', fontSize: '0.58rem', fontWeight: 900, letterSpacing: '0.06em' }}>TODAY</span>}
+                  <div style={{ flex: 1, height: 1, background: isToday ? '#DDD6FE' : '#F1F5F9' }} />
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {dayEvents.map(ev => (

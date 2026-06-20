@@ -1,16 +1,16 @@
 /** Shared design token palette — identical values used in tailwind.config.js */
 export const ROLE_COLOR: Record<string, string> = {
   Admin:  '#7C3AED',
-  Coach:  '#2563EB',
-  Player: '#059669',
-  Parent: '#D97706',
+  Coach:  '#7C3AED',
+  Player: '#7C3AED',
+  Parent: '#7C3AED',
 } as const;
 
 export const ROLE_GRADIENT = {
-  Admin:  ['#7C3AED', '#A78BFA'],
-  Coach:  ['#1D4ED8', '#60A5FA'],
-  Player: ['#047857', '#34D399'],
-  Parent: ['#B45309', '#FBBF24'],
+  Admin:  ['#4F46E5', '#EC4899'],
+  Coach:  ['#4F46E5', '#EC4899'],
+  Player: ['#4F46E5', '#EC4899'],
+  Parent: ['#4F46E5', '#EC4899'],
 } as const;
 
 export const ACCENT = '#6366F1';

@@ -19,13 +19,13 @@ const CHANNEL_TYPE_LABELS: Record<string, string> = {
 
 const ROLE_STYLES: Record<string, { bg: string; color: string; border: string }> = {
   Admin:  { bg: '#EDE9FE', color: '#7C3AED', border: '#DDD6FE' },
-  Coach:  { bg: '#DBEAFE', color: '#2563EB', border: '#BFDBFE' },
+  Coach:  { bg: '#EDE9FE', color: '#7C3AED', border: '#DDD6FE' },
   Player: { bg: '#D1FAE5', color: '#059669', border: '#A7F3D0' },
   Parent: { bg: '#FEF3C7', color: '#D97706', border: '#FDE68A' },
 };
 
 const GROUP_COLORS = [
-  '#6366F1', '#8B5CF6', '#EC4899', '#14B8A6', '#F59E0B', '#10B981', '#3B82F6', '#EF4444',
+  '#6366F1', '#8B5CF6', '#EC4899', '#14B8A6', '#F59E0B', '#10B981', '#7C3AED', '#EF4444',
 ];
 
 const AVATAR_PALETTES = [
@@ -585,7 +585,7 @@ function CreateGroupModal({ onClose, onCreated, academyId }: {
   }
 
   const ROLE_OPTIONS: Array<{ value: 'Coach' | 'Player' | 'Parent'; label: string; color: string }> = [
-    { value: 'Coach',  label: 'All Coaches',  color: '#2563EB' },
+    { value: 'Coach',  label: 'All Coaches',  color: '#7C3AED' },
     { value: 'Player', label: 'All Players',  color: '#059669' },
     { value: 'Parent', label: 'All Parents',  color: '#D97706' },
   ];
@@ -1856,7 +1856,7 @@ function ChannelRow({ ch, isActive, onClick }: { ch: ChatChannel; isActive: bool
   const time = lastMsg ? relativeTime(lastMsg.created_at) : '';
 
   const TYPE_DOT: Record<string, string> = {
-    team: '#3B82F6', role_group: '#10B981', custom_group: '#8B5CF6', direct: '#94A3B8',
+    team: '#7C3AED', role_group: '#10B981', custom_group: '#8B5CF6', direct: '#94A3B8',
   };
 
   return (

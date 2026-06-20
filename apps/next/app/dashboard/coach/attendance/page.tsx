@@ -28,8 +28,8 @@ const STATUS_CFG: Record<string, { color: string; bg: string; border: string; la
   Injured: { color: '#D97706', bg: '#FFFBEB', border: '#FDE68A', label: 'Injured', icon: '!' },
 };
 const TYPE_CFG: Record<string, string> = {
-  Training: '#2563EB', Match: '#DC2626', Friendly: '#059669',
-  Recovery: '#D97706', Meeting: '#7C3AED', training: '#2563EB',
+  Training: '#7C3AED', Match: '#DC2626', Friendly: '#059669',
+  Recovery: '#D97706', Meeting: '#7C3AED', training: '#7C3AED',
   match: '#DC2626', meeting: '#7C3AED', other: '#6366F1',
 };
 
@@ -94,7 +94,7 @@ function PlayerRow({ player, status, onSet }: { player: RosterPlayer; status: st
   const current = status ? STATUS_CFG[status] : null;
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 14, background: current ? current.bg : '#F8FAFC', border: `1.5px solid ${current ? current.border : '#E2E8F0'}`, transition: 'all 0.14s', borderLeft: `4px solid ${current ? current.color : '#CBD5E1'}` }}>
-      <div style={{ width: 38, height: 38, borderRadius: '50%', flexShrink: 0, background: '#EFF6FF', border: '1.5px solid #BFDBFE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.75rem', color: '#2563EB' }}>
+      <div style={{ width: 38, height: 38, borderRadius: '50%', flexShrink: 0, background: '#F5F3FF', border: '1.5px solid #DDD6FE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.75rem', color: '#7C3AED' }}>
         {initials(player.first_name, player.last_name)}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -123,8 +123,8 @@ function PlayerRow({ player, status, onSet }: { player: RosterPlayer; status: st
 // ─── Select Placeholder ──────────────────────────────────────────────
 function SelectPlaceholder() {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 480, background: 'linear-gradient(135deg, #F8FAFC 0%, #EFF6FF 100%)', borderRadius: 20, border: '1.5px dashed #CBD5E1', padding: '48px 32px', textAlign: 'center' }}>
-      <div style={{ width: 96, height: 96, borderRadius: 28, background: 'linear-gradient(135deg, #EEF2FF, #DBEAFE)', border: '1.5px solid #BFDBFE', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 10px 30px rgba(99,102,241,0.12)', color: '#6366F1', marginBottom: 28 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 480, background: 'linear-gradient(135deg, #F8FAFC 0%, #F5F3FF 100%)', borderRadius: 20, border: '1.5px dashed #CBD5E1', padding: '48px 32px', textAlign: 'center' }}>
+      <div style={{ width: 96, height: 96, borderRadius: 28, background: 'linear-gradient(135deg, #EDE9FE, #EDE9FE)', border: '1.5px solid #DDD6FE', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 10px 30px rgba(99,102,241,0.12)', color: '#6366F1', marginBottom: 28 }}>
         <IcoClipboard />
       </div>
       <div style={{ fontWeight: 800, fontSize: '1.1rem', color: '#0F172A', letterSpacing: '-0.015em', marginBottom: 8 }}>Select a Session</div>

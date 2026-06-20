@@ -28,13 +28,13 @@ function NavIcon({ name, size = 16, ...rest }: { name: string; size?: number; [k
 
 // ── Colours ────────────────────────────────────────────────────────────────────
 const ROLE_COLOR: Record<string, string> = {
-  Admin: '#7C3AED', Coach: '#2563EB', Player: '#059669', Parent: '#D97706',
+  Admin: '#7C3AED', Coach: '#7C3AED', Player: '#7C3AED', Parent: '#7C3AED',
 };
 const ROLE_GRADIENT: Record<string, string> = {
-  Admin:  'linear-gradient(135deg,#7C3AED,#A78BFA)',
-  Coach:  'linear-gradient(135deg,#1D4ED8,#60A5FA)',
-  Player: 'linear-gradient(135deg,#047857,#34D399)',
-  Parent: 'linear-gradient(135deg,#B45309,#FBBF24)',
+  Admin:  'linear-gradient(135deg,#4F46E5,#EC4899)',
+  Coach:  'linear-gradient(135deg,#4F46E5,#EC4899)',
+  Player: 'linear-gradient(135deg,#4F46E5,#EC4899)',
+  Parent: 'linear-gradient(135deg,#4F46E5,#EC4899)',
 };
 const ROLE_ICON_MAP: Record<string, LucideIcon> = {
   Admin: Shield, Coach: Trophy, Player: Zap, Parent: UserCircle,
@@ -90,7 +90,7 @@ function UserAvatar({ user, size = 34 }: { user: UserProfile | null; size?: numb
   return (
     <div style={{
       width: size, height: size, borderRadius: '50%', flexShrink: 0,
-      background: 'linear-gradient(135deg, #1e3a5f, #0f2244)',
+      background: 'linear-gradient(135deg, #4F46E5, #7C3AED)',
       border: `2px solid ${color}40`,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       fontSize: Math.round(size * 0.34), fontWeight: 800,

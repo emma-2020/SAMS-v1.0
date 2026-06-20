@@ -56,9 +56,9 @@
 
   /* ── Role colours ────────────────────────────────────── */
   --role-admin:   #7C3AED;
-  --role-coach:   #2563EB;
-  --role-player:  #059669;
-  --role-parent:  #D97706;
+  --role-coach:   #7C3AED;
+  --role-player:  #7C3AED;
+  --role-parent:  #7C3AED;
 
   /* ── Text ────────────────────────────────────────────── */
   --text-primary:   #0F172A;
@@ -355,12 +355,12 @@ code, pre { font-family: var(--font-mono); font-size: 0.875em; }
 .btn-success:hover { background: var(--success); color: #fff; }
 
 .btn-coach {
-  background: linear-gradient(135deg, #2563EB, #1D4ED8);
+  background: linear-gradient(135deg, #4F46E5, #7C3AED);
   color: #fff;
-  border-color: #1D4ED8;
-  box-shadow: 0 2px 8px rgba(37,99,235,0.35);
+  border-color: #7C3AED;
+  box-shadow: 0 2px 8px rgba(124,58,237,0.35);
 }
-.btn-coach:hover { box-shadow: 0 4px 16px rgba(37,99,235,0.45); transform: translateY(-1px); }
+.btn-coach:hover { box-shadow: 0 4px 16px rgba(124,58,237,0.45); transform: translateY(-1px); }
 
 .btn-sm   { height: 32px; padding: 0 12px; font-size: 0.8rem; border-radius: var(--radius-sm); }
 .btn-lg   { height: 46px; padding: 0 28px; font-size: 0.9rem; }
@@ -511,9 +511,9 @@ select.input, select.field-input {
   border: 1px solid transparent;
 }
 .badge-admin  { background: #F3EFFF; color: #6D28D9; border-color: #DDD6FE; }
-.badge-coach  { background: #EFF6FF; color: #1D4ED8; border-color: #BFDBFE; }
-.badge-player { background: #ECFDF5; color: #047857; border-color: #A7F3D0; }
-.badge-parent { background: #FFFBEB; color: #B45309; border-color: #FDE68A; }
+.badge-coach  { background: #F5F3FF; color: #7C3AED; border-color: #DDD6FE; }
+.badge-player { background: #F5F3FF; color: #7C3AED; border-color: #DDD6FE; }
+.badge-parent { background: #F5F3FF; color: #7C3AED; border-color: #DDD6FE; }
 .badge-success { background: var(--success-subtle); color: var(--success); border-color: var(--success-border); }
 .badge-danger  { background: var(--danger-subtle);  color: var(--danger);  border-color: var(--danger-border); }
 .badge-warning { background: var(--warning-subtle); color: var(--warning); border-color: var(--warning-border); }

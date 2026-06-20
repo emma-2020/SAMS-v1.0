@@ -293,7 +293,7 @@ function LogModal({ onClose, onDone }: { onClose: () => void; onDone: () => void
 
 // ─── AI recommendations builder ───────────────────────────────────────────────
 function buildRecs(e: HealthEntry | null) {
-  if (!e) return [{ type:'Info', color:'#3B82F6', icon:'💡', text:'Log your wellness to receive personalised AI health insights.' }];
+  if (!e) return [{ type:'Info', color:'#7C3AED', icon:'💡', text:'Log your wellness to receive personalised AI health insights.' }];
   const recs: {type:string; color:string; icon:string; text:string}[] = [];
   if (e.muscle_soreness >= 4) recs.push({ type:'Alert',   color:'#EF4444', icon:'🦵', text:'Elevated soreness flagged — risk of muscle strain if pace continues.' });
   else if (e.muscle_soreness === 3) recs.push({ type:'Warning', color:'#F59E0B', icon:'🔄', text:'Moderate soreness detected. Schedule a recovery session to prevent fatigue spike.' });
@@ -303,7 +303,7 @@ function buildRecs(e: HealthEntry | null) {
   if (e.energy < 2)       recs.push({ type:'Warning', color:'#F59E0B', icon:'🔋', text:'Low energy logged. Reduce sprint drills by 20% and prioritise nutrition.' });
   if (!recs.length) recs.push(
     { type:'Good', color:'#10B981', icon:'✅', text:'Great recovery scores! Maintain current training intensity.' },
-    { type:'Info', color:'#3B82F6', icon:'💧', text:'Hydration on track. Keep up with pre-training fluid intake.' },
+    { type:'Info', color:'#7C3AED', icon:'💧', text:'Hydration on track. Keep up with pre-training fluid intake.' },
   );
   return recs;
 }
@@ -681,7 +681,7 @@ export default function PlayerHealthPage() {
             </div>
             <div style={{ padding:'16px 20px', display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))', gap:12 }}>
               {[
-                { icon:'🧊', title:'Ice Bath',     duration:'12–15 min', status:'Recommended', color:'#3B82F6', note:'Post high-intensity day' },
+                { icon:'🧊', title:'Ice Bath',     duration:'12–15 min', status:'Recommended', color:'#7C3AED', note:'Post high-intensity day' },
                 { icon:'💤', title:'Sleep Target', duration:'8–9 hours', status:'Priority',    color:'#6366F1', note:'Deep sleep > REM ratio'   },
                 { icon:'💧', title:'Hydration',    duration:'3.5 L/day', status:'On Track',    color:'#10B981', note:'Electrolytes after sprint' },
                 { icon:'🧘', title:'Stretching',   duration:'20 min',    status:'Daily',       color:'#F59E0B', note:'Focus on hip flexors'      },
@@ -724,7 +724,7 @@ export default function PlayerHealthPage() {
         <div style={{ animation:'tabSlideIn 0.25s ease', display:'flex', flexDirection:'column', gap:20 }}>
 
           {/* Season hero */}
-          <div className="cta-banner-row" style={{ background:'linear-gradient(135deg,#0D1B3E,#1a2d5a)', borderRadius:16, padding:'22px 26px' }}>
+          <div className="cta-banner-row" style={{ background:'linear-gradient(135deg,#4F46E5,#7C3AED)', borderRadius:16, padding:'22px 26px' }}>
             <div>
               <div style={{ fontSize:'0.68rem', fontWeight:700, letterSpacing:'0.14em', textTransform:'uppercase', color:'rgba(255,255,255,0.35)', marginBottom:4 }}>Season Progress</div>
               <div style={{ fontWeight:900, fontSize:'2.5rem', color:'white', lineHeight:1 }}>
@@ -810,7 +810,7 @@ export default function PlayerHealthPage() {
                     { goal:'30+ wellness logs',      done: history.length >= 30,              color:'#6366F1' },
                     { goal:'Zero injury flags',       done: true,                               color:'#10B981' },
                     { goal:'Consistent Energy ≥ 3',  done: !!latest && latest.energy >= 3,    color:'#F59E0B' },
-                    { goal:'Sleep Quality ≥ 3',       done: !!latest && latest.sleep >= 3,     color:'#3B82F6' },
+                    { goal:'Sleep Quality ≥ 3',       done: !!latest && latest.sleep >= 3,     color:'#7C3AED' },
                   ].map(({ goal, done, color }) => (
                     <div key={goal} style={{ display:'flex', alignItems:'center', gap:9, padding:'8px 10px', borderRadius:8, background: done ? `${color}08` : 'var(--bg-elevated)', border:`1px solid ${done ? `${color}22` : 'var(--border-subtle)'}` }}>
                       <div style={{ width:18, height:18, borderRadius:'50%', flexShrink:0, background: done ? color : 'transparent', border:`2px solid ${done ? color : 'var(--border-default)'}`, display:'flex', alignItems:'center', justifyContent:'center' }}>
