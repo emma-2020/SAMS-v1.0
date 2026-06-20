@@ -73,6 +73,13 @@ const loginLimiter = rateLimit({
   standardHeaders: true, legacyHeaders: false,
 });
 
+// Platform admin login: 5 attempts per 15 min per IP — controls all academies so stricter than user login
+const platformLoginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, max: 5,
+  message: { success: false, error: 'Too many platform login attempts from this IP. Try again in 15 minutes.' },
+  standardHeaders: true, legacyHeaders: false,
+});
+
 // Other auth endpoints (signup, refresh, invite): 15 per 15 min
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, max: 15,
@@ -92,7 +99,9 @@ app.get('/healthz', (req, res) =>
 );
 
 // Apply stricter loginLimiter to /api/auth/login before the general authLimiter
-app.post('/api/auth/login',   loginLimiter);
+app.post('/api/auth/login',     loginLimiter);
+// Platform admin login gets its own strict limiter — must be registered before apiLimiter
+app.post('/api/platform/login', platformLoginLimiter);
 app.use('/api/auth',          authLimiter, authRoutes);
 app.use('/api/schedule',   apiLimiter,  scheduleRoutes);
 app.use('/api/attendance', apiLimiter,  attendanceRoutes);
@@ -103,8 +112,8 @@ app.use('/api/teams',         apiLimiter,  teamsRoutes);
 app.use('/api/workouts',      apiLimiter,  workoutRoutes);
 app.use('/api/coach',         apiLimiter,  coachRoutes);
 app.use('/api/notifications', apiLimiter,  notificationsRoutes);
-app.use('/api/platform',     apiLimiter,  platformRoutes);
-app.use('/api/public',                    publicRoutes);   // has its own per-route limiter
+app.use('/api/platform',      apiLimiter,  platformRoutes);
+app.use('/api/public',                     publicRoutes);  // has its own per-route limiter
 
 app.use(notFound);
 app.use(errorHandler);
