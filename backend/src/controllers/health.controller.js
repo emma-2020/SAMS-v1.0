@@ -5,7 +5,7 @@ const healthService = require('../services/health.service');
 
 async function submitHealthLog(req, res, next) {
   try {
-    const { fatigue, soreness, sleep_quality, notes } = req.body;
+    const { fatigue, soreness, sleep_quality, notes, stress } = req.body;
 
     const log = await healthService.submitHealthLog({
       playerId:     req.user.id,
@@ -13,6 +13,7 @@ async function submitHealthLog(req, res, next) {
       fatigue,
       soreness,
       sleep_quality,
+      stress,
       notes,
     });
 

@@ -39,7 +39,7 @@ const notif = require('./notifications.service');
  * @param {number} options.sleep_quality  1–5
  * @param {string} [options.notes]
  */
-async function submitHealthLog({ playerId, academyId, fatigue, soreness, sleep_quality, notes }) {
+async function submitHealthLog({ playerId, academyId, fatigue, soreness, sleep_quality, stress, notes }) {
 
   // Double-check caller is a Player (belt + braces beyond middleware)
   await assertPlayerRole(playerId, academyId);
@@ -72,9 +72,10 @@ async function submitHealthLog({ playerId, academyId, fatigue, soreness, sleep_q
       fatigue:       Number(fatigue),
       soreness:      Number(soreness),
       sleep_quality: Number(sleep_quality),
+      stress:        stress != null ? Number(stress) : null,
       notes:         notes?.trim() || null,
     })
-    .select('id, player_id, fatigue, soreness, sleep_quality, is_flagged, logged_at')
+    .select('id, player_id, fatigue, soreness, sleep_quality, stress, is_flagged, notes, logged_at')
     .single();
 
   if (error) {
@@ -153,6 +154,7 @@ async function getHealthLogs({ userId, academyId, role, targetPlayerId, days = 3
       fatigue,
       soreness,
       sleep_quality,
+      stress,
       is_flagged,
       notes,
       logged_at,
@@ -205,6 +207,9 @@ async function getActiveAlerts({ userId, academyId, role }) {
       fatigue,
       soreness,
       sleep_quality,
+      stress,
+      is_flagged,
+      notes,
       logged_at,
       users!health_logs_player_id_fkey ( id, first_name, last_name )
     `)
