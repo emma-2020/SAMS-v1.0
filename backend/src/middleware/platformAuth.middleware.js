@@ -3,8 +3,10 @@
 const jwt = require('jsonwebtoken');
 const { UnauthorizedError } = require('../utils/errors');
 
-const PLATFORM_JWT_SECRET =
-  process.env.PLATFORM_JWT_SECRET || process.env.SUPABASE_JWT_SECRET;
+const PLATFORM_JWT_SECRET = process.env.PLATFORM_JWT_SECRET;
+if (!PLATFORM_JWT_SECRET) {
+  throw new Error('PLATFORM_JWT_SECRET environment variable is required but not set.');
+}
 
 // ─────────────────────────────────────────────────────────────────
 // PLATFORM AUTHENTICATE
