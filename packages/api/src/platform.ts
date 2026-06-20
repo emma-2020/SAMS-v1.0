@@ -63,10 +63,40 @@ export interface PlatformStats {
 
 // ── API calls ─────────────────────────────────────────────────────
 
-export async function loginPlatform(email: string, password: string): Promise<{ token: string; admin: PlatformAdmin }> {
+export async function loginPlatform(
+  email: string,
+  password: string
+): Promise<{ token: string; admin: PlatformAdmin } | { mfa_required: true; mfa_token: string }> {
   const res = (await apiClient.post('/platform/login', { email, password })) as {
     success: boolean;
-    data:    { token: string; admin: PlatformAdmin };
+    data:    { token: string; admin: PlatformAdmin } | { mfa_required: true; mfa_token: string };
+  };
+  return res.data;
+}
+
+export async function verifyPlatformMfa(
+  mfaToken: string,
+  totpCode: string
+): Promise<{ token: string; admin: PlatformAdmin }> {
+  const res = (await apiClient.post('/platform/mfa/verify', {
+    mfa_token: mfaToken,
+    totp_code: totpCode,
+  })) as { success: boolean; data: { token: string; admin: PlatformAdmin } };
+  return res.data;
+}
+
+export async function setupPlatformMfa(): Promise<{ secret: string; qrCode: string }> {
+  const res = (await apiClient.post('/platform/mfa/setup', {}, { headers: platformHeaders() })) as {
+    success: boolean;
+    data:    { secret: string; qrCode: string };
+  };
+  return res.data;
+}
+
+export async function enablePlatformMfa(totpCode: string): Promise<{ message: string }> {
+  const res = (await apiClient.post('/platform/mfa/enable', { totp_code: totpCode }, { headers: platformHeaders() })) as {
+    success: boolean;
+    data:    { message: string };
   };
   return res.data;
 }

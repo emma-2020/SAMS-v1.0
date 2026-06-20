@@ -2,7 +2,9 @@
 
 const bcrypt = require('bcryptjs');
 const { supabaseAdmin } = require('../config/supabase');
-const { signPlatformToken } = require('../middleware/platformAuth.middleware');
+const { signPlatformToken, signMfaToken, verifyMfaToken } = require('../middleware/platformAuth.middleware');
+const { authenticator } = require('otplib');
+const QRCode            = require('qrcode');
 const {
   UnauthorizedError,
   NotFoundError,
@@ -43,7 +45,7 @@ async function login(email, password) {
   for (let attempt = 1; attempt <= 3; attempt++) {
     const { data, error } = await supabaseAdmin
       .from('platform_admins')
-      .select('id, name, email, password_hash, is_active')
+      .select('id, name, email, password_hash, is_active, mfa_enabled')
       .eq('email', email.toLowerCase().trim())
       .maybeSingle();
 
@@ -75,12 +77,99 @@ async function login(email, password) {
     .then(() => {})
     .catch(() => {});
 
-  const token = signPlatformToken({ id: admin.id, name: admin.name, email: admin.email });
+  // MFA enabled — return a short-lived challenge token instead of the full JWT.
+  // The client must call POST /api/platform/mfa/verify with the TOTP code to
+  // exchange the challenge token for a full access token.
+  if (admin.mfa_enabled) {
+    return { mfa_required: true, mfa_token: signMfaToken(admin.id) };
+  }
 
-  return {
-    token,
-    admin: { id: admin.id, name: admin.name, email: admin.email },
-  };
+  const token = signPlatformToken({ id: admin.id, name: admin.name, email: admin.email });
+  return { token, admin: { id: admin.id, name: admin.name, email: admin.email } };
+}
+
+// ─────────────────────────────────────────────────────────────────
+// MFA SETUP — generate TOTP secret + QR code
+// Called by an authenticated platform admin who wants to enable MFA.
+// ─────────────────────────────────────────────────────────────────
+
+async function mfaSetup(adminId) {
+  const { data: admin, error } = await supabaseAdmin
+    .from('platform_admins')
+    .select('id, email, mfa_enabled')
+    .eq('id', adminId)
+    .single();
+
+  if (error || !admin) throw new NotFoundError('Platform admin not found.');
+  if (admin.mfa_enabled) throw new ConflictError('MFA is already enabled for this account.');
+
+  const secret   = authenticator.generateSecret();
+  const otpauth  = authenticator.keyuri(admin.email, 'SAMS Platform', secret);
+  const qrCode   = await QRCode.toDataURL(otpauth);
+
+  // Persist the secret (not yet active — mfa_enabled stays false until confirmed)
+  await supabaseAdmin
+    .from('platform_admins')
+    .update({ totp_secret: secret })
+    .eq('id', adminId);
+
+  return { secret, qrCode };
+}
+
+// ─────────────────────────────────────────────────────────────────
+// MFA ENABLE — verify first TOTP code and activate MFA
+// ─────────────────────────────────────────────────────────────────
+
+async function mfaEnable(adminId, totpCode) {
+  const { data: admin, error } = await supabaseAdmin
+    .from('platform_admins')
+    .select('id, totp_secret, mfa_enabled')
+    .eq('id', adminId)
+    .single();
+
+  if (error || !admin)    throw new NotFoundError('Platform admin not found.');
+  if (!admin.totp_secret) throw new BadRequestError('MFA setup not initiated. Call /mfa/setup first.');
+  if (admin.mfa_enabled)  throw new ConflictError('MFA is already enabled.');
+
+  const isValid = authenticator.verify({ token: totpCode, secret: admin.totp_secret });
+  if (!isValid) throw new UnauthorizedError('Invalid authentication code. Please try again.');
+
+  await supabaseAdmin
+    .from('platform_admins')
+    .update({ mfa_enabled: true })
+    .eq('id', adminId);
+
+  return { message: 'MFA enabled successfully. All future logins will require your authenticator app.' };
+}
+
+// ─────────────────────────────────────────────────────────────────
+// MFA VERIFY — exchange MFA challenge token + TOTP code for full JWT
+// ─────────────────────────────────────────────────────────────────
+
+async function mfaVerify(mfaToken, totpCode) {
+  let payload;
+  try {
+    payload = verifyMfaToken(mfaToken);
+  } catch {
+    throw new UnauthorizedError('MFA session expired or invalid. Please log in again.');
+  }
+
+  const { data: admin, error } = await supabaseAdmin
+    .from('platform_admins')
+    .select('id, name, email, totp_secret, mfa_enabled, is_active')
+    .eq('id', payload.sub)
+    .single();
+
+  if (error || !admin)         throw new UnauthorizedError('Account not found.');
+  if (!admin.is_active)        throw new UnauthorizedError('Account has been deactivated.');
+  if (!admin.mfa_enabled)      throw new BadRequestError('MFA is not enabled for this account.');
+  if (!admin.totp_secret)      throw new InternalError('MFA secret missing. Contact support.');
+
+  const isValid = authenticator.verify({ token: totpCode, secret: admin.totp_secret });
+  if (!isValid) throw new UnauthorizedError('Invalid authentication code. Please try again.');
+
+  const token = signPlatformToken({ id: admin.id, name: admin.name, email: admin.email });
+  return { token, admin: { id: admin.id, name: admin.name, email: admin.email } };
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -369,6 +458,9 @@ async function createPlatformAdmin(name, email, password) {
 
 module.exports = {
   login,
+  mfaSetup,
+  mfaEnable,
+  mfaVerify,
   listRequests,
   getRequest,
   approveRequest,
