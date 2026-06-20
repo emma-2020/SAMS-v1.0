@@ -82,11 +82,11 @@ async function mfaEnable(req, res, next) {
 // POST /api/platform/mfa/verify — public, exchanges mfa_token + TOTP code for full JWT
 async function mfaVerify(req, res, next) {
   try {
-    const { mfa_token, totp_code } = req.body;
-    if (!mfa_token || !totp_code) {
-      return res.status(400).json({ success: false, error: '"mfa_token" and "totp_code" are required.' });
+    const { mfa_token, totp_code, recovery_code } = req.body;
+    if (!mfa_token || (!totp_code && !recovery_code)) {
+      return res.status(400).json({ success: false, error: '"mfa_token" and either "totp_code" or "recovery_code" are required.' });
     }
-    const result = await service.mfaVerify(mfa_token, totp_code);
+    const result = await service.mfaVerify(mfa_token, totp_code, recovery_code);
     return res.json({ success: true, data: result });
   } catch (err) { next(err); }
 }
