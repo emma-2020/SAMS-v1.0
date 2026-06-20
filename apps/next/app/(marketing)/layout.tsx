@@ -2,16 +2,19 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState } from 'react';
 
 const NAV = [
-  { label: 'Features', hash: '#features' },
-  { label: 'Roles',    hash: '#roles'    },
-  { label: 'Pricing',  hash: '#pricing'  },
+  { label: 'Features',     hash: '#features'     },
+  { label: 'How It Works', hash: '#how-it-works' },
+  { label: 'Roles',        hash: '#roles'        },
+  { label: 'Pricing',      hash: '#pricing'      },
 ];
 
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
-  const isEnroll = pathname === '/enroll';
+  const pathname  = usePathname();
+  const isEnroll  = pathname === '/enroll';
+  const [menuOpen, setMenuOpen] = useState(false);
 
   function navHref(hash: string) {
     return isEnroll ? `/${hash}` : hash;
@@ -24,7 +27,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
       <header style={{
         position: 'fixed', inset: '0 0 auto 0', zIndex: 100,
         height: 64,
-        background: 'rgba(6,11,20,0.85)',
+        background: 'rgba(6,11,20,0.88)',
         backdropFilter: 'blur(18px)',
         WebkitBackdropFilter: 'blur(18px)',
         borderBottom: '1px solid rgba(255,255,255,0.055)',
@@ -59,7 +62,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
               key={label}
               href={navHref(hash)}
               style={{
-                padding: '7px 18px', borderRadius: 99,
+                padding: '7px 16px', borderRadius: 99,
                 fontSize: '0.83rem', fontWeight: 600,
                 color: 'rgba(255,255,255,0.5)',
                 textDecoration: 'none', letterSpacing: '0.01em',
@@ -94,13 +97,14 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25">
                 <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
               </svg>
-              <span className="mkt-btn-text">Back to home</span>
+              Back to home
             </Link>
           ) : (
             <>
-              {/* Sign In — ghost button */}
+              {/* Sign In */}
               <Link
                 href="/login"
+                className="mkt-signin-btn"
                 style={{
                   display: 'flex', alignItems: 'center', gap: 7,
                   padding: '9px 20px', borderRadius: 99,
@@ -129,10 +133,10 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
                   <polyline points="10 17 15 12 10 7"/>
                   <line x1="15" y1="12" x2="3" y2="12"/>
                 </svg>
-                <span className="mkt-btn-text">Sign In</span>
+                Sign In
               </Link>
 
-              {/* Enroll — primary button */}
+              {/* Enroll */}
               <Link
                 href="/enroll"
                 className="mkt-enroll-btn"
@@ -159,19 +163,103 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
                   <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
                 </svg>
               </Link>
+
+              {/* Hamburger — shown on mobile only via CSS */}
+              <button
+                className="mkt-hamburger"
+                onClick={() => setMenuOpen(v => !v)}
+                aria-label="Toggle navigation menu"
+                style={{
+                  display: 'none',
+                  background: menuOpen ? 'rgba(124,58,237,0.15)' : 'rgba(255,255,255,0.05)',
+                  border: `1px solid ${menuOpen ? 'rgba(124,58,237,0.35)' : 'rgba(255,255,255,0.1)'}`,
+                  borderRadius: 8, padding: '7px',
+                  cursor: 'pointer',
+                  color: menuOpen ? '#A78BFA' : 'rgba(255,255,255,0.7)',
+                  alignItems: 'center', justifyContent: 'center',
+                  transition: 'all 0.15s',
+                }}
+              >
+                {menuOpen ? (
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                ) : (
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <line x1="3" y1="6" x2="21" y2="6"/>
+                    <line x1="3" y1="12" x2="21" y2="12"/>
+                    <line x1="3" y1="18" x2="21" y2="18"/>
+                  </svg>
+                )}
+              </button>
             </>
           )}
         </div>
       </header>
 
+      {/* ── Mobile dropdown nav ── */}
+      {menuOpen && !isEnroll && (
+        <div
+          className="mkt-mobile-dropdown"
+          style={{
+            position: 'fixed', top: 64, left: 0, right: 0, zIndex: 99,
+            background: 'rgba(6,11,20,0.97)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            borderBottom: '1px solid rgba(255,255,255,0.07)',
+            padding: '8px 16px 16px',
+            display: 'flex', flexDirection: 'column', gap: 2,
+          }}
+        >
+          {NAV.map(({ label, hash }) => (
+            <Link
+              key={label}
+              href={navHref(hash)}
+              onClick={() => setMenuOpen(false)}
+              style={{
+                padding: '12px 16px', borderRadius: 10,
+                fontSize: '0.92rem', fontWeight: 600,
+                color: 'rgba(255,255,255,0.65)',
+                textDecoration: 'none', display: 'block',
+                transition: 'color 0.15s, background 0.15s',
+              }}
+              onMouseEnter={e => { const el = e.currentTarget as HTMLAnchorElement; el.style.color = '#F1F5F9'; el.style.background = 'rgba(255,255,255,0.05)'; }}
+              onMouseLeave={e => { const el = e.currentTarget as HTMLAnchorElement; el.style.color = 'rgba(255,255,255,0.65)'; el.style.background = 'transparent'; }}
+            >
+              {label}
+            </Link>
+          ))}
+          <div style={{ marginTop: 6, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            <Link
+              href="/login"
+              onClick={() => setMenuOpen(false)}
+              style={{
+                padding: '12px 16px', borderRadius: 10,
+                fontSize: '0.92rem', fontWeight: 600,
+                color: 'rgba(255,255,255,0.4)',
+                textDecoration: 'none', display: 'block',
+              }}
+            >
+              Sign In
+            </Link>
+          </div>
+        </div>
+      )}
+
       <main>{children}</main>
 
       <style>{`
         html { scroll-behavior: smooth; }
-        @media (max-width: 640px) {
-          .mkt-center-nav { display: none !important; }
-          .mkt-enroll-btn { padding: 9px 14px !important; }
-          .mkt-btn-text { display: none; }
+        @media (max-width: 680px) {
+          .mkt-center-nav    { display: none !important; }
+          .mkt-signin-btn    { display: none !important; }
+          .mkt-hamburger     { display: flex !important; }
+          .mkt-enroll-btn    { padding: 9px 14px !important; }
+          .mkt-btn-text      { display: none !important; }
+        }
+        @media (min-width: 681px) {
+          .mkt-hamburger       { display: none !important; }
+          .mkt-mobile-dropdown { display: none !important; }
         }
         @media (max-width: 380px) {
           .mkt-enroll-btn { display: none !important; }
