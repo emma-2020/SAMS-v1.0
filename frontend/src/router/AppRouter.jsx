@@ -28,7 +28,9 @@ import PlayerWorkouts    from '../pages/player/WorkoutsPage';
 import PlayerSchedule    from '../pages/player/SchedulePage';
 
 // Parent pages
-import ParentDashboard   from '../pages/parent/index';
+import ParentDashboard    from '../pages/parent/index';
+import ParentSchedulePage from '../pages/parent/SchedulePage';
+import ParentHealthPage   from '../pages/parent/HealthPage';
 
 // Shared pages (role-specific content handled inside)
 import ChatPage          from '../pages/chat/index';
@@ -96,8 +98,8 @@ export default function AppRouter() {
           {/* ── Parent ─────────────────────────────────────────── */}
           <Route element={<RoleRoute allowed={['Parent', 'Admin']} />}>
             <Route path="/dashboard/parent"          element={<ParentDashboard />} />
-            <Route path="/dashboard/parent/schedule" element={<ParentDashboard />} />
-            <Route path="/dashboard/parent/health"   element={<ParentDashboard />} />
+            <Route path="/dashboard/parent/schedule" element={<ParentSchedulePage />} />
+            <Route path="/dashboard/parent/health"   element={<ParentHealthPage />} />
             <Route path="/dashboard/parent/chat"     element={<ChatPage />} />
           </Route>
 
