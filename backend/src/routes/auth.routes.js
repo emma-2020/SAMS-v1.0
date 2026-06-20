@@ -13,12 +13,23 @@ const multer         = require('multer');
 const controller     = require('../controllers/auth.controller');
 const { authenticate, extractTenant } = require('../middleware/auth.middleware');
 
+const AVATAR_MIME_EXT = {
+  'image/jpeg': ['.jpg', '.jpeg'],
+  'image/jpg':  ['.jpg', '.jpeg'],
+  'image/png':  ['.png'],
+  'image/webp': ['.webp'],
+  'image/gif':  ['.gif'],
+};
+
 const upload = multer({
   storage: multer.memoryStorage(),
   limits:  { fileSize: 5 * 1024 * 1024 },  // 5 MB
   fileFilter(_, file, cb) {
-    if (/^image\/(jpeg|jpg|png|webp|gif)$/.test(file.mimetype)) cb(null, true);
-    else cb(new Error('Only image files are allowed.'));
+    const allowed = AVATAR_MIME_EXT[file.mimetype];
+    if (!allowed) return cb(new Error('Only image files (JPEG, PNG, WebP, GIF) are allowed.'));
+    const ext = file.originalname.slice(file.originalname.lastIndexOf('.')).toLowerCase();
+    if (!allowed.includes(ext)) return cb(new Error('File extension does not match its content type.'));
+    cb(null, true);
   },
 });
 
