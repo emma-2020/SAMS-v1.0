@@ -32,7 +32,7 @@ async function getMessages({ channelId, teamId, userId, academyId, role, limit, 
       id, team_id, channel_id, sender_id, message_text,
       attachment_url, file_name, mime_type, file_size,
       created_at,
-      users!messages_sender_id_fkey ( id, first_name, last_name, role )
+      users!messages_sender_id_fkey ( id, first_name, last_name, role, avatar_url )
     `)
     .eq('academy_id', academyId)
     .eq('channel_id', resolvedChannelId)
@@ -163,7 +163,7 @@ async function sendMessage({ channelId, teamId, senderId, academyId, role, messa
       id, team_id, channel_id, sender_id, message_text,
       attachment_url, file_name, mime_type, file_size,
       created_at,
-      users!messages_sender_id_fkey ( id, first_name, last_name, role )
+      users!messages_sender_id_fkey ( id, first_name, last_name, role, avatar_url )
     `)
     .single();
 

@@ -148,20 +148,38 @@ const IcoImage = () => (
 );
 
 // ── Message ticks (WhatsApp-style) ───────────────────────────────────
+// Ticks render BELOW the bubble on a light (#F8FAFC) background, so colors must be visible
 function MsgTicks({ isOpt }: { isOpt?: boolean }) {
   if (isOpt) {
+    // Single grey tick = sending / pending
     return (
       <svg width="13" height="9" viewBox="0 0 13 9" fill="none" style={{ flexShrink: 0 }}>
-        <path d="M1.5 4.5L5 8L11.5 1" stroke="rgba(255,255,255,0.55)" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M1.5 4.5L5 8L11.5 1" stroke="#94A3B8" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
       </svg>
     );
   }
+  // Double indigo tick = delivered / confirmed
   return (
     <svg width="17" height="9" viewBox="0 0 17 9" fill="none" style={{ flexShrink: 0 }}>
-      <path d="M1.5 4.5L5 8L11.5 1" stroke="rgba(255,255,255,0.7)" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M5.5 4.5L9 8L15.5 1" stroke="rgba(255,255,255,0.7)" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M1.5 4.5L5 8L11.5 1" stroke="#6366F1" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M5.5 4.5L9 8L15.5 1" stroke="#6366F1" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   );
+}
+
+// ── Online presence utilities ─────────────────────────────────────────
+function isOnline(lastSeenAt?: string | null): boolean {
+  if (!lastSeenAt) return false;
+  return Date.now() - new Date(lastSeenAt).getTime() < 5 * 60 * 1000; // 5 min window
+}
+
+function lastSeenLabel(lastSeenAt?: string | null): string {
+  if (!lastSeenAt) return 'offline';
+  if (isOnline(lastSeenAt)) return 'Online';
+  const sec = Math.floor((Date.now() - new Date(lastSeenAt).getTime()) / 1000);
+  if (sec < 3600)  return `Last seen ${Math.floor(sec / 60)}m ago`;
+  if (sec < 86400) return `Last seen ${Math.floor(sec / 3600)}h ago`;
+  return `Last seen ${new Date(lastSeenAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
 }
 
 // ─── Utilities ───────────────────────────────────────────────────────
@@ -268,7 +286,12 @@ function DateSep({ date }: { date: string }) {
   );
 }
 
-function MsgAvatar({ name, size = 34 }: { name: string; size?: number }) {
+function MsgAvatar({ name, size = 34, avatarUrl }: { name: string; size?: number; avatarUrl?: string | null }) {
+  if (avatarUrl) {
+    return (
+      <img src={avatarUrl} alt={name} style={{ width: size, height: size, borderRadius: '50%', flexShrink: 0, objectFit: 'cover', border: '2px solid #E2E8F0', boxShadow: '0 2px 6px rgba(15,23,42,0.10)' }} />
+    );
+  }
   const p = avatarPalette(name);
   return (
     <div style={{ width: size, height: size, borderRadius: '50%', flexShrink: 0, background: p.bg, border: `2px solid ${p.ring}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: Math.round(size * 0.3), fontWeight: 800, color: p.text, boxShadow: `0 2px 6px ${p.ring}80` }}>
@@ -301,7 +324,7 @@ function MessageBubble({ msg, isSelf, showHeader, isLast, canDelete, onDelete, o
       onMouseLeave={() => { setHovered(false); setConfirming(false); }}
     >
       {showHeader
-        ? <MsgAvatar name={name} size={34} />
+        ? <MsgAvatar name={name} size={34} avatarUrl={u?.avatar_url} />
         : <div style={{ width: 34, flexShrink: 0 }} />}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 3, alignItems: isSelf ? 'flex-end' : 'flex-start', maxWidth: '100%' }}>
@@ -498,6 +521,12 @@ function InputBar({ onSend, disabled, activeChannelId }: {
 
 // ─── Channel avatar component ────────────────────────────────────────
 function ChannelAvatar({ ch, size = 44 }: { ch: ChatChannel; size?: number }) {
+  if (ch.type === 'direct' && ch.other_user?.avatar_url) {
+    return (
+      <img src={ch.other_user.avatar_url} alt={`${ch.other_user.first_name} ${ch.other_user.last_name}`}
+        style={{ width: size, height: size, borderRadius: '50%', flexShrink: 0, objectFit: 'cover', border: '2px solid #E2E8F0' }} />
+    );
+  }
   const av = channelAvatar(ch);
   return (
     <div style={{ width: size, height: size, borderRadius: '50%', flexShrink: 0, background: av.bg, border: `2px solid ${av.ring}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: Math.round(size * 0.3), fontWeight: 800, color: av.text }}>
@@ -709,7 +738,7 @@ function GroupInfoPanel({ channel, onClose, isAdmin, onMembersChange, onChannelU
   const [saving,       setSaving]       = useState(false);
   const [toast,        setToast]        = useState('');
   const [showMuteMenu, setShowMuteMenu] = useState(false);
-  const [infoTab,      setInfoTab]      = useState<'media' | 'docs' | 'search'>('media');
+  const [infoTab,      setInfoTab]      = useState<'media' | 'docs' | 'search' | 'members'>(() => channel.type === 'direct' ? 'media' : 'members');
   const [searchQuery,  setSearchQuery]  = useState('');
   const searchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -928,13 +957,25 @@ function GroupInfoPanel({ channel, onClose, isAdmin, onMembersChange, onChannelU
         {/* ── DM: WhatsApp-style contact view ── */}
         {isDirect ? (
           <>
-            {/* Big avatar + name + role */}
+            {/* Big avatar + name + role + presence */}
             <div style={{ padding: '28px 20px 20px', textAlign: 'center', borderBottom: '1px solid #F1F5F9' }}>
-              <div style={{ width: 88, height: 88, borderRadius: '50%', background: av.bg, border: `4px solid ${av.ring}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.9rem', fontWeight: 800, color: av.text, margin: '0 auto 14px', boxShadow: `0 4px 20px ${av.ring}80` }}>
-                {av.label}
+              <div style={{ position: 'relative', width: 88, margin: '0 auto 14px' }}>
+                {otherUser?.avatar_url ? (
+                  <img src={otherUser.avatar_url} alt={otherUser.first_name} style={{ width: 88, height: 88, borderRadius: '50%', objectFit: 'cover', border: '4px solid #E2E8F0', boxShadow: '0 4px 20px rgba(15,23,42,0.12)' }} />
+                ) : (
+                  <div style={{ width: 88, height: 88, borderRadius: '50%', background: av.bg, border: `4px solid ${av.ring}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.9rem', fontWeight: 800, color: av.text, boxShadow: `0 4px 20px ${av.ring}80` }}>
+                    {av.label}
+                  </div>
+                )}
+                {/* Online indicator dot */}
+                <div style={{ position: 'absolute', bottom: 4, right: 4, width: 16, height: 16, borderRadius: '50%', background: isOnline(otherUser?.last_seen_at) ? '#10B981' : '#CBD5E1', border: '3px solid white', boxShadow: isOnline(otherUser?.last_seen_at) ? '0 0 0 2px rgba(16,185,129,0.25)' : 'none' }} />
               </div>
-              <div style={{ fontWeight: 800, fontSize: '1.15rem', color: '#0F172A', marginBottom: 8 }}>
+              <div style={{ fontWeight: 800, fontSize: '1.15rem', color: '#0F172A', marginBottom: 4 }}>
                 {otherUser ? `${otherUser.first_name} ${otherUser.last_name}` : channel.name}
+              </div>
+              {/* Presence label */}
+              <div style={{ fontSize: '0.72rem', color: isOnline(otherUser?.last_seen_at) ? '#10B981' : '#94A3B8', fontWeight: 600, marginBottom: 8 }}>
+                {lastSeenLabel(otherUser?.last_seen_at)}
               </div>
               {otherUser?.role && (() => {
                 const rs = ROLE_STYLES[otherUser.role];
@@ -1049,7 +1090,7 @@ function GroupInfoPanel({ channel, onClose, isAdmin, onMembersChange, onChannelU
           </>
 
         ) : (
-          /* ── GROUP: existing layout ── */
+          /* ── GROUP: 4-tab layout (Media | Docs | Members | Search) ── */
           <>
             <div style={{ padding: '24px 20px 18px', textAlign: 'center', borderBottom: '1px solid #F1F5F9' }}>
               <div style={{ width: 68, height: 68, borderRadius: '50%', background: av.bg, border: `3px solid ${av.ring}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem', fontWeight: 800, color: av.text, margin: '0 auto 12px' }}>
@@ -1092,70 +1133,167 @@ function GroupInfoPanel({ channel, onClose, isAdmin, onMembersChange, onChannelU
             </div>
 
             {!editing && (
-              <div style={{ padding: '12px 20px', borderBottom: '1px solid #F1F5F9', display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ padding: '12px 20px', borderBottom: '1px solid #F1F5F9' }}>
                 <MuteDropdown />
               </div>
             )}
 
+            {/* 4-tab bar */}
             {!editing && (
-              <div style={{ flex: 1, padding: '16px 20px', overflow: 'auto' }}>
-                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94A3B8', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10 }}>Members</div>
-                {isAdmin && !isTeam && (
-                  <div style={{ marginBottom: 12 }}>
-                    <div style={{ position: 'relative', marginBottom: 4 }}>
+              <div style={{ display: 'flex', borderBottom: '1px solid #F1F5F9', flexShrink: 0 }}>
+                {(['media', 'docs', 'members', 'search'] as const).map(tab => (
+                  <button key={tab} onClick={() => setInfoTab(tab)}
+                    style={{ flex: 1, padding: '10px 0', background: 'none', border: 'none', borderBottom: `2.5px solid ${infoTab === tab ? '#6366F1' : 'transparent'}`, marginBottom: -1, color: infoTab === tab ? '#6366F1' : '#94A3B8', fontWeight: 700, fontSize: '0.6rem', cursor: 'pointer', letterSpacing: '0.07em', textTransform: 'uppercase', transition: 'all 0.15s' }}>
+                    {tab === 'media'   ? `Media (${mediaItems.length})`
+                     : tab === 'docs'    ? `Docs (${docItems.length})`
+                     : tab === 'members' ? `Members (${members.length})`
+                     : 'Search'}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Tab content */}
+            {!editing && (
+              <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px' }}>
+                {/* ── Media tab ── */}
+                {infoTab === 'media' && (
+                  mediaItems.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '36px 0', color: '#94A3B8' }}>
+                      <div style={{ marginBottom: 10, color: '#CBD5E1' }}><IcoImage /></div>
+                      <div style={{ fontWeight: 600, fontSize: '0.82rem' }}>No shared photos yet</div>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
+                      {mediaItems.map(m => (
+                        <div key={m.id} onClick={() => window.open(m.attachment_url!, '_blank')}
+                          style={{ aspectRatio: '1', borderRadius: 8, overflow: 'hidden', cursor: 'pointer', background: '#F1F5F9', border: '1px solid #E2E8F0' }}>
+                          <img src={m.attachment_url!} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        </div>
+                      ))}
+                    </div>
+                  )
+                )}
+                {/* ── Docs tab ── */}
+                {infoTab === 'docs' && (
+                  docItems.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '36px 0', color: '#94A3B8' }}>
+                      <div style={{ fontSize: '2rem', marginBottom: 8 }}>📄</div>
+                      <div style={{ fontWeight: 600, fontSize: '0.82rem' }}>No shared documents yet</div>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {docItems.map(m => (
+                        <a key={m.id} href={m.attachment_url!} target="_blank" rel="noopener noreferrer"
+                          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10, border: '1.5px solid #E2E8F0', background: '#F8FAFC', textDecoration: 'none' }}>
+                          <div style={{ width: 36, height: 36, borderRadius: 8, background: '#EEF2FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6366F1', flexShrink: 0 }}><IcoFile /></div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.file_name ?? 'Document'}</div>
+                            <div style={{ fontSize: '0.65rem', color: '#94A3B8', marginTop: 2 }}>
+                              {m.file_size ? `${(m.file_size / 1024).toFixed(0)} KB · ` : ''}{new Date(m.created_at).toLocaleDateString()}
+                            </div>
+                          </div>
+                        </a>
+                      ))}
+                    </div>
+                  )
+                )}
+                {/* ── Members tab ── */}
+                {infoTab === 'members' && (
+                  <>
+                    {isAdmin && !isTeam && (
+                      <div style={{ marginBottom: 12 }}>
+                        <div style={{ position: 'relative', marginBottom: 4 }}>
+                          <div style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }}><IcoSearch /></div>
+                          <input value={addSearch} onChange={e => setAddSearch(e.target.value)} placeholder="Add a member…"
+                            style={{ width: '100%', padding: '8px 10px 8px 32px', borderRadius: 9, border: '1.5px solid #E2E8F0', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                            onFocus={e => e.currentTarget.style.borderColor = '#6366F1'}
+                            onBlur={e  => e.currentTarget.style.borderColor = '#E2E8F0'}
+                          />
+                        </div>
+                        {searching && <div style={{ fontSize: '0.72rem', color: '#94A3B8', paddingLeft: 4 }}>Searching…</div>}
+                        {addResults.length > 0 && (
+                          <div style={{ border: '1px solid #E2E8F0', borderRadius: 9, overflow: 'hidden', marginTop: 4 }}>
+                            {addResults.slice(0, 5).map((u, i) => (
+                              <button key={u.id} onClick={() => handleAdd(u)}
+                                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 10px', background: 'none', border: 'none', borderTop: i > 0 ? '1px solid #F1F5F9' : 'none', cursor: 'pointer', textAlign: 'left' }}
+                                onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
+                                onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+                                <MsgAvatar name={`${u.first_name} ${u.last_name}`} size={28} avatarUrl={u.avatar_url} />
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#0F172A' }}>{u.first_name} {u.last_name}</div>
+                                  <div style={{ fontSize: '0.65rem', color: '#94A3B8' }}>{u.role}</div>
+                                </div>
+                                <span style={{ fontSize: '0.7rem', color: '#6366F1', fontWeight: 700 }}>+ Add</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {loading
+                      ? [1,2,3].map(i => <div key={i} className="skeleton" style={{ height: 48, borderRadius: 10, marginBottom: 6 }} />)
+                      : members.map(m => {
+                          const rs = ROLE_STYLES[m.role];
+                          return (
+                            <div key={m.user_id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid #F8FAFC' }}>
+                              <MsgAvatar name={`${m.first_name} ${m.last_name}`} size={34} />
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontWeight: 600, fontSize: '0.83rem', color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.first_name} {m.last_name}</div>
+                                {rs && <span style={{ fontSize: '0.6rem', fontWeight: 700, color: rs.color }}>{m.role}</span>}
+                              </div>
+                              {m.is_admin && <span style={{ fontSize: '0.6rem', fontWeight: 700, color: '#6366F1', background: '#EEF2FF', padding: '1px 6px', borderRadius: 99 }}>Admin</span>}
+                              {isAdmin && !isTeam && !m.is_admin && (
+                                <button onClick={() => handleRemove(m.user_id)} disabled={removingId === m.user_id}
+                                  style={{ width: 28, height: 28, borderRadius: 7, border: '1px solid #FECDD3', background: '#FFF1F2', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#F43F5E', opacity: removingId === m.user_id ? 0.5 : 1 }}>
+                                  <IcoX size={11} />
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
+                  </>
+                )}
+                {/* ── Search tab ── */}
+                {infoTab === 'search' && (
+                  <>
+                    <div style={{ position: 'relative', marginBottom: 12 }}>
                       <div style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }}><IcoSearch /></div>
-                      <input value={addSearch} onChange={e => setAddSearch(e.target.value)} placeholder="Add a member…"
-                        style={{ width: '100%', padding: '8px 10px 8px 32px', borderRadius: 9, border: '1.5px solid #E2E8F0', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                      <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search messages in this chat…" autoFocus
+                        style={{ width: '100%', padding: '9px 10px 9px 34px', borderRadius: 10, border: '1.5px solid #E2E8F0', fontSize: '0.83rem', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
                         onFocus={e => e.currentTarget.style.borderColor = '#6366F1'}
                         onBlur={e  => e.currentTarget.style.borderColor = '#E2E8F0'}
                       />
                     </div>
-                    {searching && <div style={{ fontSize: '0.72rem', color: '#94A3B8', paddingLeft: 4 }}>Searching…</div>}
-                    {addResults.length > 0 && (
-                      <div style={{ border: '1px solid #E2E8F0', borderRadius: 9, overflow: 'hidden', marginTop: 4 }}>
-                        {addResults.slice(0, 5).map((u, i) => (
-                          <button key={u.id} onClick={() => handleAdd(u)}
-                            style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 10px', background: 'none', border: 'none', borderTop: i > 0 ? '1px solid #F1F5F9' : 'none', cursor: 'pointer', textAlign: 'left' }}
-                            onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
-                            onMouseLeave={e => e.currentTarget.style.background = 'none'}>
-                            <MsgAvatar name={`${u.first_name} ${u.last_name}`} size={28} />
-                            <div style={{ flex: 1 }}>
-                              <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#0F172A' }}>{u.first_name} {u.last_name}</div>
-                              <div style={{ fontSize: '0.65rem', color: '#94A3B8' }}>{u.role}</div>
+                    {!searchQuery.trim() ? (
+                      <div style={{ textAlign: 'center', color: '#94A3B8', fontSize: '0.82rem', padding: '20px 0' }}>Type to search messages</div>
+                    ) : searchResults.length === 0 ? (
+                      <div style={{ textAlign: 'center', color: '#94A3B8', fontSize: '0.82rem', padding: '20px 0' }}>No messages found for &ldquo;{searchQuery}&rdquo;</div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {searchResults.slice(0, 30).map(m => {
+                          const sName = m.sender ? `${m.sender.first_name} ${m.sender.last_name}` : 'Unknown';
+                          const q = searchQuery.toLowerCase();
+                          const body = m.body ?? '';
+                          const idx = body.toLowerCase().indexOf(q);
+                          return (
+                            <div key={m.id} style={{ padding: '9px 12px', borderRadius: 10, border: '1.5px solid #F1F5F9', background: '#FAFBFC' }}>
+                              <div style={{ fontSize: '0.65rem', color: '#94A3B8', marginBottom: 3 }}>{sName} · {new Date(m.created_at).toLocaleDateString()}</div>
+                              <div style={{ fontSize: '0.82rem', color: '#1E293B' }}>
+                                {body ? (idx >= 0 ? <>{body.slice(0, idx)}<mark style={{ background: '#FDE68A', borderRadius: 2, padding: '0 1px' }}>{body.slice(idx, idx + searchQuery.length)}</mark>{body.slice(idx + searchQuery.length)}</> : body) : '📎 Attachment'}
+                              </div>
                             </div>
-                            <span style={{ fontSize: '0.7rem', color: '#6366F1', fontWeight: 700 }}>+ Add</span>
-                          </button>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
-                  </div>
+                  </>
                 )}
-                {loading
-                  ? [1,2,3].map(i => <div key={i} className="skeleton" style={{ height: 48, borderRadius: 10, marginBottom: 6 }} />)
-                  : members.map(m => {
-                      const rs = ROLE_STYLES[m.role];
-                      return (
-                        <div key={m.user_id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid #F8FAFC' }}>
-                          <MsgAvatar name={`${m.first_name} ${m.last_name}`} size={34} />
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontWeight: 600, fontSize: '0.83rem', color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.first_name} {m.last_name}</div>
-                            {rs && <span style={{ fontSize: '0.6rem', fontWeight: 700, color: rs.color }}>{m.role}</span>}
-                          </div>
-                          {m.is_admin && <span style={{ fontSize: '0.6rem', fontWeight: 700, color: '#6366F1', background: '#EEF2FF', padding: '1px 6px', borderRadius: 99 }}>Admin</span>}
-                          {isAdmin && !isTeam && !m.is_admin && (
-                            <button onClick={() => handleRemove(m.user_id)} disabled={removingId === m.user_id}
-                              style={{ width: 28, height: 28, borderRadius: 7, border: '1px solid #FECDD3', background: '#FFF1F2', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#F43F5E', opacity: removingId === m.user_id ? 0.5 : 1 }}>
-                              <IcoX size={11} />
-                            </button>
-                          )}
-                        </div>
-                      );
-                    })}
               </div>
             )}
 
             {!editing && (
-              <div style={{ padding: '12px 20px 20px', borderTop: '1px solid #F1F5F9', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ padding: '12px 20px 20px', borderTop: '1px solid #F1F5F9', display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0 }}>
                 {!isTeam && (
                   <button onClick={handleLeave} disabled={leaving}
                     style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px', borderRadius: 10, border: '1.5px solid #E2E8F0', background: '#F8FAFC', color: '#64748B', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer' }}>
@@ -1568,12 +1706,16 @@ export default function ChatPage() {
             {activeChannel && <ChannelAvatar ch={activeChannel} size={40} />}
             <div>
               <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#0F172A', letterSpacing: '-0.01em' }}>{displayName}</div>
-              <div style={{ fontSize: '0.7rem', color: '#94A3B8', marginTop: 1 }}>
+              <div style={{ fontSize: '0.7rem', marginTop: 1 }}>
                 {activeChannel ? (
-                  activeChannel.type === 'direct'
-                    ? `Direct message · ${activeChannel.other_user?.role ?? ''}`
-                    : `${CHANNEL_TYPE_LABELS[activeChannel.type]}${activeChannel.member_count ? ` · ${activeChannel.member_count} members` : ''}`
-                ) : 'Choose a conversation'}
+                  activeChannel.type === 'direct' ? (
+                    <span style={{ color: isOnline(activeChannel.other_user?.last_seen_at) ? '#10B981' : '#94A3B8', fontWeight: isOnline(activeChannel.other_user?.last_seen_at) ? 600 : 400 }}>
+                      {lastSeenLabel(activeChannel.other_user?.last_seen_at)}
+                    </span>
+                  ) : (
+                    <span style={{ color: '#94A3B8' }}>{CHANNEL_TYPE_LABELS[activeChannel.type]}{activeChannel.member_count ? ` · ${activeChannel.member_count} members` : ''}</span>
+                  )
+                ) : <span style={{ color: '#94A3B8' }}>Choose a conversation</span>}
               </div>
             </div>
           </button>
@@ -1723,10 +1865,19 @@ function ChannelRow({ ch, isActive, onClick }: { ch: ChatChannel; isActive: bool
       onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = '#F8FAFC'; }}
       onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'none'; }}>
       <div style={{ position: 'relative', flexShrink: 0 }}>
-        <div style={{ width: 44, height: 44, borderRadius: '50%', background: isActive ? av.bg : av.bg, border: `2px solid ${isActive ? av.ring : av.ring}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 800, color: av.text }}>
-          {av.label}
-        </div>
-        <div style={{ position: 'absolute', bottom: 1, right: 1, width: 9, height: 9, borderRadius: '50%', background: TYPE_DOT[ch.type] || '#94A3B8', border: '2px solid white' }} />
+        {ch.type === 'direct' && ch.other_user?.avatar_url ? (
+          <img src={ch.other_user.avatar_url} alt={displayName} style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${isActive ? av.ring : '#E2E8F0'}` }} />
+        ) : (
+          <div style={{ width: 44, height: 44, borderRadius: '50%', background: av.bg, border: `2px solid ${av.ring}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 800, color: av.text }}>
+            {av.label}
+          </div>
+        )}
+        {/* Presence dot for DMs; channel-type dot for groups */}
+        {ch.type === 'direct' ? (
+          <div style={{ position: 'absolute', bottom: 1, right: 1, width: 10, height: 10, borderRadius: '50%', background: isOnline(ch.other_user?.last_seen_at) ? '#10B981' : '#CBD5E1', border: '2px solid white' }} />
+        ) : (
+          <div style={{ position: 'absolute', bottom: 1, right: 1, width: 9, height: 9, borderRadius: '50%', background: TYPE_DOT[ch.type] || '#94A3B8', border: '2px solid white' }} />
+        )}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>

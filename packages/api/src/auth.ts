@@ -72,3 +72,23 @@ export async function resetPassword(payload: {
 }): Promise<void> {
   await apiClient.post('/auth/reset-password', payload);
 }
+
+export async function updateProfile(payload: { first_name?: string; last_name?: string }): Promise<UserProfile> {
+  const res = (await apiClient.patch('/auth/me', payload)) as { success: boolean; data: { profile: UserProfile } };
+  return res.data.profile;
+}
+
+// POST /auth/avatar — multipart/form-data with field "avatar"
+export async function uploadAvatar(file: File): Promise<UserProfile> {
+  const fd = new FormData();
+  fd.append('avatar', file);
+  const res = (await apiClient.post('/auth/avatar', fd, {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    transformRequest: [(data: FormData, headers: any) => {
+      if (headers?.delete) headers.delete('Content-Type');
+      else if (headers) delete headers['Content-Type'];
+      return data;
+    }],
+  })) as { success: boolean; data: { profile: UserProfile } };
+  return res.data.profile;
+}

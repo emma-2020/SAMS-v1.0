@@ -54,6 +54,13 @@ async function authenticate(req, res, next) {
       last_name:  profile.last_name  || '',
     };
     req.accessToken = token;
+
+    // Fire-and-forget: update presence timestamp (don't block the request)
+    supabaseAdmin.from('users')
+      .update({ last_seen_at: new Date().toISOString() })
+      .eq('id', profile.id)
+      .then(() => {}).catch(() => {});
+
     next();
   } catch (err) {
     next(err);

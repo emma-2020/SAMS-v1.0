@@ -97,7 +97,7 @@ async function listChannels({ userId, academyId, role }) {
       .from('chat_channel_members')
       .select(`
         channel_id,
-        users!chat_channel_members_user_id_fkey ( id, first_name, last_name, role )
+        users!chat_channel_members_user_id_fkey ( id, first_name, last_name, role, avatar_url, last_seen_at )
       `)
       .in('channel_id', dmChannelIds)
       .neq('user_id', userId);

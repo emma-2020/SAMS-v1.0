@@ -19,7 +19,7 @@ function mapMessage(m: {
   message_text: string | null; attachment_url?: string | null;
   file_name?: string | null; mime_type?: string | null; file_size?: number | null;
   created_at: string;
-  users?: { id: string; first_name: string; last_name: string; role: string } | null;
+  users?: { id: string; first_name: string; last_name: string; role: string; avatar_url?: string | null } | null;
 }): ChatMessage {
   return {
     id:             m.id,

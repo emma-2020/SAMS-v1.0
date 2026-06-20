@@ -40,6 +40,7 @@ export interface TeamMember {
   email: string;
   role: string;
   avatar_url?: string | null;
+  last_seen_at?: string | null;
 }
 
 export interface Team {
