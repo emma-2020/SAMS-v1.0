@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { platformApi } from '@sams/api';
 
-type SetupState = 'idle' | 'scanning' | 'confirming' | 'done';
+type SetupState = 'idle' | 'scanning' | 'confirming' | 'done'| 'recovery';
 
 export default function PlatformSecurityPage() {
   const [state,    setState]    = useState<SetupState>('idle');
@@ -12,7 +12,9 @@ export default function PlatformSecurityPage() {
   const [totpCode, setTotpCode] = useState('');
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState('');
-  const [copied,   setCopied]   = useState(false);
+  const [copied,        setCopied]        = useState(false);
+  const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
+  const [codesCopied,   setCodesCopied]   = useState(false);
 
   async function handleSetup() {
     setError('');
@@ -34,8 +36,9 @@ export default function PlatformSecurityPage() {
     setError('');
     setLoading(true);
     try {
-      await platformApi.enablePlatformMfa(totpCode.trim());
-      setState('done');
+      const { recovery_codes } = await platformApi.enablePlatformMfa(totpCode.trim());
+      setRecoveryCodes(recovery_codes);
+      setState('recovery');
     } catch (err: any) {
       setError(err?.response?.data?.error || err?.message || 'Invalid code. Try again.');
       setTotpCode('');
@@ -231,6 +234,67 @@ export default function PlatformSecurityPage() {
             </form>
           )}
 
+          {/* ── RECOVERY CODES ── */}
+          {state === 'recovery' && (
+            <div style={{ padding: '36px 40px' }}>
+              <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>🔑</div>
+                <h2 style={{ color: '#F1F5F9', fontSize: '1.2rem', fontWeight: 800, margin: '0 0 8px' }}>
+                  Save Your Recovery Codes
+                </h2>
+                <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.82rem', margin: 0, lineHeight: 1.6 }}>
+                  These codes let you log in if you lose your authenticator app.<br />
+                  <strong style={{ color: '#F87171' }}>Each code can only be used once. Store them safely.</strong>
+                </p>
+              </div>
+
+              <div style={{
+                background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(139,92,246,0.2)',
+                borderRadius: 12, padding: '20px 24px', marginBottom: 20,
+                display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 24px',
+              }}>
+                {recoveryCodes.map(code => (
+                  <code key={code} style={{
+                    color: '#A78BFA', fontSize: '0.9rem', fontFamily: 'monospace',
+                    letterSpacing: '0.12em', fontWeight: 700,
+                  }}>
+                    {code}
+                  </code>
+                ))}
+              </div>
+
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(recoveryCodes.join('\n'));
+                  setCodesCopied(true);
+                  setTimeout(() => setCodesCopied(false), 2000);
+                }}
+                style={{
+                  width: '100%', padding: '11px', marginBottom: 12,
+                  background: codesCopied ? 'rgba(16,185,129,0.12)' : 'rgba(139,92,246,0.1)',
+                  border: `1px solid ${codesCopied ? 'rgba(16,185,129,0.3)' : 'rgba(139,92,246,0.25)'}`,
+                  color: codesCopied ? '#10B981' : '#A78BFA',
+                  borderRadius: 10, fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer',
+                }}
+              >
+                {codesCopied ? '✓ Copied to clipboard' : 'Copy all codes'}
+              </button>
+
+              <button
+                onClick={() => setState('done')}
+                style={{
+                  width: '100%', padding: '13px',
+                  background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 45%, #BE185D 100%)',
+                  color: '#fff', border: 'none', borderRadius: 12,
+                  fontSize: '0.92rem', fontWeight: 800, cursor: 'pointer',
+                  boxShadow: '0 8px 36px rgba(109,40,217,0.45)',
+                }}
+              >
+                I've saved my codes →
+              </button>
+            </div>
+          )}
+
           {/* ── DONE ── */}
           {state === 'done' && (
             <div style={{ padding: '36px 40px', textAlign: 'center' }}>
@@ -242,11 +306,11 @@ export default function PlatformSecurityPage() {
                 Two-factor authentication is now active. Every login will require your authenticator code after your password.
               </p>
               <div style={{
-                background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
+                background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.18)',
                 borderRadius: 12, padding: '14px 18px', fontSize: '0.82rem',
                 color: 'rgba(255,255,255,0.5)', lineHeight: 1.6, textAlign: 'left',
               }}>
-                ⚠️ <strong style={{ color: '#FCA5A5' }}>Important:</strong> If you lose access to your authenticator app, you will need to contact Supabase support to regain access. Keep a backup of your device or use Authy which supports multi-device sync.
+                🔑 <strong style={{ color: '#6EE7B7' }}>Recovery codes saved:</strong> If you ever lose your authenticator app, use one of your 8 recovery codes to log in. Each code works once.
               </div>
             </div>
           )}

@@ -93,11 +93,22 @@ export async function setupPlatformMfa(): Promise<{ secret: string; qrCode: stri
   return res.data;
 }
 
-export async function enablePlatformMfa(totpCode: string): Promise<{ message: string }> {
+export async function enablePlatformMfa(totpCode: string): Promise<{ message: string; recovery_codes: string[] }> {
   const res = (await apiClient.post('/platform/mfa/enable', { totp_code: totpCode }, { headers: platformHeaders() })) as {
     success: boolean;
-    data:    { message: string };
+    data:    { message: string; recovery_codes: string[] };
   };
+  return res.data;
+}
+
+export async function verifyPlatformMfaWithRecovery(
+  mfaToken: string,
+  recoveryCode: string
+): Promise<{ token: string; admin: PlatformAdmin }> {
+  const res = (await apiClient.post('/platform/mfa/verify', {
+    mfa_token:     mfaToken,
+    recovery_code: recoveryCode,
+  })) as { success: boolean; data: { token: string; admin: PlatformAdmin } };
   return res.data;
 }
 

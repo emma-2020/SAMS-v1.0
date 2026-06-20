@@ -27,15 +27,25 @@ const app = express();
 // Trust Railway's reverse proxy so req.ip returns the real client IP
 app.set('trust proxy', 1);
 
+// Redirect HTTP → HTTPS in production (Railway terminates TLS, so X-Forwarded-Proto is reliable)
+if (env.NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    if (req.headers['x-forwarded-proto'] !== 'https') {
+      return res.redirect(301, `https://${req.headers.host}${req.url}`);
+    }
+    next();
+  });
+}
+
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc:  ["'self'"],
       scriptSrc:   ["'self'"],
       styleSrc:    ["'self'", "'unsafe-inline'"],
-      imgSrc:      ["'self'", 'data:', 'https:'],
+      imgSrc:      ["'self'", 'data:', 'https://*.supabase.co', 'https://*.supabase.in'],
       connectSrc:  ["'self'"],
-      fontSrc:     ["'self'", 'https:'],
+      fontSrc:     ["'self'"],
       objectSrc:   ["'none'"],
       frameSrc:    ["'none'"],
       upgradeInsecureRequests: [],

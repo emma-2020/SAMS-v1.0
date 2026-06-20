@@ -13,15 +13,24 @@ const {
   validateDirectBody,
 } = require('../middleware/validate');
 
+const CHAT_MIME_EXT = {
+  'image/jpeg':     ['.jpg', '.jpeg'],
+  'image/jpg':      ['.jpg', '.jpeg'],
+  'image/png':      ['.png'],
+  'image/gif':      ['.gif'],
+  'image/webp':     ['.webp'],
+  'application/pdf': ['.pdf'],
+};
+
 const chatUpload = multer({
   storage: multer.memoryStorage(),
   limits:  { fileSize: 10 * 1024 * 1024 },
   fileFilter(_, file, cb) {
-    if (/^(image\/(jpeg|jpg|png|gif|webp)|application\/pdf)$/.test(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only images (JPEG, PNG, GIF, WebP) and PDF files are allowed.'));
-    }
+    const allowed = CHAT_MIME_EXT[file.mimetype];
+    if (!allowed) return cb(new Error('Only images (JPEG, PNG, GIF, WebP) and PDF files are allowed.'));
+    const ext = file.originalname.slice(file.originalname.lastIndexOf('.')).toLowerCase();
+    if (!allowed.includes(ext)) return cb(new Error('File extension does not match its content type.'));
+    cb(null, true);
   },
 });
 

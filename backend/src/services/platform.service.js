@@ -120,6 +120,20 @@ async function mfaSetup(adminId) {
 // MFA ENABLE — verify first TOTP code and activate MFA
 // ─────────────────────────────────────────────────────────────────
 
+function generateRecoveryCodes() {
+  return Array.from({ length: 8 }, () => {
+    const b = crypto.randomBytes(4).toString('hex').toUpperCase();
+    return `${b.slice(0, 4)}-${b.slice(4, 8)}`;
+  });
+}
+
+async function findMatchingRecoveryCode(input, hashedCodes) {
+  for (let i = 0; i < hashedCodes.length; i++) {
+    if (await bcrypt.compare(input.toUpperCase(), hashedCodes[i])) return i;
+  }
+  return -1;
+}
+
 async function mfaEnable(adminId, totpCode) {
   const { data: admin, error } = await supabaseAdmin
     .from('platform_admins')
@@ -134,19 +148,25 @@ async function mfaEnable(adminId, totpCode) {
   const result = verifySync({ token: totpCode, secret: admin.totp_secret });
   if (!result?.valid) throw new UnauthorizedError('Invalid authentication code. Please try again.');
 
+  const plainCodes  = generateRecoveryCodes();
+  const hashedCodes = await Promise.all(plainCodes.map(c => bcrypt.hash(c, 10)));
+
   await supabaseAdmin
     .from('platform_admins')
-    .update({ mfa_enabled: true })
+    .update({ mfa_enabled: true, recovery_codes: hashedCodes })
     .eq('id', adminId);
 
-  return { message: 'MFA enabled successfully. All future logins will require your authenticator app.' };
+  return {
+    message: 'MFA enabled successfully. Save these recovery codes — they will not be shown again.',
+    recovery_codes: plainCodes,
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────
 // MFA VERIFY — exchange MFA challenge token + TOTP code for full JWT
 // ─────────────────────────────────────────────────────────────────
 
-async function mfaVerify(mfaToken, totpCode) {
+async function mfaVerify(mfaToken, totpCode, recoveryCode) {
   let payload;
   try {
     payload = verifyMfaToken(mfaToken);
@@ -156,17 +176,24 @@ async function mfaVerify(mfaToken, totpCode) {
 
   const { data: admin, error } = await supabaseAdmin
     .from('platform_admins')
-    .select('id, name, email, totp_secret, mfa_enabled, is_active')
+    .select('id, name, email, totp_secret, mfa_enabled, is_active, recovery_codes')
     .eq('id', payload.sub)
     .single();
 
-  if (error || !admin)         throw new UnauthorizedError('Account not found.');
-  if (!admin.is_active)        throw new UnauthorizedError('Account has been deactivated.');
-  if (!admin.mfa_enabled)      throw new BadRequestError('MFA is not enabled for this account.');
-  if (!admin.totp_secret)      throw new InternalError('MFA secret missing. Contact support.');
+  if (error || !admin)    throw new UnauthorizedError('Account not found.');
+  if (!admin.is_active)   throw new UnauthorizedError('Account has been deactivated.');
+  if (!admin.mfa_enabled) throw new BadRequestError('MFA is not enabled for this account.');
+  if (!admin.totp_secret) throw new InternalError('MFA secret missing. Contact support.');
 
-  const result = verifySync({ token: totpCode, secret: admin.totp_secret });
-  if (!result?.valid) throw new UnauthorizedError('Invalid authentication code. Please try again.');
+  if (recoveryCode) {
+    const idx = await findMatchingRecoveryCode(recoveryCode, admin.recovery_codes || []);
+    if (idx === -1) throw new UnauthorizedError('Invalid recovery code.');
+    const remaining = (admin.recovery_codes || []).filter((_, i) => i !== idx);
+    await supabaseAdmin.from('platform_admins').update({ recovery_codes: remaining }).eq('id', admin.id);
+  } else {
+    const result = verifySync({ token: totpCode, secret: admin.totp_secret });
+    if (!result?.valid) throw new UnauthorizedError('Invalid authentication code. Please try again.');
+  }
 
   const token = signPlatformToken({ id: admin.id, name: admin.name, email: admin.email });
   return { token, admin: { id: admin.id, name: admin.name, email: admin.email } };
