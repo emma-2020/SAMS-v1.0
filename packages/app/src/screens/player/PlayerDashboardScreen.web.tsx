@@ -267,7 +267,7 @@ export function PlayerDashboardScreen() {
             <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
               {upcoming.map(ev => {
                 const lbl    = daysUntil(ev.start_time);
-                const isGame = ev.type === 'match';
+                const isGame = (ev.type as string) === 'match';
                 const color  = isGame ? '#EF4444' : '#7C3AED';
                 return (
                   <div key={ev.id} style={{
