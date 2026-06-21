@@ -666,14 +666,6 @@ export default function HomePage() {
                   {step.desc}
                 </p>
 
-                {/* Step indicator dot */}
-                <div style={{
-                  position: 'absolute', top: -1, right: 24,
-                  width: 8, height: 8, borderRadius: '50%',
-                  background: step.color,
-                  boxShadow: `0 0 12px ${step.color}`,
-                  border: '2px solid #060B14',
-                }} />
               </div>
             ))}
           </div>
