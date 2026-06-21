@@ -69,7 +69,7 @@ async function createFee({ academyId, adminId, playerId, description, amountOwed
   return data;
 }
 
-async function updateFee({ academyId, feeId, amountPaid, paymentMethod, paymentDate, notes, description }) {
+async function updateFee({ academyId, feeId, amountOwed, amountPaid, paymentMethod, paymentDate, notes, description }) {
   const { data: existing } = await supabaseAdmin
     .from('fee_ledger')
     .select('id, amount_owed')
@@ -81,6 +81,7 @@ async function updateFee({ academyId, feeId, amountPaid, paymentMethod, paymentD
 
   const updates = {};
   if (description  !== undefined) updates.description    = description.trim();
+  if (amountOwed   !== undefined) updates.amount_owed    = amountOwed;
   if (amountPaid   !== undefined) updates.amount_paid    = amountPaid;
   if (paymentMethod !== undefined) updates.payment_method = paymentMethod;
   if (paymentDate  !== undefined) updates.payment_date   = paymentDate;

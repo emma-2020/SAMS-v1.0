@@ -71,6 +71,7 @@ function FeeModal({ players, editFee, onSave, onClose }: {
       if (editFee) {
         await feesApi.updateFee(editFee.id, {
           description: description.trim(),
+          amount_owed: owed,
           amount_paid: paid,
           payment_method: method || undefined,
           payment_date: payDate || undefined,

@@ -189,7 +189,44 @@ function buildSummary(roster) {
 // EXPORT ATTENDANCE AS CSV
 // ─────────────────────────────────────────────────────────────────
 
-async function exportAttendanceCsv({ academyId, userId, role, teamId, from, to }) {
+async function exportAttendanceCsv({ academyId, userId, role, eventId, teamId, from, to }) {
+  // Fast path: single event export (used by coach attendance page)
+  if (eventId) {
+    let eventsQuery = supabaseAdmin
+      .from('events')
+      .select('id, title, type, start_time, team_id, teams(name)')
+      .eq('academy_id', academyId)
+      .eq('id', eventId);
+
+    const { data: events, error: evtErr } = await eventsQuery;
+    if (evtErr) throw new InternalError('Failed to fetch events for export.');
+    if (!events || events.length === 0) return [];
+
+    const eventIds = events.map(e => e.id);
+    const eventMap = Object.fromEntries(events.map(e => [e.id, e]));
+
+    const { data: rows, error: attErr } = await supabaseAdmin
+      .from('attendance')
+      .select(`event_id, status, notes, users!attendance_player_id_fkey (first_name, last_name, email)`)
+      .eq('academy_id', academyId)
+      .in('event_id', eventIds);
+
+    if (attErr) throw new InternalError('Failed to fetch attendance for export.');
+
+    return (rows || []).map(r => ({
+      player_name: `${r.users?.first_name ?? ''} ${r.users?.last_name ?? ''}`.trim(),
+      email:       r.users?.email ?? '',
+      team:        eventMap[r.event_id]?.teams?.name ?? '',
+      event_title: eventMap[r.event_id]?.title ?? '',
+      event_type:  eventMap[r.event_id]?.type ?? '',
+      event_date:  eventMap[r.event_id]?.start_time
+                     ? new Date(eventMap[r.event_id].start_time).toISOString().slice(0, 10)
+                     : '',
+      status:      r.status,
+      notes:       r.notes ?? '',
+    }));
+  }
+
   let teamIds = [];
 
   if (teamId) {

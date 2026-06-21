@@ -38,14 +38,15 @@ async function logAttendance(req, res, next) {
 
 async function exportAttendanceCsv(req, res, next) {
   try {
-    const { team_id, from, to } = req.query;
+    const { event_id, team_id, from, to } = req.query;
     const rows = await attendanceService.exportAttendanceCsv({
       academyId: req.academyId,
       userId:    req.user.id,
       role:      req.user.role,
-      teamId:    team_id || null,
-      from:      from   || null,
-      to:        to     || null,
+      eventId:   event_id || null,
+      teamId:    team_id  || null,
+      from:      from     || null,
+      to:        to       || null,
     });
 
     const headers = ['Player Name', 'Email', 'Team', 'Event Title', 'Event Type', 'Event Date', 'Status', 'Notes'];

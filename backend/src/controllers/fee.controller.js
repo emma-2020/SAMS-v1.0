@@ -33,12 +33,13 @@ async function createFee(req, res, next) {
 
 async function updateFee(req, res, next) {
   try {
-    const { description, amount_paid, payment_method, payment_date, notes } = req.body;
+    const { description, amount_owed, amount_paid, payment_method, payment_date, notes } = req.body;
     const fee = await feeService.updateFee({
       academyId:     req.academyId,
       feeId:         req.params.id,
       description,
-      amountPaid:    amount_paid   !== undefined ? Number(amount_paid) : undefined,
+      amountOwed:    amount_owed   !== undefined ? Number(amount_owed)  : undefined,
+      amountPaid:    amount_paid   !== undefined ? Number(amount_paid)  : undefined,
       paymentMethod: payment_method,
       paymentDate:   payment_date,
       notes,
