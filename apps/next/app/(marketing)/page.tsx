@@ -621,42 +621,61 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: 24, position: 'relative',
-          }}>
+          {/* ── Timeline circles row ── */}
+          <div style={{ position: 'relative', marginBottom: 20 }}>
+            {/* Gradient line — sits behind the circles, clipped to run circle-to-circle */}
+            <div className="mkt-step-line" style={{
+              position: 'absolute',
+              top: 22,
+              left: '16.5%', right: '16.5%',
+              height: 2,
+              background: 'linear-gradient(90deg, #7C3AED 0%, #2563EB 50%, #059669 100%)',
+              opacity: 0.5,
+              zIndex: 0,
+              pointerEvents: 'none',
+            }} />
 
+            {/* 3 circles — each centered over its card column */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', position: 'relative', zIndex: 1 }}>
+              {HOW_IT_WORKS.map((step, i) => (
+                <div key={step.step} style={{ display: 'flex', justifyContent: 'center' }}>
+                  <div style={{
+                    width: 44, height: 44, borderRadius: '50%',
+                    background: '#060B14',
+                    border: `2px solid ${step.color}`,
+                    boxShadow: `0 0 0 5px #060B14, 0 0 22px ${step.color}55`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontWeight: 900, fontSize: '0.92rem', color: step.color,
+                    letterSpacing: '-0.02em',
+                  }}>
+                    {i + 1}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ── Cards ── */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }} className="mkt-steps-grid">
             {HOW_IT_WORKS.map((step, i) => (
               <div
                 key={step.step}
                 style={{
                   ...GLASS,
-                  padding: '32px 28px',
-                  position: 'relative',
+                  padding: '28px 24px',
+                  borderTop: `2px solid ${step.color}40`,
                   transition: 'transform 0.25s, box-shadow 0.25s, border-color 0.25s',
                 }}
-                onMouseEnter={e => { const el = e.currentTarget as HTMLDivElement; el.style.transform = 'translateY(-6px)'; el.style.boxShadow = `0 28px 64px ${step.bg.replace('0.1', '0.3')}`; el.style.borderColor = step.border; }}
-                onMouseLeave={e => { const el = e.currentTarget as HTMLDivElement; el.style.transform = 'translateY(0)'; el.style.boxShadow = 'none'; el.style.borderColor = 'rgba(255,255,255,0.06)'; }}
+                onMouseEnter={e => { const el = e.currentTarget as HTMLDivElement; el.style.transform = 'translateY(-6px)'; el.style.boxShadow = `0 28px 64px ${step.bg.replace('0.1', '0.25')}`; el.style.borderColor = step.border; }}
+                onMouseLeave={e => { const el = e.currentTarget as HTMLDivElement; el.style.transform = 'translateY(0)'; el.style.boxShadow = 'none'; el.style.borderColor = `${step.color}40`; }}
               >
-                {/* Step number + icon */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
-                  <div style={{
-                    width: 52, height: 52, borderRadius: 14, flexShrink: 0,
-                    background: step.bg, border: `1px solid ${step.border}`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: step.color,
-                  }}>
-                    {step.icon}
-                  </div>
-                  <div style={{
-                    fontSize: '2rem', fontWeight: 900,
-                    color: 'rgba(255,255,255,0.06)',
-                    letterSpacing: '-0.04em', lineHeight: 1,
-                    fontVariantNumeric: 'tabular-nums',
-                  }}>
-                    {step.step}
-                  </div>
+                <div style={{
+                  width: 48, height: 48, borderRadius: 13, marginBottom: 18,
+                  background: step.bg, border: `1px solid ${step.border}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: step.color,
+                }}>
+                  {step.icon}
                 </div>
 
                 <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#F1F5F9', margin: '0 0 10px', letterSpacing: '-0.015em', lineHeight: 1.3 }}>
@@ -665,7 +684,6 @@ export default function HomePage() {
                 <p style={{ fontSize: '0.875rem', color: 'rgba(255,255,255,0.43)', lineHeight: 1.72, margin: 0 }}>
                   {step.desc}
                 </p>
-
               </div>
             ))}
           </div>
@@ -1123,6 +1141,10 @@ export default function HomePage() {
         @keyframes role-in {
           from { opacity: 0; transform: translateY(12px); }
           to   { opacity: 1; transform: translateY(0);    }
+        }
+        @media (max-width: 680px) {
+          .mkt-steps-grid { grid-template-columns: 1fr !important; }
+          .mkt-step-line  { display: none !important; }
         }
       `}</style>
 
