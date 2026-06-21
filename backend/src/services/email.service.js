@@ -568,6 +568,7 @@ async function sendFeeNotificationEmail({
   amountOwed,
   paymentDate,
   notes,
+  paymentUrl,
   dashboardUrl,
 }) {
   const fmtGhs = (pesewas) => `GHS ${(pesewas / 100).toFixed(2)}`;
@@ -617,17 +618,22 @@ async function sendFeeNotificationEmail({
           </table>
         </div>
 
+        ${paymentUrl ? `
+        ${ctaButton('Pay Online Now →', paymentUrl, '#059669')}
+        ` : ''}
+
         ${infoBox(
           '#F0FDF4', '#86EFAC', '#166534', '#15803D',
           'How to pay',
           [
+            ...(paymentUrl ? [`<strong>Online</strong> — Click the "Pay Online Now" button above to pay securely with card or Mobile Money`] : []),
             '<strong>Cash</strong> — Pay directly at the academy office',
             '<strong>Mobile Money (MoMo)</strong> — MTN, Vodafone Cash, AirtelTigo Money — contact the academy for the number',
             '<strong>Bank Transfer</strong> — Contact the academy admin for bank details',
           ]
         )}
 
-        ${para(`Once payment is made, the academy will update your balance on the platform. Log in to SAMS to track your fee status at any time.`)}
+        ${para(`Once payment is made, your balance will be updated automatically. Log in to SAMS to track your fee status at any time.`)}
 
         ${ctaButton('View My Fee Balance →', dashboardUrl, '#6366F1')}
       </td>
@@ -657,6 +663,95 @@ async function sendFeeNotificationEmail({
   });
 }
 
+// ─── Email: Fee Payment Receipt ───────────────────────────────────────────────
+
+/**
+ * sendFeeReceiptEmail
+ * Sent to a player (and linked parents) after Paystack confirms a successful charge.
+ */
+async function sendFeeReceiptEmail({
+  to,
+  firstName,
+  academyName,
+  description,
+  amountPaid,
+  totalOwed,
+  totalPaid,
+  fullyPaid,
+  channel,
+  dashboardUrl,
+}) {
+  const fmtGhs = (p) => `GHS ${(p / 100).toFixed(2)}`;
+  const remaining = totalOwed - totalPaid;
+  const channelLabel = channel === 'mobile_money' ? 'Mobile Money' : channel === 'card' ? 'Card' : 'Online';
+
+  const statusColor  = fullyPaid ? '#059669' : '#D97706';
+  const statusLabel  = fullyPaid ? 'Fully Paid ✓' : 'Partial Payment';
+
+  const html = emailShell(`
+    <tr>
+      <td style="padding:40px 44px 8px;">
+        ${badge(statusLabel, statusColor)}
+        ${h1(`Hi ${firstName},`)}
+        ${para(`We've received your payment of <strong style="color:#0F172A;">${fmtGhs(amountPaid)}</strong>
+          for <strong style="color:#0F172A;">${description}</strong> at ${academyName}.`)}
+
+        <!-- Receipt box -->
+        <div style="background:#F0FDF4;border:1.5px solid #86EFAC;border-radius:14px;
+                    padding:24px 28px;margin-bottom:28px;">
+          <table cellpadding="0" cellspacing="0" width="100%">
+            <tr>
+              <td style="padding:8px 0;font-size:0.78rem;font-weight:700;color:#94A3B8;
+                          text-transform:uppercase;letter-spacing:0.08em;width:38%;">Amount Paid</td>
+              <td style="padding:8px 0;font-size:1.05rem;font-weight:800;color:#059669;">${fmtGhs(amountPaid)}</td>
+            </tr>
+            <tr><td colspan="2" style="height:1px;background:#86EFAC;"></td></tr>
+            <tr>
+              <td style="padding:8px 0;font-size:0.78rem;font-weight:700;color:#94A3B8;
+                          text-transform:uppercase;letter-spacing:0.08em;">Payment Method</td>
+              <td style="padding:8px 0;font-size:0.93rem;color:#0F172A;">${channelLabel}</td>
+            </tr>
+            <tr><td colspan="2" style="height:1px;background:#86EFAC;"></td></tr>
+            <tr>
+              <td style="padding:8px 0;font-size:0.78rem;font-weight:700;color:#94A3B8;
+                          text-transform:uppercase;letter-spacing:0.08em;">Total Owed</td>
+              <td style="padding:8px 0;font-size:0.93rem;color:#0F172A;">${fmtGhs(totalOwed)}</td>
+            </tr>
+            <tr><td colspan="2" style="height:1px;background:#86EFAC;"></td></tr>
+            <tr>
+              <td style="padding:8px 0;font-size:0.78rem;font-weight:700;color:#94A3B8;
+                          text-transform:uppercase;letter-spacing:0.08em;">Balance</td>
+              <td style="padding:8px 0;font-size:0.93rem;font-weight:700;color:${statusColor};">
+                ${fullyPaid ? 'Paid in full' : `${fmtGhs(remaining)} remaining`}
+              </td>
+            </tr>
+          </table>
+        </div>
+
+        ${ctaButton('View My Fee Balance →', dashboardUrl, '#6366F1')}
+      </td>
+    </tr>
+  `);
+
+  const text =
+    `Hi ${firstName},\n\n` +
+    `Payment received for "${description}" at ${academyName}.\n\n` +
+    `RECEIPT\n` +
+    `  Amount Paid:    ${fmtGhs(amountPaid)}\n` +
+    `  Payment Method: ${channelLabel}\n` +
+    `  Total Owed:     ${fmtGhs(totalOwed)}\n` +
+    `  Balance:        ${fullyPaid ? 'Paid in full' : `${fmtGhs(remaining)} remaining`}\n\n` +
+    `View your fee balance: ${dashboardUrl}\n\n` +
+    `— SAMS Platform`;
+
+  return dispatch({
+    to,
+    subject: `Payment received: ${fmtGhs(amountPaid)} for ${description} — ${academyName}`,
+    html,
+    text,
+  });
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 module.exports = {
@@ -667,4 +762,5 @@ module.exports = {
   sendEnrollmentConfirmationEmail,
   sendPasswordResetEmail,
   sendFeeNotificationEmail,
+  sendFeeReceiptEmail,
 };

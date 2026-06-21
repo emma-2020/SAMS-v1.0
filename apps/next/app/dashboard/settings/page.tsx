@@ -3,8 +3,14 @@
 import { useState, useRef, useEffect } from 'react';
 import { UploadCloud } from 'lucide-react';
 import { useAuthStore } from '@sams/store';
-import { apiClient, chatApi } from '@sams/api';
+import { apiClient, chatApi, adminApi } from '@sams/api';
 import type { BlockedUser, AcademySettings } from '@sams/api';
+
+interface AcademyAdminSettings {
+  academy_name: string;
+  paystack_configured: boolean;
+  paystack_key_preview: string | null;
+}
 import { useTheme } from '@/lib/theme/provider';
 
 type Density = 'comfortable' | 'compact' | 'spacious';
@@ -310,12 +316,36 @@ export default function SettingsPage() {
   const [chatSettingsLoading,setChatSettingsLoading] = useState(false);
   const [togglingDmPolicy,   setTogglingDmPolicy]   = useState(false);
 
+  // ── Paystack settings (Academy tab, Admin only) ────────────────────────────
+  const [paystackSettings,    setPaystackSettings]    = useState<AcademyAdminSettings | null>(null);
+  const [paystackKey,         setPaystackKey]         = useState('');
+  const [showPaystackKey,     setShowPaystackKey]     = useState(false);
+  const [savingPaystack,      setSavingPaystack]      = useState(false);
+  const [paystackSaved,       setPaystackSaved]       = useState(false);
+  const [paystackError,       setPaystackError]       = useState('');
+
   useEffect(() => {
     if (activeTab === 'academy' && user?.role === 'Admin') {
       setChatSettingsLoading(true);
       chatApi.getChatSettings().then(setChatSettings).finally(() => setChatSettingsLoading(false));
+      adminApi.getAcademySettings().then(setPaystackSettings).catch(() => {});
     }
   }, [activeTab, user?.role]);
+
+  async function handleSavePaystack() {
+    const trimmed = paystackKey.trim();
+    if (trimmed && !trimmed.startsWith('sk_')) { setPaystackError('Key must start with sk_live_ or sk_test_'); return; }
+    setSavingPaystack(true); setPaystackError(''); setPaystackSaved(false);
+    try {
+      const updated = await adminApi.updateAcademySettings({ paystack_secret_key: trimmed });
+      setPaystackSettings(updated);
+      setPaystackKey('');
+      setPaystackSaved(true);
+      setTimeout(() => setPaystackSaved(false), 3000);
+    } catch (e: unknown) {
+      setPaystackError(e instanceof Error ? e.message : 'Failed to save Paystack key.');
+    } finally { setSavingPaystack(false); }
+  }
 
   async function handleToggleDmPolicy() {
     setTogglingDmPolicy(true);
@@ -617,6 +647,79 @@ export default function SettingsPage() {
               <InfoRow label="Environment" value={process.env.NODE_ENV ?? 'development'} mono />
             </div>
           </SettingsCard>
+
+          {user?.role === 'Admin' && (
+            <SettingsCard
+              icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>}
+              title="Paystack Payments"
+              subtitle="Enable online fee payments for your players via card and Mobile Money"
+            >
+              {/* Status badge */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderRadius: 12, marginBottom: 20, background: paystackSettings?.paystack_configured ? '#F0FDF4' : '#FFFBEB', border: `1.5px solid ${paystackSettings?.paystack_configured ? '#BBF7D0' : '#FDE68A'}` }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: paystackSettings?.paystack_configured ? '#16A34A' : '#D97706' }} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: paystackSettings?.paystack_configured ? '#15803D' : '#92400E' }}>
+                    {paystackSettings?.paystack_configured ? 'Paystack connected' : 'Not connected'}
+                  </div>
+                  {paystackSettings?.paystack_key_preview && (
+                    <div style={{ fontSize: '0.72rem', color: '#64748B', marginTop: 1, fontFamily: 'var(--font-mono)' }}>
+                      {paystackSettings.paystack_key_preview}
+                    </div>
+                  )}
+                </div>
+                {paystackSettings?.paystack_configured && (
+                  <span style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#15803D', padding: '2px 8px', borderRadius: 99, background: '#DCFCE7', border: '1px solid #BBF7D0' }}>Active</span>
+                )}
+              </div>
+
+              <FormField
+                label={paystackSettings?.paystack_configured ? 'Replace Paystack Secret Key' : 'Paystack Secret Key'}
+                description="Found in your Paystack dashboard → Settings → API Keys. Use sk_live_... for live payments or sk_test_... for testing."
+              >
+                <StyledInput
+                  type={showPaystackKey ? 'text' : 'password'}
+                  value={paystackKey}
+                  onChange={e => setPaystackKey(e.target.value)}
+                  placeholder="Paste your Paystack secret key here"
+                  rightSlot={
+                    <button type="button" onClick={() => setShowPaystackKey(p => !p)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', display: 'flex', alignItems: 'center', padding: 0 }}>
+                      <IcoEye off={showPaystackKey} />
+                    </button>
+                  }
+                />
+              </FormField>
+
+              {paystackError  && <div className="alert alert-error"   style={{ padding: '9px 14px', marginTop: 12, fontSize: '0.82rem' }}>{paystackError}</div>}
+              {paystackSaved  && <div className="alert alert-success" style={{ padding: '9px 14px', marginTop: 12, fontSize: '0.82rem' }}><IcoCheck /> Paystack key saved successfully.</div>}
+
+              <div style={{ display: 'flex', gap: 10, marginTop: 16, flexWrap: 'wrap' }}>
+                <SaveButton loading={savingPaystack} disabled={!paystackKey.trim()} type="button" onClick={handleSavePaystack}>
+                  {paystackSettings?.paystack_configured ? 'Update Key' : 'Connect Paystack'}
+                </SaveButton>
+                {paystackSettings?.paystack_configured && (
+                  <button type="button"
+                    onClick={async () => {
+                      if (!confirm('Remove the Paystack key? Online payment links will stop working for new fees.')) return;
+                      setSavingPaystack(true); setPaystackError('');
+                      try {
+                        const updated = await adminApi.updateAcademySettings({ paystack_secret_key: '' });
+                        setPaystackSettings(updated); setPaystackKey('');
+                        setPaystackSaved(true); setTimeout(() => setPaystackSaved(false), 3000);
+                      } catch (e: unknown) {
+                        setPaystackError(e instanceof Error ? e.message : 'Failed to remove key.');
+                      } finally { setSavingPaystack(false); }
+                    }}
+                    style={{ padding: '0 20px', height: 42, border: '1.5px solid #FECACA', borderRadius: 12, background: '#FEF2F2', color: '#DC2626', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer' }}>
+                    Remove Key
+                  </button>
+                )}
+              </div>
+
+              <div style={{ marginTop: 16, padding: '12px 16px', background: 'var(--bg-elevated)', borderRadius: 10, border: '1px solid var(--border-subtle)', fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                <strong style={{ color: 'var(--text-secondary)' }}>How it works:</strong> When you create a fee for a player, SAMS generates a Paystack payment link automatically and emails it to the player and their parents. When they pay online, the money goes directly to your academy&apos;s Paystack account — SAMS never holds any funds. You&apos;ll also need to register your webhook URL in the Paystack dashboard: <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem' }}>https://api.playsams.com/api/fees/webhook/paystack</span>
+              </div>
+            </SettingsCard>
+          )}
 
           {user?.role === 'Admin' && (
             <SettingsCard icon={<IcoShield />} title="Chat Policy" subtitle="Control messaging between roles in your academy">

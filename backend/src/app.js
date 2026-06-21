@@ -81,7 +81,10 @@ app.use(cors({
   credentials:    true,
 }));
 
-app.use(express.json({ limit: '100kb' }));
+app.use(express.json({
+  limit: '100kb',
+  verify: (req, _res, buf) => { req.rawBody = buf; },
+}));
 app.use(express.urlencoded({ extended: false }));
 
 if (env.NODE_ENV !== 'test') {
