@@ -22,6 +22,7 @@ export async function createFee(payload: {
 
 export async function updateFee(id: string, payload: {
   description?: string;
+  amount_owed?: number;
   amount_paid?: number;
   payment_method?: string;
   payment_date?: string;
