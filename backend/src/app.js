@@ -20,6 +20,9 @@ const coachRoutes             = require('./routes/coach.routes');
 const notificationsRoutes     = require('./routes/notifications.routes');
 const platformRoutes          = require('./routes/platform.routes');
 const publicRoutes            = require('./routes/public.routes');
+const feeRoutes               = require('./routes/fee.routes');
+const documentsRoutes         = require('./routes/documents.routes');
+const announcementsRoutes     = require('./routes/announcements.routes');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
 
 const app = express();
@@ -124,6 +127,9 @@ app.use('/api/coach',         apiLimiter,  coachRoutes);
 app.use('/api/notifications', apiLimiter,  notificationsRoutes);
 app.use('/api/platform',      apiLimiter,  platformRoutes);
 app.use('/api/public',                     publicRoutes);  // has its own per-route limiter
+app.use('/api/fees',          apiLimiter,  feeRoutes);
+app.use('/api/documents',     apiLimiter,  documentsRoutes);
+app.use('/api/announcements', apiLimiter,  announcementsRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

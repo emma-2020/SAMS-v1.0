@@ -14,6 +14,7 @@ import {
 import { adminApi, teamsApi, scheduleApi } from '@sams/api';
 import type { InvitationRecord, ScheduleEvent, Team, UserProfile } from '@sams/api';
 import { useAuthStore } from '@sams/store';
+import { AnnouncementsBanner } from '../../components/AnnouncementsBanner';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -470,6 +471,9 @@ export function AdminDashboardScreen() {
           </button>
         </div>
       </div>
+
+      {/* ── Announcements ── */}
+      <AnnouncementsBanner role="Admin" />
 
       {/* ── KPI Row ── */}
       <div className="kpi-grid-4" style={{ marginBottom: 16, gap: 16 }}>

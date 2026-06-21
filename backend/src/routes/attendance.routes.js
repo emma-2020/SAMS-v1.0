@@ -40,4 +40,10 @@ router.post(
   controller.logAttendance
 );
 
+router.get(
+  '/export',
+  requireRole('Admin', 'Coach'),
+  controller.exportAttendanceCsv
+);
+
 module.exports = router;

@@ -99,3 +99,15 @@ export async function setMemberStatus(id: string, isActive: boolean): Promise<Us
   };
   return res.data.member;
 }
+
+// Backend: PATCH /admin/roster/:id/availability
+export async function updateAvailability(
+  id: string,
+  status: 'Available' | 'Injured' | 'Suspended' | 'Resting'
+): Promise<UserProfile> {
+  const res = (await apiClient.patch(`/admin/roster/${id}/availability`, { availability_status: status })) as {
+    success: boolean;
+    data: { member: UserProfile };
+  };
+  return res.data.member;
+}

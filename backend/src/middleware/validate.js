@@ -303,6 +303,56 @@ const validateUpdateMemberBody = runChecks([
   },
 ]);
 
+const VALID_AVAILABILITY = ['Available', 'Injured', 'Suspended', 'Resting'];
+
+const validateAvailabilityBody = runChecks([
+  ({ body }) => {
+    if (!VALID_AVAILABILITY.includes(body.availability_status)) {
+      return `"availability_status" must be one of: ${VALID_AVAILABILITY.join(', ')}.`;
+    }
+  },
+]);
+
+const validateFeeBody = runChecks([
+  ({ body }) => {
+    if (!body.player_id || typeof body.player_id !== 'string') return '"player_id" (UUID) is required.';
+  },
+  ({ body }) => {
+    if (!body.description || !body.description.trim()) return '"description" is required.';
+  },
+  ({ body }) => {
+    const v = Number(body.amount_owed);
+    if (!Number.isInteger(v) || v < 0) return '"amount_owed" must be a non-negative integer (pesewas).';
+  },
+]);
+
+const validateAnnouncementBody = runChecks([
+  ({ body }) => {
+    if (!body.title || !body.title.trim()) return '"title" is required.';
+  },
+  ({ body }) => {
+    if (!body.body || !body.body.trim()) return '"body" is required.';
+  },
+]);
+
+const validateDocumentBody = runChecks([
+  ({ body }) => {
+    if (!body.player_id || typeof body.player_id !== 'string') return '"player_id" (UUID) is required.';
+  },
+  ({ body }) => {
+    const VALID_TYPES = ['Birth Certificate', 'Medical Clearance', 'GFA Registration', 'Parent Consent', 'Other'];
+    if (!VALID_TYPES.includes(body.doc_type)) {
+      return `"doc_type" must be one of: ${VALID_TYPES.join(', ')}.`;
+    }
+  },
+  ({ body }) => {
+    if (!body.file_name || !body.file_name.trim()) return '"file_name" is required.';
+  },
+  ({ body }) => {
+    if (!body.file_url || !body.file_url.trim()) return '"file_url" is required.';
+  },
+]);
+
 module.exports = {
   validateScheduleQuery,
   validateCreateEventBody,
@@ -317,4 +367,8 @@ module.exports = {
   validateInviteBody,
   validateMemberStatusBody,
   validateUpdateMemberBody,
+  validateAvailabilityBody,
+  validateFeeBody,
+  validateAnnouncementBody,
+  validateDocumentBody,
 };
