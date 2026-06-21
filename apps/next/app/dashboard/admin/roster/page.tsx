@@ -185,6 +185,24 @@ function StatusDot({ active }: { active: boolean }) {
   );
 }
 
+const AVAIL_META: Record<string, { color: string; bg: string; border: string; icon: string }> = {
+  Available:  { color: '#059669', bg: '#ECFDF5', border: '#A7F3D0', icon: '✓' },
+  Injured:    { color: '#DC2626', bg: '#FEF2F2', border: '#FECACA', icon: '🤕' },
+  Suspended:  { color: '#7C3AED', bg: '#F5F3FF', border: '#DDD6FE', icon: '⛔' },
+  Resting:    { color: '#D97706', bg: '#FFFBEB', border: '#FDE68A', icon: '😴' },
+};
+
+function AvailBadge({ status }: { status?: string | null }) {
+  if (!status) return null;
+  const cfg = AVAIL_META[status];
+  if (!cfg) return null;
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 99, background: cfg.bg, border: `1px solid ${cfg.border}`, fontSize: '0.7rem', fontWeight: 700, color: cfg.color, whiteSpace: 'nowrap' }}>
+      <span>{cfg.icon}</span> {status}
+    </span>
+  );
+}
+
 function KPICard({ label, value, sub, color, icon, trend }: {
   label: string; value: string | number; sub?: string; color?: string; icon?: React.ReactNode; trend?: 'up' | 'down' | null;
 }) {
@@ -694,6 +712,9 @@ function MemberDetailPanel({ memberId, onClose, onToggleStatus, onMemberUpdated,
   // Avatar fallback (if img fails to load)
   const [avatarErr, setAvatarErr] = useState(false);
 
+  // Availability
+  const [availLoad, setAvailLoad] = useState(false);
+
   function showToast(msg: string) {
     setToast(msg);
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -770,6 +791,18 @@ function MemberDetailPanel({ memberId, onClose, onToggleStatus, onMemberUpdated,
       onToggleStatus(updated);
     } catch { /* silent */ }
     finally { setActLoad(false); }
+  }
+
+  async function handleAvailability(status: 'Available' | 'Injured' | 'Suspended' | 'Resting') {
+    if (!detail) return;
+    setAvailLoad(true);
+    try {
+      const updated = await adminApi.updateAvailability(detail.id, status);
+      setDetail(d => d ? { ...d, availability_status: updated.availability_status } : d);
+      onMemberUpdated(updated);
+      showToast(`Availability set to ${status}.`);
+    } catch { showToast('Failed to update availability.'); }
+    finally { setAvailLoad(false); }
   }
 
   const tabs: { id: TabId; label: string }[] = [
@@ -911,12 +944,28 @@ function MemberDetailPanel({ memberId, onClose, onToggleStatus, onMemberUpdated,
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginBottom: 2 }}>
                     <RoleBadge role={detail.role} />
                     <StatusDot active={isActive} />
+                    {detail.role === 'Player' && <AvailBadge status={detail.availability_status} />}
                     {teamCount > 0 && (
                       <span style={{ fontSize: '0.72rem', color: C.slate400, fontWeight: 500 }}>
                         · {teamCount} team{teamCount !== 1 ? 's' : ''}{sports.length > 0 ? ` in ${sports[0]}` : ''}
                       </span>
                     )}
                   </div>
+                  {detail.role === 'Player' && (
+                    <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '0.62rem', fontWeight: 700, color: C.slate400, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Availability:</span>
+                      {(['Available', 'Injured', 'Suspended', 'Resting'] as const).map(s => {
+                        const cfg = AVAIL_META[s];
+                        const active = detail.availability_status === s;
+                        return (
+                          <button key={s} onClick={() => handleAvailability(s)} disabled={availLoad}
+                            style={{ padding: '3px 10px', borderRadius: 99, border: `1.5px solid ${active ? cfg.border : C.slate200}`, background: active ? cfg.bg : 'transparent', color: active ? cfg.color : C.slate400, fontSize: '0.68rem', fontWeight: active ? 800 : 500, cursor: availLoad ? 'not-allowed' : 'pointer', transition: 'all 0.12s' }}>
+                            {cfg.icon} {s}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                   <ActionBar
                     onMessage={handleMessage}
                     onEdit={startEdit}
@@ -1199,7 +1248,12 @@ export default function RosterPage() {
 
                       <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{m.email}</td>
 
-                      <td><StatusDot active={isActive} /></td>
+                      <td>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                          <StatusDot active={isActive} />
+                          {m.role === 'Player' && <AvailBadge status={m.availability_status} />}
+                        </div>
+                      </td>
 
                       <td style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>{fmtDate(m.created_at)}</td>
 

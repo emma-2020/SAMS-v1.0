@@ -273,4 +273,39 @@ async function getMemberResetLink(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { createInvitation, listInvitations, revokeInvitation, listRoster, getMemberDetail, setMemberStatus, updateMember, getMemberResetLink };
+async function updateAvailability(req, res, next) {
+  try {
+    const { supabaseAdmin } = require('../config/supabase');
+    const { NotFoundError, BadRequestError, InternalError } = require('../utils/errors');
+    const VALID = ['Available', 'Injured', 'Suspended', 'Resting'];
+    const { availability_status } = req.body;
+
+    if (!VALID.includes(availability_status)) {
+      throw new BadRequestError(`"availability_status" must be one of: ${VALID.join(', ')}.`);
+    }
+
+    const { data: existing } = await supabaseAdmin
+      .from('users')
+      .select('id, role')
+      .eq('id', req.params.id)
+      .eq('academy_id', req.academyId)
+      .single();
+
+    if (!existing) throw new NotFoundError('Member not found.');
+    if (existing.role !== 'Player') throw new BadRequestError('Availability status only applies to Players.');
+
+    const { data: updated, error } = await supabaseAdmin
+      .from('users')
+      .update({ availability_status })
+      .eq('id', req.params.id)
+      .eq('academy_id', req.academyId)
+      .select('id, first_name, last_name, availability_status')
+      .single();
+
+    if (error) throw new InternalError('Failed to update availability status.');
+
+    return res.status(200).json({ success: true, data: { member: updated } });
+  } catch (err) { next(err); }
+}
+
+module.exports = { createInvitation, listInvitations, revokeInvitation, listRoster, getMemberDetail, setMemberStatus, updateMember, getMemberResetLink, updateAvailability };

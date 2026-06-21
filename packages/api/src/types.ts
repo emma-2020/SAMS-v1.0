@@ -15,6 +15,39 @@ export interface UserProfile {
   avatar_url?: string | null;
   is_active?: boolean;
   created_at?: string;
+  availability_status?: 'Available' | 'Injured' | 'Suspended' | 'Resting';
+}
+
+export interface FeeLedgerEntry {
+  id: string;
+  description: string;
+  amount_owed: number;
+  amount_paid: number;
+  payment_method?: 'Cash' | 'MoMo' | 'Bank' | 'Other' | null;
+  payment_date?: string | null;
+  notes?: string | null;
+  created_at: string;
+  updated_at?: string;
+  player?: { id: string; first_name: string; last_name: string; email: string } | null;
+}
+
+export interface PlayerDocument {
+  id: string;
+  doc_type: 'Birth Certificate' | 'Medical Clearance' | 'GFA Registration' | 'Parent Consent' | 'Other';
+  file_name: string;
+  file_url: string;
+  file_size?: number | null;
+  created_at: string;
+  player?: { id: string; first_name: string; last_name: string } | null;
+  uploader?: { id: string; first_name: string; last_name: string } | null;
+}
+
+export interface Announcement {
+  id: string;
+  title: string;
+  body: string;
+  created_at: string;
+  author?: { id: string; first_name: string; last_name: string } | null;
 }
 
 export interface ApiResponse<T = unknown> {

@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { healthApi, scheduleApi, coachApi } from '@sams/api';
+import { healthApi, scheduleApi, coachApi, feesApi } from '@sams/api';
 import { useAuthStore } from '@sams/store';
-import type { HealthEntry, ScheduleEvent, Player } from '@sams/api';
+import type { HealthEntry, ScheduleEvent, Player, FeeLedgerEntry } from '@sams/api';
+import { AnnouncementsBanner } from '../../components/AnnouncementsBanner';
 
 const BRAND = '#7C3AED';
 
@@ -30,6 +31,7 @@ export function ParentDashboardScreen() {
   const [alerts,  setAlerts]  = useState<HealthEntry[]>([]);
   const [events,  setEvents]  = useState<ScheduleEvent[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
+  const [fees,    setFees]    = useState<FeeLedgerEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -37,13 +39,18 @@ export function ParentDashboardScreen() {
       healthApi.getHealthAlerts().catch((): HealthEntry[]   => []),
       scheduleApi.getEvents()    .catch((): ScheduleEvent[] => []),
       coachApi.getPlayers()      .catch(() => ({ players: [] as Player[] })),
-    ]).then(([a, e, p]) => {
+      feesApi.getFees()          .catch((): FeeLedgerEntry[] => []),
+    ]).then(([a, e, p, f]) => {
       setAlerts(Array.isArray(a) ? a : []);
       setEvents(e.slice(0, 5));
       const playerArr: Player[] = Array.isArray(p) ? p : ((p as any)?.players ?? []);
       setPlayers(playerArr);
+      setFees(Array.isArray(f) ? f : []);
     }).finally(() => setLoading(false));
   }, []);
+
+  const feeBalance = fees.reduce((s, f) => s + (f.amount_owed - f.amount_paid), 0);
+  const fmtGhs    = (p: number) => `GHS ${(p / 100).toFixed(2)}`;
 
   const firstName = user?.first_name ?? 'there';
   const { text: greetText, emoji: greetEmoji } = getGreeting(firstName);
@@ -52,6 +59,7 @@ export function ParentDashboardScreen() {
   const kpis = [
     { label: 'Upcoming Sessions', value: loading ? '…' : String(events.length), icon: '📅', bg: '#F5F3FF', accent: '#7C3AED', path: '/dashboard/parent/schedule' },
     { label: 'Wellness Alerts',   value: loading ? '…' : String(alerts.length), icon: '❤️', bg: '#FEF2F2', accent: '#EF4444', path: '/dashboard/parent/health'   },
+    { label: 'Fee Balance',       value: loading ? '…' : fees.length === 0 ? '—' : feeBalance <= 0 ? '✓ Paid' : fmtGhs(feeBalance), icon: '💳', bg: feeBalance > 0 ? '#FEF2F2' : '#ECFDF5', accent: feeBalance > 0 ? '#DC2626' : '#059669', path: '/dashboard/parent/schedule' },
     { label: 'Coach Messages',    value: '—',                                    icon: '💬', bg: '#F5F3FF', accent: '#7C3AED', path: '/dashboard/parent/chat'     },
   ];
 
@@ -123,10 +131,12 @@ export function ParentDashboardScreen() {
         </div>
       </div>
 
+      <AnnouncementsBanner role="Parent" />
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
         {/* ── KPI ROW ── */}
-        <div className="kpi-grid-3" style={{ gap: 12 }}>
+        <div className="kpi-grid-4" style={{ gap: 12 }}>
           {kpis.map(kpi => (
             <div
               key={kpi.label}

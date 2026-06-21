@@ -6,6 +6,7 @@ import { coachApi, healthApi, scheduleApi } from '@sams/api';
 import { useAuthStore } from '@sams/store';
 import { ROLE_COLOR } from '@sams/ui';
 import type { Player, HealthEntry, ScheduleEvent } from '@sams/api';
+import { AnnouncementsBanner } from '../../components/AnnouncementsBanner';
 
 export function CoachDashboardScreen() {
   const user   = useAuthStore(s => s.user);
@@ -64,6 +65,8 @@ export function CoachDashboardScreen() {
           </div>
         </div>
       </div>
+
+      <AnnouncementsBanner role="Coach" />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 

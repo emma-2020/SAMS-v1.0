@@ -15,3 +15,7 @@ export * as notificationsApi from './notifications';
 export * as platformApi from './platform';
 export type { PlatformAdmin, EnrollmentRequest, PlatformAcademy, PlatformStats } from './platform';
 export { getPlatformToken, setPlatformToken, clearPlatformToken } from './platform';
+export * as feesApi from './fees';
+export * as documentsApi from './documents';
+export * as announcementsApi from './announcements';
+export type { FeeLedgerEntry, PlayerDocument, Announcement } from './types';

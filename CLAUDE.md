@@ -11,7 +11,6 @@ pnpm dev:next               # Next.js web app on port 3001
 pnpm dev:backend            # Express API on port 4000
 pnpm dev:all                # Next.js + backend concurrently
 pnpm build:next             # production Next.js build (validated ✓)
-pnpm dev:expo               # Expo mobile app (requires Expo Go or emulator)
 ```
 
 ### Backend (run from `backend/`)
@@ -36,9 +35,11 @@ pnpm build           # production build
 pnpm typecheck       # TypeScript check only
 ```
 
-### Expo mobile app (run from `apps/expo/`)
+### Capacitor mobile app (run from `apps/next/`)
 ```bash
-pnpm dev             # Expo development server
+npx cap sync         # sync web build to iOS/Android projects
+npx cap open ios     # open Xcode
+npx cap open android # open Android Studio
 ```
 
 ### Database
@@ -100,8 +101,7 @@ All thrown errors must extend `AppError` from `utils/errors.js` (`BadRequestErro
 ```
 SAMS-v1.0/
 ├── apps/
-│   ├── next/          # Next.js 14 App Router — web replacement for CRA frontend
-│   └── expo/          # Expo SDK 51 — iOS/Android mobile app
+│   └── next/          # Next.js 14 App Router — web app + Capacitor iOS/Android shell
 ├── packages/
 │   ├── api/           # @sams/api  — cross-platform Axios client (all API calls)
 │   ├── store/         # @sams/store — cross-platform Zustand auth store
@@ -113,9 +113,9 @@ SAMS-v1.0/
 ```
 
 ### Cross-platform primitives
-- All shared components in `packages/ui/` and `packages/app/` use `<View>`, `<Text>`, `<ScrollView>`, `<Pressable>` from `react-native` — compiled to HTML on web via `react-native-web`, native UIView/UILabel on iOS/Android.
+- All shared components in `packages/ui/` and `packages/app/` use `<View>`, `<Text>`, `<ScrollView>`, `<Pressable>` from `react-native` — compiled to HTML on web via `react-native-web`.
 - Styling uses NativeWind v4 `className` props (Tailwind CSS at build time).
-- Platform-split files: `.web.tsx` is resolved first on Next.js; `.native.tsx` first on Expo. Used for charts (recharts on web, native fallbacks on mobile).
+- Platform-split files: `.web.tsx` is resolved first on Next.js. Only `.web.tsx` files are active — there is no native-only runtime (Capacitor wraps the web app).
 
 ### Next.js web app (`apps/next/`)
 - Uses App Router with route groups: `(auth)` for public routes, `dashboard/[role]/...` for protected routes.
@@ -125,16 +125,17 @@ SAMS-v1.0/
 - Next.js config aliases `react-native` → `react-native-web` via webpack; TypeScript types come from actual `react-native` package (do NOT add `react-native` to TS `paths` — breaks type resolution).
 - All shared screens imported from `@sams/app` must have `'use client'` at the top.
 
-### Expo mobile app (`apps/expo/`)
-- Uses Expo Router v3 (file-based, like Next.js App Router).
-- `(auth)/login.tsx` → login screen; `(tabs)/` → bottom tab navigation.
-- Auth storage: `@react-native-async-storage/async-storage` (resolved automatically by `@sams/store`).
-- Metro config: `withNativeWind` wrapper + `watchFolders` pointing to workspace root for monorepo resolution.
+### Capacitor mobile app (`apps/next/`)
+- Wraps the Next.js web app in a native iOS/Android shell via Capacitor.
+- Config: `apps/next/capacitor.config.ts` — uses live-server mode pointing to `https://app.playsams.com`.
+- iOS project: `apps/next/ios/` — open with Xcode (`npx cap open ios`).
+- Android project: `apps/next/android/` — open with Android Studio (`npx cap open android`).
+- To ship a new version: deploy to Vercel, no app store update needed (live-server mode). For a fully-bundled build, remove the `server` block from `capacitor.config.ts` and run `pnpm build` before `npx cap sync`.
 
 ### Zustand auth store (`packages/store/`)
 - **Critical**: No property getters. Read `session.access_token` directly from `getState().session`.
-- Storage auto-selects: `localStorage` on web, `AsyncStorage` on native.
-- API client configured via `configureApiClient()` — must be called once on app mount (done in `AuthProvider` and Expo `_layout.tsx`).
+- Storage uses `localStorage` (web). No AsyncStorage — Capacitor runs the web app, not a native React Native runtime.
+- API client configured via `configureApiClient()` — must be called once on app mount (done in `AuthProvider`).
 
 ## V1.0 Scope Constraint
 Stripe, PDF generation, video tools, Apple Health sync, and AI scheduling are explicitly out of scope. Do not introduce these.

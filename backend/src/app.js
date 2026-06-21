@@ -20,6 +20,9 @@ const coachRoutes             = require('./routes/coach.routes');
 const notificationsRoutes     = require('./routes/notifications.routes');
 const platformRoutes          = require('./routes/platform.routes');
 const publicRoutes            = require('./routes/public.routes');
+const feeRoutes               = require('./routes/fee.routes');
+const documentsRoutes         = require('./routes/documents.routes');
+const announcementsRoutes     = require('./routes/announcements.routes');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
 
 const app = express();
@@ -56,14 +59,23 @@ app.use(helmet({
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
 }));
 
-// Production: whitelist both the web app subdomain and the marketing root.
+// Production: whitelist the app + marketing domains, plus Vercel preview URLs.
 // Development: allow all local dev ports in addition to the configured URLs.
-const allowedOrigins = env.NODE_ENV === 'production'
+const STATIC_ORIGINS = env.NODE_ENV === 'production'
   ? [env.FRONTEND_URL, env.MARKETING_URL].filter(Boolean)
   : [...new Set([env.FRONTEND_URL, env.MARKETING_URL, 'http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:8081', 'http://localhost:19006'])];
 
+function isAllowedOrigin(origin) {
+  if (!origin) return true; // non-browser / curl / server-to-server
+  if (STATIC_ORIGINS.includes(origin)) return true;
+  // Allow all Vercel preview deployments (*.vercel.app)
+  if (/^https:\/\/[a-z0-9-]+-emma-2020s-projects\.vercel\.app$/.test(origin)) return true;
+  if (/^https:\/\/sams-project[a-z0-9-]*\.vercel\.app$/.test(origin)) return true;
+  return false;
+}
+
 app.use(cors({
-  origin:         allowedOrigins,
+  origin:         (origin, cb) => cb(null, isAllowedOrigin(origin)),
   methods:        ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials:    true,
@@ -124,6 +136,9 @@ app.use('/api/coach',         apiLimiter,  coachRoutes);
 app.use('/api/notifications', apiLimiter,  notificationsRoutes);
 app.use('/api/platform',      apiLimiter,  platformRoutes);
 app.use('/api/public',                     publicRoutes);  // has its own per-route limiter
+app.use('/api/fees',          apiLimiter,  feeRoutes);
+app.use('/api/documents',     apiLimiter,  documentsRoutes);
+app.use('/api/announcements', apiLimiter,  announcementsRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

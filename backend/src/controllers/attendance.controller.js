@@ -36,4 +36,33 @@ async function logAttendance(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { getRosterWithAttendance, logAttendance };
+async function exportAttendanceCsv(req, res, next) {
+  try {
+    const { event_id, team_id, from, to } = req.query;
+    const rows = await attendanceService.exportAttendanceCsv({
+      academyId: req.academyId,
+      userId:    req.user.id,
+      role:      req.user.role,
+      eventId:   event_id || null,
+      teamId:    team_id  || null,
+      from:      from     || null,
+      to:        to       || null,
+    });
+
+    const headers = ['Player Name', 'Email', 'Team', 'Event Title', 'Event Type', 'Event Date', 'Status', 'Notes'];
+    const escape  = (v) => `"${String(v).replace(/"/g, '""')}"`;
+    const lines   = [
+      headers.map(escape).join(','),
+      ...rows.map(r =>
+        [r.player_name, r.email, r.team, r.event_title, r.event_type, r.event_date, r.status, r.notes]
+          .map(escape).join(',')
+      ),
+    ];
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="attendance.csv"');
+    return res.status(200).send(lines.join('\r\n'));
+  } catch (err) { next(err); }
+}
+
+module.exports = { getRosterWithAttendance, logAttendance, exportAttendanceCsv };

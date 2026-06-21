@@ -45,7 +45,7 @@ async function getRosterWithAttendance({ eventId, academyId, userId, role }) {
 
   const { data: attendanceRows, error: attError } = await supabaseAdmin
     .from('attendance')
-    .select('player_id, status, updated_at')
+    .select('player_id, status, notes, updated_at')
     .eq('academy_id', academyId)              // tenant isolation
     .eq('event_id', eventId);
 
@@ -64,6 +64,7 @@ async function getRosterWithAttendance({ eventId, academyId, userId, role }) {
     last_name:  r.users?.last_name,
     email:      r.users?.email,
     status:     attendanceMap[r.player_id]?.status     ?? null,
+    notes:      attendanceMap[r.player_id]?.notes      ?? null,
     updated_at: attendanceMap[r.player_id]?.updated_at ?? null,
   }));
 
@@ -184,4 +185,115 @@ function buildSummary(roster) {
   return { total: roster.length, ...counts };
 }
 
-module.exports = { getRosterWithAttendance, logAttendance };
+// ─────────────────────────────────────────────────────────────────
+// EXPORT ATTENDANCE AS CSV
+// ─────────────────────────────────────────────────────────────────
+
+async function exportAttendanceCsv({ academyId, userId, role, eventId, teamId, from, to }) {
+  // Fast path: single event export (used by coach attendance page)
+  if (eventId) {
+    let eventsQuery = supabaseAdmin
+      .from('events')
+      .select('id, title, type, start_time, team_id, teams(name)')
+      .eq('academy_id', academyId)
+      .eq('id', eventId);
+
+    const { data: events, error: evtErr } = await eventsQuery;
+    if (evtErr) throw new InternalError('Failed to fetch events for export.');
+    if (!events || events.length === 0) return [];
+
+    const eventIds = events.map(e => e.id);
+    const eventMap = Object.fromEntries(events.map(e => [e.id, e]));
+
+    const { data: rows, error: attErr } = await supabaseAdmin
+      .from('attendance')
+      .select(`event_id, status, notes, users!attendance_player_id_fkey (first_name, last_name, email)`)
+      .eq('academy_id', academyId)
+      .in('event_id', eventIds);
+
+    if (attErr) throw new InternalError('Failed to fetch attendance for export.');
+
+    return (rows || []).map(r => ({
+      player_name: `${r.users?.first_name ?? ''} ${r.users?.last_name ?? ''}`.trim(),
+      email:       r.users?.email ?? '',
+      team:        eventMap[r.event_id]?.teams?.name ?? '',
+      event_title: eventMap[r.event_id]?.title ?? '',
+      event_type:  eventMap[r.event_id]?.type ?? '',
+      event_date:  eventMap[r.event_id]?.start_time
+                     ? new Date(eventMap[r.event_id].start_time).toISOString().slice(0, 10)
+                     : '',
+      status:      r.status,
+      notes:       r.notes ?? '',
+    }));
+  }
+
+  let teamIds = [];
+
+  if (teamId) {
+    await assertTeamAccess({ teamId, userId, academyId, role });
+    teamIds = [teamId];
+  } else {
+    if (role === 'Coach') {
+      const { data: teams } = await supabaseAdmin
+        .from('teams')
+        .select('id')
+        .eq('academy_id', academyId)
+        .eq('coach_id', userId)
+        .eq('is_active', true);
+      teamIds = (teams || []).map(t => t.id);
+    } else {
+      const { data: teams } = await supabaseAdmin
+        .from('teams')
+        .select('id')
+        .eq('academy_id', academyId)
+        .eq('is_active', true);
+      teamIds = (teams || []).map(t => t.id);
+    }
+  }
+
+  if (teamIds.length === 0) return [];
+
+  let eventsQuery = supabaseAdmin
+    .from('events')
+    .select('id, title, type, start_time, team_id, teams(name)')
+    .eq('academy_id', academyId)
+    .in('team_id', teamIds)
+    .order('start_time', { ascending: false });
+
+  if (from) eventsQuery = eventsQuery.gte('start_time', from);
+  if (to)   eventsQuery = eventsQuery.lte('start_time', to);
+
+  const { data: events, error: evtErr } = await eventsQuery;
+  if (evtErr) throw new InternalError('Failed to fetch events for export.');
+  if (!events || events.length === 0) return [];
+
+  const eventIds = events.map(e => e.id);
+  const eventMap = Object.fromEntries(events.map(e => [e.id, e]));
+
+  const { data: rows, error: attErr } = await supabaseAdmin
+    .from('attendance')
+    .select(`
+      event_id, status, notes,
+      users!attendance_player_id_fkey (first_name, last_name, email)
+    `)
+    .eq('academy_id', academyId)
+    .in('event_id', eventIds)
+    .order('event_id');
+
+  if (attErr) throw new InternalError('Failed to fetch attendance for export.');
+
+  return (rows || []).map(r => ({
+    player_name: `${r.users?.first_name ?? ''} ${r.users?.last_name ?? ''}`.trim(),
+    email:       r.users?.email ?? '',
+    team:        eventMap[r.event_id]?.teams?.name ?? '',
+    event_title: eventMap[r.event_id]?.title ?? '',
+    event_type:  eventMap[r.event_id]?.type ?? '',
+    event_date:  eventMap[r.event_id]?.start_time
+                   ? new Date(eventMap[r.event_id].start_time).toISOString().slice(0, 10)
+                   : '',
+    status:      r.status,
+    notes:       r.notes ?? '',
+  }));
+}
+
+module.exports = { getRosterWithAttendance, logAttendance, exportAttendanceCsv };

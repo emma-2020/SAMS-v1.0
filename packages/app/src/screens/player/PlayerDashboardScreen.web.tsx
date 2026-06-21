@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { healthApi, scheduleApi, workoutApi } from '@sams/api';
+import { healthApi, scheduleApi, workoutApi, feesApi } from '@sams/api';
 import { useAuthStore } from '@sams/store';
-import type { HealthEntry, ScheduleEvent, WorkoutPlan } from '@sams/api';
+import type { HealthEntry, ScheduleEvent, WorkoutPlan, FeeLedgerEntry } from '@sams/api';
+import { AnnouncementsBanner } from '../../components/AnnouncementsBanner';
 
 function daysUntil(iso: string) {
   const d = Math.ceil((new Date(iso).getTime() - Date.now()) / 86400000);
@@ -28,6 +29,7 @@ export function PlayerDashboardScreen() {
   const [events,     setEvents]     = useState<ScheduleEvent[]>([]);
   const [healthLogs, setHealthLogs] = useState<HealthEntry[]>([]);
   const [workouts,   setWorkouts]   = useState<WorkoutPlan[]>([]);
+  const [fees,       setFees]       = useState<FeeLedgerEntry[]>([]);
   const [loading,    setLoading]    = useState(true);
 
   useEffect(() => {
@@ -35,15 +37,22 @@ export function PlayerDashboardScreen() {
       scheduleApi.getEvents(),
       healthApi.getMyHealth(),
       workoutApi.getWorkouts(),
+      feesApi.getFees().catch(() => [] as FeeLedgerEntry[]),
     ])
-      .then(([evts, hl, wk]) => {
+      .then(([evts, hl, wk, f]) => {
         setEvents(evts ?? []);
         setHealthLogs(hl ?? []);
         setWorkouts(wk ?? []);
+        setFees(f ?? []);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  const feeOwed    = fees.reduce((s, f) => s + f.amount_owed, 0);
+  const feePaid    = fees.reduce((s, f) => s + f.amount_paid, 0);
+  const feeBalance = feeOwed - feePaid;
+  const fmtGhs    = (p: number) => `GHS ${(p / 100).toFixed(2)}`;
 
   const upcoming      = events.slice(0, 4);
   const todayEvents   = events.filter(ev => new Date(ev.start_time).toDateString() === today.toDateString());
@@ -92,6 +101,13 @@ export function PlayerDashboardScreen() {
       value: loading ? '…' : fitnessLabel,
       color: fitnessColor, icon: '💚',
       action: () => router.push('/dashboard/player/health'),
+    },
+    {
+      label: 'Fee Balance',
+      value: loading ? '…' : fees.length === 0 ? '—' : feeBalance <= 0 ? '✓ Paid' : fmtGhs(feeBalance),
+      color: fees.length === 0 ? '#94A3B8' : feeBalance <= 0 ? '#059669' : '#DC2626',
+      icon: '💳',
+      sub: loading || fees.length === 0 ? 'No records' : feeBalance <= 0 ? 'All cleared' : 'outstanding',
     },
   ];
 
@@ -169,6 +185,9 @@ export function PlayerDashboardScreen() {
           </div>
         </div>
       </div>
+
+      {/* ── Announcements ───────────────────────────────────────────── */}
+      <AnnouncementsBanner role="Player" />
 
       {/* ── Stats row ───────────────────────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14, marginBottom: 24 }}>
@@ -248,7 +267,7 @@ export function PlayerDashboardScreen() {
             <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
               {upcoming.map(ev => {
                 const lbl    = daysUntil(ev.start_time);
-                const isGame = ev.type === 'match';
+                const isGame = (ev.type as string) === 'match';
                 const color  = isGame ? '#EF4444' : '#7C3AED';
                 return (
                   <div key={ev.id} style={{
