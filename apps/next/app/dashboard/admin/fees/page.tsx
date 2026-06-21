@@ -12,10 +12,11 @@ function fmtDate(iso?: string | null) {
 }
 
 const METHOD_CFG: Record<string, { color: string; bg: string; label: string }> = {
-  Cash:  { color: '#059669', bg: '#ECFDF5', label: 'Cash'  },
-  MoMo:  { color: '#7C3AED', bg: '#F5F3FF', label: 'MoMo'  },
-  Bank:  { color: '#2563EB', bg: '#EFF6FF', label: 'Bank'  },
-  Other: { color: '#64748B', bg: '#F8FAFC', label: 'Other' },
+  Cash:   { color: '#059669', bg: '#ECFDF5', label: 'Cash'   },
+  MoMo:   { color: '#7C3AED', bg: '#F5F3FF', label: 'MoMo'   },
+  Bank:   { color: '#2563EB', bg: '#EFF6FF', label: 'Bank'   },
+  Online: { color: '#0891B2', bg: '#ECFEFF', label: 'Online' },
+  Other:  { color: '#64748B', bg: '#F8FAFC', label: 'Other'  },
 };
 
 // ─── Icons ──────────────────────────────────────────────────────────────
@@ -140,7 +141,7 @@ function FeeModal({ players, editFee, onSave, onClose }: {
             <select value={method} onChange={e => setMethod(e.target.value)}
               style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #E2E8F0', borderRadius: 10, fontSize: '0.875rem', color: '#0F172A', outline: 'none', background: '#fff', boxSizing: 'border-box' }}>
               <option value="">Not paid yet</option>
-              {Object.entries(METHOD_CFG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+              {Object.entries(METHOD_CFG).filter(([k]) => k !== 'Online').map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
             </select>
           </div>
           <div style={{ flex: 1 }}>
@@ -203,6 +204,13 @@ function FeeRow({ fee, onEdit, onDelete }: { fee: FeeLedgerEntry; onEdit: () => 
       </div>
       {/* Actions */}
       <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+        {fee.payment_url && (
+          <a href={fee.payment_url} target="_blank" rel="noreferrer"
+            title="Copy payment link"
+            style={{ padding: '7px 10px', borderRadius: 8, border: '1.5px solid #A5F3FC', background: '#ECFEFF', color: '#0891B2', cursor: 'pointer', display: 'flex', alignItems: 'center', fontSize: '0.62rem', fontWeight: 700, textDecoration: 'none', gap: 4 }}>
+            💳 Pay
+          </a>
+        )}
         <button onClick={onEdit} style={{ padding: '7px', borderRadius: 8, border: '1.5px solid #E2E8F0', background: '#F8FAFC', color: '#6366F1', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><Ico.Pencil /></button>
         <button onClick={onDelete} style={{ padding: '7px', borderRadius: 8, border: '1.5px solid #FECACA', background: '#FEF2F2', color: '#DC2626', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><Ico.Trash /></button>
       </div>

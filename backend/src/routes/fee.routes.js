@@ -3,10 +3,11 @@
 /**
  * /api/fees
  *
- * GET    /api/fees            — list fees (role-scoped: Admin/Coach=all or by ?player_id; Player=own; Parent=children)
- * POST   /api/fees            — create fee record (Admin only)
- * PATCH  /api/fees/:id        — update payment details (Admin only)
- * DELETE /api/fees/:id        — delete fee record (Admin only)
+ * POST   /api/fees/webhook/paystack — Paystack webhook (no auth — verified by HMAC)
+ * GET    /api/fees                  — list fees (role-scoped)
+ * POST   /api/fees                  — create fee record (Admin only)
+ * PATCH  /api/fees/:id              — update payment details (Admin only)
+ * DELETE /api/fees/:id              — delete fee record (Admin only)
  */
 
 const { Router } = require('express');
@@ -15,6 +16,10 @@ const { authenticate, extractTenant, requireRole } = require('../middleware/auth
 const { validateFeeBody } = require('../middleware/validate');
 
 const router = Router();
+
+// Webhook must be before authenticate — Paystack sends no Bearer token
+router.post('/webhook/paystack', controller.webhookPaystack);
+
 router.use(authenticate, extractTenant);
 
 router.get(    '/',    requireRole('Admin', 'Coach', 'Player', 'Parent'), controller.listFees);

@@ -111,3 +111,29 @@ export async function updateAvailability(
   };
   return res.data.member;
 }
+
+export interface AcademyAdminSettings {
+  academy_name: string;
+  paystack_configured: boolean;
+  paystack_key_preview: string | null;
+}
+
+// Backend: GET /admin/settings
+export async function getAcademySettings(): Promise<AcademyAdminSettings> {
+  const res = (await apiClient.get('/admin/settings')) as {
+    success: boolean;
+    data: { settings: AcademyAdminSettings };
+  };
+  return res.data.settings;
+}
+
+// Backend: PATCH /admin/settings
+export async function updateAcademySettings(payload: {
+  paystack_secret_key?: string;
+}): Promise<AcademyAdminSettings> {
+  const res = (await apiClient.patch('/admin/settings', payload)) as {
+    success: boolean;
+    data: { settings: AcademyAdminSettings };
+  };
+  return res.data.settings;
+}

@@ -36,5 +36,7 @@ router.patch(  '/roster/:id',         validateUpdateMemberBody, controller.updat
 router.patch(  '/roster/:id/status',  validateMemberStatusBody, controller.setMemberStatus);
 router.post(   '/roster/:id/reset-link',                              controller.getMemberResetLink);
 router.patch(  '/roster/:id/availability', validateAvailabilityBody,  controller.updateAvailability);
+router.get(    '/settings',                        controller.getSettings);
+router.patch(  '/settings',                        controller.updateSettings);
 
 module.exports = router;

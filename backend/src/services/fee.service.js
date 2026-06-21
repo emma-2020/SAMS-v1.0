@@ -1,14 +1,19 @@
 'use strict';
 
+const crypto         = require('crypto');
 const { supabaseAdmin } = require('../config/supabase');
 const { NotFoundError, ForbiddenError, InternalError } = require('../utils/errors');
+const emailService   = require('./email.service');
+const paystackService = require('./paystack.service');
+
+const DASHBOARD_URL = process.env.FRONTEND_URL || 'https://app.playsams.com';
 
 async function listFees({ academyId, userId, role, playerId }) {
   let query = supabaseAdmin
     .from('fee_ledger')
     .select(`
       id, description, amount_owed, amount_paid, payment_method,
-      payment_date, notes, created_at, updated_at,
+      payment_date, notes, paystack_reference, payment_url, created_at, updated_at,
       player:users!fee_ledger_player_id_fkey (id, first_name, last_name, email)
     `)
     .eq('academy_id', academyId)
@@ -37,7 +42,7 @@ async function listFees({ academyId, userId, role, playerId }) {
 async function createFee({ academyId, adminId, playerId, description, amountOwed, paymentMethod, paymentDate, notes }) {
   const { data: player } = await supabaseAdmin
     .from('users')
-    .select('id, role')
+    .select('id, role, first_name, last_name, email')
     .eq('id', playerId)
     .eq('academy_id', academyId)
     .single();
@@ -60,13 +65,208 @@ async function createFee({ academyId, adminId, playerId, description, amountOwed
     })
     .select(`
       id, description, amount_owed, amount_paid, payment_method,
-      payment_date, notes, created_at,
+      payment_date, notes, paystack_reference, payment_url, created_at,
       player:users!fee_ledger_player_id_fkey (id, first_name, last_name, email)
     `)
     .single();
 
   if (error) throw new InternalError('Failed to create fee record.');
+
+  // Fire-and-forget: generate Paystack link + send emails
+  _initPaystackAndNotify({ fee: data, academyId, player, description, amountOwed, paymentDate, notes }).catch(() => {});
+
   return data;
+}
+
+async function _initPaystackAndNotify({ fee, academyId, player, description, amountOwed, paymentDate, notes }) {
+  // Look up academy name + Paystack key
+  const { data: academy } = await supabaseAdmin
+    .from('academies')
+    .select('name, paystack_secret_key')
+    .eq('id', academyId)
+    .single();
+  const academyName      = academy?.name || 'Your Academy';
+  const paystackSecretKey = academy?.paystack_secret_key || null;
+
+  let paymentUrl = null;
+
+  // Generate Paystack payment link if this academy has configured their key
+  if (paystackService.isConfigured(paystackSecretKey)) {
+    try {
+      const reference = crypto.randomUUID();
+      const ps = await paystackService.initializeTransaction({
+        secretKey:       paystackSecretKey,
+        email:           player.email,
+        amountInPesewas: amountOwed,
+        reference,
+        metadata: { fee_id: fee.id, academy_id: academyId, player_id: player.id },
+        callbackUrl: `${DASHBOARD_URL}/dashboard/player`,
+      });
+
+      paymentUrl = ps.authorization_url;
+
+      // Persist reference + url on the fee record
+      await supabaseAdmin
+        .from('fee_ledger')
+        .update({ paystack_reference: reference, payment_url: paymentUrl })
+        .eq('id', fee.id);
+    } catch (err) {
+      console.error('[fee.service] Paystack init failed:', err.message);
+    }
+  }
+
+  const emailBase = {
+    description,
+    amountOwed,
+    paymentDate: paymentDate || null,
+    notes:       notes       || null,
+    academyName,
+    paymentUrl,
+  };
+
+  // Email player
+  await emailService.sendFeeNotificationEmail({
+    to:           player.email,
+    firstName:    player.first_name,
+    dashboardUrl: `${DASHBOARD_URL}/dashboard/player`,
+    ...emailBase,
+  });
+
+  // Email any linked parents
+  const { data: rosterRows } = await supabaseAdmin
+    .from('rosters')
+    .select('parent:users!rosters_parent_id_fkey (first_name, email)')
+    .eq('player_id', player.id)
+    .eq('academy_id', academyId);
+
+  for (const row of rosterRows || []) {
+    if (row.parent?.email) {
+      await emailService.sendFeeNotificationEmail({
+        to:           row.parent.email,
+        firstName:    row.parent.first_name,
+        dashboardUrl: `${DASHBOARD_URL}/dashboard/parent`,
+        ...emailBase,
+      });
+    }
+  }
+}
+
+async function handlePaystackWebhook({ rawBody, signature }) {
+  // Parse first (unverified) to get reference → look up academy key → verify
+  let event;
+  try { event = JSON.parse(rawBody.toString()); } catch { throw new Error('Invalid webhook body.'); }
+  if (event.event !== 'charge.success') return { handled: false };
+
+  const charge    = event.data;
+  const reference = charge.reference;
+  const metadata  = charge.metadata || {};
+  const feeId     = metadata.fee_id;
+  if (!feeId && !reference) return { handled: false };
+
+  // Look up the fee to find the academy's Paystack key
+  const { data: feeForKey } = await supabaseAdmin
+    .from('fee_ledger')
+    .select('id, academy_id')
+    .eq(feeId ? 'id' : 'paystack_reference', feeId ?? reference)
+    .single();
+
+  let paystackSecretKey = null;
+  if (feeForKey?.academy_id) {
+    const { data: acad } = await supabaseAdmin
+      .from('academies')
+      .select('paystack_secret_key')
+      .eq('id', feeForKey.academy_id)
+      .single();
+    paystackSecretKey = acad?.paystack_secret_key || null;
+  }
+
+  if (!paystackService.verifyWebhookSignature(rawBody, signature, paystackSecretKey)) {
+    throw new Error('Invalid Paystack webhook signature.');
+  }
+
+  const resolvedFeeId = feeId ?? feeForKey?.id;
+  if (!resolvedFeeId) return { handled: false };
+
+  // Look up fee
+  const { data: fee } = await supabaseAdmin
+    .from('fee_ledger')
+    .select(`
+      id, academy_id, player_id, description, amount_owed, amount_paid,
+      player:users!fee_ledger_player_id_fkey (first_name, email)
+    `)
+    .eq('id', resolvedFeeId)
+    .single();
+
+  if (!fee) return { handled: false };
+
+  const chargedAmount = charge.amount; // already in pesewas
+  const channel       = charge.channel; // 'mobile_money' | 'card' | 'bank' | etc.
+  const newPaid       = Math.min(fee.amount_paid + chargedAmount, fee.amount_owed);
+  const paymentMethod = channel === 'mobile_money' ? 'MoMo' : 'Online';
+
+  await supabaseAdmin
+    .from('fee_ledger')
+    .update({
+      amount_paid:    newPaid,
+      payment_method: paymentMethod,
+      payment_date:   new Date().toISOString().slice(0, 10),
+    })
+    .eq('id', feeId);
+
+  // Send receipt — fire-and-forget
+  _sendReceipt({ fee, chargedAmount, newPaid, channel }).catch(() => {});
+
+  return { handled: true };
+}
+
+async function _sendReceipt({ fee, chargedAmount, newPaid, channel }) {
+  const { data: academy } = await supabaseAdmin
+    .from('academies')
+    .select('name')
+    .eq('id', fee.academy_id)
+    .single();
+
+  const academyName = academy?.name || 'Your Academy';
+  const fullyPaid   = newPaid >= fee.amount_owed;
+
+  if (fee.player?.email) {
+    await emailService.sendFeeReceiptEmail({
+      to:           fee.player.email,
+      firstName:    fee.player.first_name,
+      academyName,
+      description:  fee.description,
+      amountPaid:   chargedAmount,
+      totalOwed:    fee.amount_owed,
+      totalPaid:    newPaid,
+      fullyPaid,
+      channel,
+      dashboardUrl: `${DASHBOARD_URL}/dashboard/player`,
+    });
+  }
+
+  // Receipt to parents
+  const { data: rosterRows } = await supabaseAdmin
+    .from('rosters')
+    .select('parent:users!rosters_parent_id_fkey (first_name, email)')
+    .eq('player_id', fee.player_id)
+    .eq('academy_id', fee.academy_id);
+
+  for (const row of rosterRows || []) {
+    if (row.parent?.email) {
+      await emailService.sendFeeReceiptEmail({
+        to:           row.parent.email,
+        firstName:    row.parent.first_name,
+        academyName,
+        description:  fee.description,
+        amountPaid:   chargedAmount,
+        totalOwed:    fee.amount_owed,
+        totalPaid:    newPaid,
+        fullyPaid,
+        channel,
+        dashboardUrl: `${DASHBOARD_URL}/dashboard/parent`,
+      });
+    }
+  }
 }
 
 async function updateFee({ academyId, feeId, amountOwed, amountPaid, paymentMethod, paymentDate, notes, description }) {
@@ -80,12 +280,12 @@ async function updateFee({ academyId, feeId, amountOwed, amountPaid, paymentMeth
   if (!existing) throw new NotFoundError('Fee record not found.');
 
   const updates = {};
-  if (description  !== undefined) updates.description    = description.trim();
-  if (amountOwed   !== undefined) updates.amount_owed    = amountOwed;
-  if (amountPaid   !== undefined) updates.amount_paid    = amountPaid;
+  if (description   !== undefined) updates.description    = description.trim();
+  if (amountOwed    !== undefined) updates.amount_owed    = amountOwed;
+  if (amountPaid    !== undefined) updates.amount_paid    = amountPaid;
   if (paymentMethod !== undefined) updates.payment_method = paymentMethod;
-  if (paymentDate  !== undefined) updates.payment_date   = paymentDate;
-  if (notes        !== undefined) updates.notes          = notes;
+  if (paymentDate   !== undefined) updates.payment_date   = paymentDate;
+  if (notes         !== undefined) updates.notes          = notes;
 
   const { data, error } = await supabaseAdmin
     .from('fee_ledger')
@@ -94,7 +294,7 @@ async function updateFee({ academyId, feeId, amountOwed, amountPaid, paymentMeth
     .eq('academy_id', academyId)
     .select(`
       id, description, amount_owed, amount_paid, payment_method,
-      payment_date, notes, created_at, updated_at,
+      payment_date, notes, paystack_reference, payment_url, created_at, updated_at,
       player:users!fee_ledger_player_id_fkey (id, first_name, last_name, email)
     `)
     .single();
@@ -122,4 +322,4 @@ async function deleteFee({ academyId, feeId }) {
   if (error) throw new InternalError('Failed to delete fee record.');
 }
 
-module.exports = { listFees, createFee, updateFee, deleteFee };
+module.exports = { listFees, createFee, updateFee, deleteFee, handlePaystackWebhook };

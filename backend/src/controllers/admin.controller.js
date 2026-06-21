@@ -308,4 +308,22 @@ async function updateAvailability(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { createInvitation, listInvitations, revokeInvitation, listRoster, getMemberDetail, setMemberStatus, updateMember, getMemberResetLink, updateAvailability };
+async function getSettings(req, res, next) {
+  try {
+    const settings = await adminService.getAcademySettings({ academyId: req.academyId });
+    return res.status(200).json({ success: true, data: { settings } });
+  } catch (err) { next(err); }
+}
+
+async function updateSettings(req, res, next) {
+  try {
+    const { paystack_secret_key } = req.body;
+    const settings = await adminService.updateAcademySettings({
+      academyId:        req.academyId,
+      paystackSecretKey: paystack_secret_key,
+    });
+    return res.status(200).json({ success: true, data: { settings } });
+  } catch (err) { next(err); }
+}
+
+module.exports = { createInvitation, listInvitations, revokeInvitation, listRoster, getMemberDetail, setMemberStatus, updateMember, getMemberResetLink, updateAvailability, getSettings, updateSettings };

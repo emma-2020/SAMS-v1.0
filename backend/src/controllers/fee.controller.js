@@ -55,4 +55,17 @@ async function deleteFee(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { listFees, createFee, updateFee, deleteFee };
+async function webhookPaystack(req, res, next) {
+  try {
+    const signature = req.headers['x-paystack-signature'];
+    await feeService.handlePaystackWebhook({ rawBody: req.rawBody, signature });
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    if (err.message?.includes('signature')) {
+      return res.status(400).json({ success: false, error: err.message });
+    }
+    next(err);
+  }
+}
+
+module.exports = { listFees, createFee, updateFee, deleteFee, webhookPaystack };

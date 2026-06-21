@@ -291,4 +291,45 @@ async function setMemberStatus({ memberId, academyId, requestingAdminId, isActiv
   return data;
 }
 
-module.exports = { createInvitation, listInvitations, revokeInvitation, setMemberStatus };
+// ─────────────────────────────────────────────────────────────────
+// ACADEMY SETTINGS
+// ─────────────────────────────────────────────────────────────────
+
+async function getAcademySettings({ academyId }) {
+  const { data, error } = await supabaseAdmin
+    .from('academies')
+    .select('name, paystack_secret_key')
+    .eq('id', academyId)
+    .single();
+
+  if (error || !data) throw new InternalError('Failed to load academy settings.');
+
+  const key = data.paystack_secret_key;
+  return {
+    academy_name:        data.name,
+    paystack_configured: Boolean(key && key.length > 10),
+    // Return only last 4 chars for display — never expose the full key
+    paystack_key_preview: key ? `${key.slice(0, 7)}…${key.slice(-4)}` : null,
+  };
+}
+
+async function updateAcademySettings({ academyId, paystackSecretKey }) {
+  if (paystackSecretKey !== undefined) {
+    const trimmed = (paystackSecretKey || '').trim();
+    // Accept sk_live_... or sk_test_... or empty string (to remove)
+    if (trimmed && !trimmed.startsWith('sk_')) {
+      throw new Error('Invalid Paystack key format. Expected sk_live_... or sk_test_...');
+    }
+
+    const { error } = await supabaseAdmin
+      .from('academies')
+      .update({ paystack_secret_key: trimmed || null })
+      .eq('id', academyId);
+
+    if (error) throw new InternalError('Failed to save Paystack key.');
+  }
+
+  return getAcademySettings({ academyId });
+}
+
+module.exports = { createInvitation, listInvitations, revokeInvitation, setMemberStatus, getAcademySettings, updateAcademySettings };

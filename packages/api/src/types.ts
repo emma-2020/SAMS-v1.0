@@ -23,9 +23,11 @@ export interface FeeLedgerEntry {
   description: string;
   amount_owed: number;
   amount_paid: number;
-  payment_method?: 'Cash' | 'MoMo' | 'Bank' | 'Other' | null;
+  payment_method?: 'Cash' | 'MoMo' | 'Bank' | 'Online' | 'Other' | null;
   payment_date?: string | null;
   notes?: string | null;
+  paystack_reference?: string | null;
+  payment_url?: string | null;
   created_at: string;
   updated_at?: string;
   player?: { id: string; first_name: string; last_name: string; email: string } | null;
