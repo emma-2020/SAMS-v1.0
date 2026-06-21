@@ -565,25 +565,25 @@ export default function HomePage() {
             {/* Stats row */}
             <div style={{
               display: 'inline-flex', alignItems: 'center',
-              padding: '18px clamp(16px, 3vw, 36px)',
+              padding: '16px 20px',
               borderRadius: 16, gap: 0,
               background: 'rgba(255,255,255,0.025)',
               border: '1px solid rgba(255,255,255,0.06)',
-              flexWrap: 'wrap',
+              flexWrap: 'nowrap',
             }}>
               {STATS.flatMap(({ value, label }, i) => {
                 const stat = (
-                  <div key={label} style={{ textAlign: 'center', padding: '0 clamp(14px, 2.5vw, 28px)' }}>
-                    <div style={{ fontSize: 'clamp(1.3rem, 2vw, 1.7rem)', fontWeight: 900, color: '#F1F5F9', letterSpacing: '-0.03em', lineHeight: 1 }}>
+                  <div key={label} style={{ textAlign: 'center', padding: '0 16px' }}>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#F1F5F9', letterSpacing: '-0.03em', lineHeight: 1 }}>
                       {value}
                     </div>
-                    <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.32)', marginTop: 5, letterSpacing: '0.03em' }}>
+                    <div style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.32)', marginTop: 5, letterSpacing: '0.02em', whiteSpace: 'nowrap' }}>
                       {label}
                     </div>
                   </div>
                 );
                 if (i < STATS.length - 1) {
-                  return [stat, <div key={`d${i}`} style={{ width: 1, height: 30, background: 'rgba(255,255,255,0.07)', flexShrink: 0 }} />];
+                  return [stat, <div key={`d${i}`} style={{ width: 1, height: 28, background: 'rgba(255,255,255,0.07)', flexShrink: 0 }} />];
                 }
                 return [stat];
               })}
@@ -626,12 +626,6 @@ export default function HomePage() {
             gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
             gap: 24, position: 'relative',
           }}>
-            {/* Connector line — desktop only */}
-            <div style={{
-              position: 'absolute', top: 44, left: '16.67%', right: '16.67%', height: 1,
-              background: 'linear-gradient(90deg, rgba(124,58,237,0.4), rgba(37,99,235,0.4), rgba(5,150,105,0.4))',
-              pointerEvents: 'none',
-            }} className="mkt-connector" />
 
             {HOW_IT_WORKS.map((step, i) => (
               <div
@@ -1137,9 +1131,6 @@ export default function HomePage() {
         @keyframes role-in {
           from { opacity: 0; transform: translateY(12px); }
           to   { opacity: 1; transform: translateY(0);    }
-        }
-        @media (max-width: 680px) {
-          .mkt-connector { display: none; }
         }
       `}</style>
 
