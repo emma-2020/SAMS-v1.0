@@ -2,6 +2,9 @@
 
 const { supabaseAdmin } = require('../config/supabase');
 const { NotFoundError, ForbiddenError, InternalError } = require('../utils/errors');
+const emailService = require('./email.service');
+
+const DASHBOARD_URL = process.env.FRONTEND_URL || 'https://app.playsams.com';
 
 async function listFees({ academyId, userId, role, playerId }) {
   let query = supabaseAdmin
@@ -37,7 +40,7 @@ async function listFees({ academyId, userId, role, playerId }) {
 async function createFee({ academyId, adminId, playerId, description, amountOwed, paymentMethod, paymentDate, notes }) {
   const { data: player } = await supabaseAdmin
     .from('users')
-    .select('id, role')
+    .select('id, role, first_name, last_name, email')
     .eq('id', playerId)
     .eq('academy_id', academyId)
     .single();
@@ -66,7 +69,57 @@ async function createFee({ academyId, adminId, playerId, description, amountOwed
     .single();
 
   if (error) throw new InternalError('Failed to create fee record.');
+
+  // Fire-and-forget: send fee notification emails (never block the API response)
+  _sendFeeEmails({ academyId, player, description, amountOwed, paymentDate, notes }).catch(() => {});
+
   return data;
+}
+
+async function _sendFeeEmails({ academyId, player, description, amountOwed, paymentDate, notes }) {
+  // Look up academy name
+  const { data: academy } = await supabaseAdmin
+    .from('academies')
+    .select('name')
+    .eq('id', academyId)
+    .single();
+  const academyName = academy?.name || 'Your Academy';
+
+  const emailPayload = {
+    description,
+    amountOwed,
+    paymentDate: paymentDate || null,
+    notes:       notes       || null,
+    academyName,
+    dashboardUrl: `${DASHBOARD_URL}/dashboard/player`,
+  };
+
+  // Email the player
+  await emailService.sendFeeNotificationEmail({
+    to:        player.email,
+    firstName: player.first_name,
+    ...emailPayload,
+  });
+
+  // Email any linked parents
+  const { data: rosterRows } = await supabaseAdmin
+    .from('rosters')
+    .select('parent:users!rosters_parent_id_fkey (first_name, email)')
+    .eq('player_id', player.id)
+    .eq('academy_id', academyId);
+
+  const parents = (rosterRows || [])
+    .map(r => r.parent)
+    .filter(p => p?.email);
+
+  for (const parent of parents) {
+    await emailService.sendFeeNotificationEmail({
+      to:        parent.email,
+      firstName: parent.first_name,
+      ...emailPayload,
+      dashboardUrl: `${DASHBOARD_URL}/dashboard/parent`,
+    });
+  }
 }
 
 async function updateFee({ academyId, feeId, amountOwed, amountPaid, paymentMethod, paymentDate, notes, description }) {
