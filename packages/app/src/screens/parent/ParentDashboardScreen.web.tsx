@@ -317,10 +317,10 @@ export function ParentDashboardScreen() {
         </div>
 
         {/* ── CHILD'S SCHEDULE + QUICK ACTIONS ── */}
-        <div style={{ display: 'flex', gap: 16 }}>
+        <div className="parent-schedule-row" style={{ display: 'flex', gap: 16 }}>
 
           {/* Schedule */}
-          <div className="card" style={{ flex: 1, padding: 0, overflow: 'hidden' }}>
+          <div className="card" style={{ flex: 1, minWidth: 0, padding: 0, overflow: 'hidden' }}>
             <div style={{
               padding: '18px 20px 12px',
               borderBottom: '1px solid var(--border-subtle)',
@@ -373,7 +373,7 @@ export function ParentDashboardScreen() {
           </div>
 
           {/* Quick Actions */}
-          <div className="card" style={{ width: 288, padding: 0, overflow: 'hidden' }}>
+          <div className="card parent-quick-actions" style={{ width: 288, flexShrink: 0, padding: 0, overflow: 'hidden' }}>
             <div style={{ padding: '18px 20px 12px', borderBottom: '1px solid var(--border-subtle)' }}>
               <p style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.9rem', margin: 0 }}>
                 Quick Actions
@@ -455,6 +455,17 @@ export function ParentDashboardScreen() {
         )}
 
       </div>
+
+      <style>{`
+        @media (max-width: 600px) {
+          .parent-schedule-row {
+            flex-direction: column !important;
+          }
+          .parent-quick-actions {
+            width: 100% !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

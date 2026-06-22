@@ -178,26 +178,29 @@ function FeeRow({ fee, onEdit, onDelete }: { fee: FeeLedgerEntry; onEdit: () => 
   const methCfg  = fee.payment_method ? METHOD_CFG[fee.payment_method] : null;
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px', borderRadius: 14, background: '#fff', border: `1.5px solid ${paid ? '#A7F3D0' : partial ? '#FDE68A' : '#E2E8F0'}`, borderLeft: `4px solid ${paid ? '#059669' : partial ? '#F59E0B' : '#6366F1'}`, boxShadow: '0 1px 4px rgba(15,23,42,0.04)' }}>
-      {/* Player */}
-      <div style={{ width: 38, height: 38, borderRadius: '50%', flexShrink: 0, background: '#F5F3FF', border: '1.5px solid #DDD6FE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.75rem', color: '#7C3AED' }}>
+    <div className="fee-row" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', borderRadius: 14, background: '#fff', border: `1.5px solid ${paid ? '#A7F3D0' : partial ? '#FDE68A' : '#E2E8F0'}`, borderLeft: `4px solid ${paid ? '#059669' : partial ? '#F59E0B' : '#6366F1'}`, boxShadow: '0 1px 4px rgba(15,23,42,0.04)', flexWrap: 'wrap' }}>
+      {/* Player avatar */}
+      <div style={{ width: 36, height: 36, borderRadius: '50%', flexShrink: 0, background: '#F5F3FF', border: '1.5px solid #DDD6FE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.72rem', color: '#7C3AED' }}>
         {fee.player ? `${fee.player.first_name[0]}${fee.player.last_name[0]}`.toUpperCase() : '?'}
       </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 700, fontSize: '0.875rem', color: '#0F172A' }}>{fee.player ? `${fee.player.first_name} ${fee.player.last_name}` : '—'}</div>
-        <div style={{ fontSize: '0.72rem', color: '#64748B', marginTop: 2 }}>{fee.description}</div>
-        {fee.notes && <div style={{ fontSize: '0.68rem', color: '#94A3B8', marginTop: 2, fontStyle: 'italic' }}>Note: {fee.notes}</div>}
+      {/* Player name + description */}
+      <div className="fee-row__info" style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontWeight: 700, fontSize: '0.875rem', color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {fee.player ? `${fee.player.first_name} ${fee.player.last_name}` : '—'}
+        </div>
+        <div style={{ fontSize: '0.72rem', color: '#64748B', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{fee.description}</div>
+        {fee.notes && <div style={{ fontSize: '0.67rem', color: '#94A3B8', marginTop: 2, fontStyle: 'italic', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Note: {fee.notes}</div>}
       </div>
       {/* Amounts */}
-      <div style={{ textAlign: 'right', flexShrink: 0 }}>
-        <div style={{ fontSize: '0.82rem', fontWeight: 800, color: paid ? '#059669' : partial ? '#F59E0B' : '#6366F1' }}>
+      <div className="fee-row__amounts" style={{ textAlign: 'right', flexShrink: 0, minWidth: 0 }}>
+        <div style={{ fontSize: '0.82rem', fontWeight: 800, color: paid ? '#059669' : partial ? '#F59E0B' : '#6366F1', whiteSpace: 'nowrap' }}>
           {paid ? 'PAID' : `Balance: ${fmt(balance)}`}
         </div>
-        <div style={{ fontSize: '0.68rem', color: '#94A3B8', marginTop: 1 }}>
+        <div style={{ fontSize: '0.67rem', color: '#94A3B8', marginTop: 1, whiteSpace: 'nowrap' }}>
           {fmt(fee.amount_paid)} / {fmt(fee.amount_owed)}
         </div>
         {methCfg && (
-          <span style={{ display: 'inline-block', marginTop: 4, fontSize: '0.62rem', fontWeight: 700, padding: '1px 7px', borderRadius: 99, background: methCfg.bg, color: methCfg.color }}>
+          <span style={{ display: 'inline-block', marginTop: 4, fontSize: '0.61rem', fontWeight: 700, padding: '1px 7px', borderRadius: 99, background: methCfg.bg, color: methCfg.color, whiteSpace: 'nowrap' }}>
             {methCfg.label}{fee.payment_date ? ` · ${fmtDate(fee.payment_date)}` : ''}
           </span>
         )}
@@ -292,18 +295,20 @@ export default function FeesPage() {
       </div>
 
       {/* Filters */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-        <div style={{ flex: 1, minWidth: 220, position: 'relative' }}>
+      <div className="fee-filters" style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ flex: '1 1 160px', minWidth: 140, display: 'flex', alignItems: 'center', border: '1.5px solid #E2E8F0', borderRadius: 11, background: '#fff', padding: '0 12px', gap: 6 }}>
+          <span style={{ color: '#94A3B8', pointerEvents: 'none', fontSize: '0.82rem', flexShrink: 0, lineHeight: 1 }}>🔍</span>
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search player or description…"
-            style={{ width: '100%', padding: '9px 12px 9px 36px', border: '1.5px solid #E2E8F0', borderRadius: 11, fontSize: '0.875rem', color: '#0F172A', outline: 'none', boxSizing: 'border-box', background: '#fff' }} />
-          <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', pointerEvents: 'none' }}>🔍</span>
+            style={{ flex: 1, padding: '9px 0', border: 'none', fontSize: '0.82rem', color: '#0F172A', outline: 'none', background: 'transparent', minWidth: 0 }} />
         </div>
-        {(['all', 'outstanding', 'paid'] as const).map(f => (
-          <button key={f} onClick={() => setFilter(f)}
-            style={{ padding: '9px 16px', borderRadius: 10, border: `1.5px solid ${filter === f ? '#6366F1' : '#E2E8F0'}`, background: filter === f ? '#EEF2FF' : '#fff', color: filter === f ? '#6366F1' : '#64748B', fontWeight: filter === f ? 700 : 500, fontSize: '0.82rem', cursor: 'pointer', textTransform: 'capitalize' }}>
-            {f === 'all' ? 'All' : f === 'outstanding' ? 'Outstanding' : 'Paid'}
-          </button>
-        ))}
+        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+          {(['all', 'outstanding', 'paid'] as const).map(f => (
+            <button key={f} onClick={() => setFilter(f)}
+              style={{ padding: '9px 13px', borderRadius: 10, border: `1.5px solid ${filter === f ? '#6366F1' : '#E2E8F0'}`, background: filter === f ? '#EEF2FF' : '#fff', color: filter === f ? '#6366F1' : '#64748B', fontWeight: filter === f ? 700 : 500, fontSize: '0.78rem', cursor: 'pointer', textTransform: 'capitalize', whiteSpace: 'nowrap' }}>
+              {f === 'all' ? 'All' : f === 'outstanding' ? 'Outstanding' : 'Paid'}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* List */}
@@ -334,6 +339,33 @@ export default function FeesPage() {
           onSave={() => { setShowForm(false); load(); }}
           onClose={() => setShowForm(false)} />
       )}
+
+      <style>{`
+        @media (max-width: 600px) {
+          .fee-row {
+            align-items: flex-start !important;
+          }
+          .fee-row__info {
+            min-width: 0;
+            flex: 1 1 120px !important;
+          }
+          .fee-row__amounts {
+            width: 100% !important;
+            text-align: left !important;
+            border-top: 1px solid #F1F5F9;
+            margin-top: 6px;
+            padding-top: 6px;
+            flex: 1 1 100% !important;
+          }
+          .fee-filters {
+            flex-direction: column !important;
+            align-items: stretch !important;
+          }
+          .fee-filters > div:last-child {
+            justify-content: flex-start;
+          }
+        }
+      `}</style>
     </div>
   );
 }

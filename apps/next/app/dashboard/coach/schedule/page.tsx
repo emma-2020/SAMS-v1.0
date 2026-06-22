@@ -209,34 +209,35 @@ function EventCard({ event, onAttendance }: { event: ScheduleEvent; onAttendance
   const tc = TYPE_CFG[normalizeType(event.type)] ?? TYPE_CFG.All;
   const ev = event as any;
   return (
-    <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 16, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 16, borderLeft: `4px solid ${tc.color}`, transition: 'box-shadow 0.18s, transform 0.18s' }}
+    <div className="schedule-event-card" style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 16, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, borderLeft: `4px solid ${tc.color}`, transition: 'box-shadow 0.18s, transform 0.18s', flexWrap: 'wrap' }}
       onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 6px 20px rgba(15,23,42,0.08)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
       onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'none'; }}>
       {/* Time block */}
-      <div style={{ flexShrink: 0, textAlign: 'center', padding: '8px 12px', borderRadius: 10, background: tc.bg, border: `1px solid ${tc.border}`, minWidth: 64 }}>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.88rem', fontWeight: 800, color: tc.color, lineHeight: 1 }}>{fmtTime(event.start_time)}</div>
-        <div style={{ fontSize: '0.65rem', color: `${tc.color}99`, fontWeight: 600, marginTop: 3 }}>→ {fmtTime(event.end_time)}</div>
+      <div style={{ flexShrink: 0, textAlign: 'center', padding: '8px 10px', borderRadius: 10, background: tc.bg, border: `1px solid ${tc.border}`, minWidth: 58 }}>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', fontWeight: 800, color: tc.color, lineHeight: 1 }}>{fmtTime(event.start_time)}</div>
+        <div style={{ fontSize: '0.62rem', color: `${tc.color}99`, fontWeight: 600, marginTop: 3 }}>→ {fmtTime(event.end_time)}</div>
       </div>
       {/* Info */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 700, fontSize: '0.925rem', color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.01em' }}>{event.title}</div>
-        <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: 3, display: 'flex', alignItems: 'center', gap: 8 }}>
-          {ev.teams?.name && <span>{ev.teams.name}</span>}
+        <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '-0.01em' }}>{event.title}</div>
+        <div style={{ fontSize: '0.72rem', color: '#64748B', marginTop: 3, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          {ev.teams?.name && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}>{ev.teams.name}</span>}
           {ev.teams?.name && event.location && <span style={{ opacity: 0.4 }}>·</span>}
-          {event.location && <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}><IcoMap /> {event.location}</span>}
+          {event.location && <span style={{ display: 'flex', alignItems: 'center', gap: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}><IcoMap /> {event.location}</span>}
         </div>
       </div>
-      {/* Type badge */}
-      <span style={{ fontSize: '0.67rem', fontWeight: 800, padding: '4px 10px', borderRadius: 99, background: tc.bg, color: tc.color, border: `1px solid ${tc.border}`, letterSpacing: '0.04em', textTransform: 'uppercase', flexShrink: 0 }}>
-        {normalizeType(event.type)}
-      </span>
-      {/* Attendance button */}
-      <button onClick={() => onAttendance(event.id)}
-        style={{ display: 'flex', alignItems: 'center', gap: 5, background: '#F8FAFC', border: '1.5px solid #E2E8F0', borderRadius: 9, padding: '7px 12px', cursor: 'pointer', flexShrink: 0, fontSize: '0.75rem', fontWeight: 700, color: '#475569', transition: 'all 0.14s' }}
-        onMouseEnter={e => { e.currentTarget.style.borderColor = '#7C3AED'; e.currentTarget.style.color = '#7C3AED'; e.currentTarget.style.background = '#F5F3FF'; }}
-        onMouseLeave={e => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.color = '#475569'; e.currentTarget.style.background = '#F8FAFC'; }}>
-        Attendance <IcoArrow />
-      </button>
+      {/* Type badge + Attendance — group on mobile */}
+      <div className="schedule-event-actions" style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+        <span style={{ fontSize: '0.65rem', fontWeight: 800, padding: '4px 9px', borderRadius: 99, background: tc.bg, color: tc.color, border: `1px solid ${tc.border}`, letterSpacing: '0.04em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+          {normalizeType(event.type)}
+        </span>
+        <button onClick={() => onAttendance(event.id)}
+          style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#F8FAFC', border: '1.5px solid #E2E8F0', borderRadius: 9, padding: '7px 11px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700, color: '#475569', transition: 'all 0.14s', whiteSpace: 'nowrap' }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = '#7C3AED'; e.currentTarget.style.color = '#7C3AED'; e.currentTarget.style.background = '#F5F3FF'; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.color = '#475569'; e.currentTarget.style.background = '#F8FAFC'; }}>
+          Attendance <IcoArrow />
+        </button>
+      </div>
     </div>
   );
 }
@@ -312,13 +313,13 @@ export default function CoachSchedulePage() {
       </div>
 
       {/* Filter tabs */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 24, overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
         {['All', ...EVENT_TYPES].map(f => {
           const tc = TYPE_CFG[f] ?? TYPE_CFG.All;
           const active = filter === f;
           return (
             <button key={f} onClick={() => setFilter(f)}
-              style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '7px 16px', borderRadius: 99, cursor: 'pointer', border: active ? `1.5px solid ${tc.color}` : '1.5px solid #E2E8F0', background: active ? tc.bg : '#fff', color: active ? tc.color : '#475569', fontSize: '0.8rem', fontWeight: active ? 800 : 500, transition: 'all 0.14s', boxShadow: active ? `0 2px 10px ${tc.color}22` : '0 1px 3px rgba(15,23,42,0.04)' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '7px 16px', borderRadius: 99, cursor: 'pointer', border: active ? `1.5px solid ${tc.color}` : '1.5px solid #E2E8F0', background: active ? tc.bg : '#fff', color: active ? tc.color : '#475569', fontSize: '0.8rem', fontWeight: active ? 800 : 500, transition: 'all 0.14s', boxShadow: active ? `0 2px 10px ${tc.color}22` : '0 1px 3px rgba(15,23,42,0.04)', flexShrink: 0, whiteSpace: 'nowrap' }}
               onMouseEnter={e => { if (!active) { e.currentTarget.style.borderColor = tc.color; e.currentTarget.style.color = tc.color; e.currentTarget.style.background = tc.bg; } }}
               onMouseLeave={e => { if (!active) { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.color = '#475569'; e.currentTarget.style.background = '#fff'; } }}>
               {f !== 'All' && <span style={{ width: 7, height: 7, borderRadius: '50%', background: active ? tc.color : '#CBD5E1', flexShrink: 0 }} />}
@@ -367,6 +368,21 @@ export default function CoachSchedulePage() {
       )}
 
       {showModal && <CreateSessionModal teams={teams} onClose={() => setShowModal(false)} onCreated={handleCreated} />}
+
+      <style>{`
+        @media (max-width: 600px) {
+          .schedule-event-card {
+            align-items: flex-start !important;
+          }
+          .schedule-event-actions {
+            width: 100%;
+            justify-content: flex-start;
+            border-top: 1px solid #F1F5F9;
+            padding-top: 8px;
+            margin-top: 2px;
+          }
+        }
+      `}</style>
     </div>
   );
 }
