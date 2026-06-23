@@ -25,6 +25,11 @@ function errorHandler(err, req, res, next) {  // eslint-disable-line no-unused-v
     });
   }
 
+  // Body-parser SyntaxError (e.g. wrong Content-Type sent to multipart endpoint)
+  if (err.type === 'entity.parse.failed' || (err instanceof SyntaxError && err.status === 400)) {
+    return res.status(400).json({ success: false, error: 'Invalid request body.' });
+  }
+
   // Unknown / programming error — log fully, expose minimally
   console.error('[Unhandled Error]', err);
 
