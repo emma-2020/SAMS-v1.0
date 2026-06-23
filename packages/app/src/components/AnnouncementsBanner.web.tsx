@@ -12,7 +12,12 @@ export function AnnouncementsBanner({ role }: { role?: string }) {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
 
   useEffect(() => {
-    announcementsApi.getAnnouncements().then(setAnnouncements).catch(() => {});
+    announcementsApi.getAnnouncements()
+      .then(all => {
+        const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+        setAnnouncements(all.filter(a => new Date(a.created_at).getTime() >= cutoff));
+      })
+      .catch(() => {});
   }, []);
 
   if (!announcements.length) return null;

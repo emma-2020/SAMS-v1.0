@@ -731,10 +731,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           .sams-sidebar {
             transform: translateX(-100%);
             box-shadow: none;
+            width: 100vw !important;
+            max-width: 320px !important;
           }
           .sams-sidebar--open {
             transform: translateX(0) !important;
-            box-shadow: 24px 0 60px rgba(0,0,0,0.35);
+            box-shadow: 4px 0 40px rgba(0,0,0,0.25);
           }
           .sams-main-content {
             margin-left: 0 !important;
@@ -747,6 +749,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             /* safe area for iPhone home bar */
             padding-bottom: env(safe-area-inset-bottom, 0px) !important;
             height: calc(64px + env(safe-area-inset-bottom, 0px)) !important;
+            left: 0 !important;
+            right: 0 !important;
+            width: 100% !important;
           }
           /* Tighter topbar padding on mobile */
           .sams-topbar-header {

@@ -307,6 +307,8 @@ function MessageBubble({ msg, isSelf, showHeader, isLast, canDelete, onDelete, o
   const [ts,         setTs]         = useState(() => relativeTime(msg.created_at));
   const [hovered,    setHovered]    = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [copied,     setCopied]     = useState(false);
+  const longPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const u    = msg.sender;
   const name = u ? `${u.first_name} ${u.last_name}` : 'Unknown';
   const role = u?.role ?? '';
@@ -317,11 +319,32 @@ function MessageBubble({ msg, isSelf, showHeader, isLast, canDelete, onDelete, o
     return () => clearInterval(t);
   }, [msg.created_at]);
 
+  function startLongPress() {
+    longPressRef.current = setTimeout(() => setHovered(true), 500);
+  }
+  function cancelLongPress() {
+    if (longPressRef.current) { clearTimeout(longPressRef.current); longPressRef.current = null; }
+  }
+  function handleTouchEnd() {
+    cancelLongPress();
+  }
+
+  function handleCopy() {
+    if (msg.body) {
+      navigator.clipboard.writeText(msg.body).catch(() => {});
+      setCopied(true);
+      setTimeout(() => { setCopied(false); setHovered(false); }, 1500);
+    }
+  }
+
   return (
     <div
       style={{ display: 'flex', flexDirection: isSelf ? 'row-reverse' : 'row', alignItems: 'flex-end', gap: 8, opacity: msg._opt ? 0.65 : 1, transition: 'opacity 0.2s', marginBottom: showHeader ? 8 : 2, paddingLeft: isSelf ? 56 : 0, paddingRight: isSelf ? 0 : 56 }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => { setHovered(false); setConfirming(false); }}
+      onTouchStart={startLongPress}
+      onTouchEnd={handleTouchEnd}
+      onTouchMove={cancelLongPress}
     >
       {showHeader
         ? <MsgAvatar name={name} size={34} avatarUrl={u?.avatar_url} />
@@ -375,23 +398,36 @@ function MessageBubble({ msg, isSelf, showHeader, isLast, canDelete, onDelete, o
             )}
           </div>
 
-          {hovered && !msg._opt && (onReport || canDelete) && (
+          {hovered && !msg._opt && (msg.body || onReport || canDelete) && (
             <div style={{ position: 'absolute', top: -12, zIndex: 20, display: 'flex', gap: 4, ...(isSelf ? { left: -4, transform: 'translateX(-100%)' } : { right: -4, transform: 'translateX(100%)' }) }}>
               {!confirming ? (
                 <>
+                  {msg.body && (
+                    <button onClick={e => { e.stopPropagation(); handleCopy(); }}
+                      title={copied ? 'Copied!' : 'Copy text'}
+                      style={{ height: 28, padding: '0 8px', borderRadius: 7, border: '1px solid #E2E8F0', background: copied ? '#ECFDF5' : '#F8FAFC', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3, color: copied ? '#059669' : '#64748B', fontSize: '0.62rem', fontWeight: 700, whiteSpace: 'nowrap', boxShadow: '0 2px 6px rgba(15,23,42,0.07)' }}>
+                      {copied ? '✓ Copied' : '📋 Copy'}
+                    </button>
+                  )}
                   {onReport && !isSelf && (
                     <button onClick={e => { e.stopPropagation(); onReport(msg.id); }}
-                      style={{ width: 26, height: 26, borderRadius: 7, border: '1px solid #FDE68A', background: '#FFFBEB', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#D97706', boxShadow: '0 2px 6px rgba(217,119,6,0.15)' }}
+                      style={{ width: 28, height: 28, borderRadius: 7, border: '1px solid #FDE68A', background: '#FFFBEB', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#D97706', boxShadow: '0 2px 6px rgba(217,119,6,0.15)' }}
                       title="Report message">
                       <IcoFlag />
                     </button>
                   )}
                   {canDelete && (
                     <button onClick={e => { e.stopPropagation(); setConfirming(true); }}
-                      style={{ width: 26, height: 26, borderRadius: 7, border: '1px solid #FECDD3', background: '#FFF1F2', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#F43F5E', boxShadow: '0 2px 6px rgba(244,63,94,0.15)' }}>
+                      style={{ width: 28, height: 28, borderRadius: 7, border: '1px solid #FECDD3', background: '#FFF1F2', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#F43F5E', boxShadow: '0 2px 6px rgba(244,63,94,0.15)' }}
+                      title="Delete message">
                       <IcoTrash />
                     </button>
                   )}
+                  <button onClick={e => { e.stopPropagation(); setHovered(false); setConfirming(false); }}
+                    style={{ width: 28, height: 28, borderRadius: 7, border: '1px solid #E2E8F0', background: '#F8FAFC', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8', fontSize: '0.8rem', boxShadow: '0 2px 6px rgba(15,23,42,0.07)' }}
+                    title="Dismiss">
+                    ✕
+                  </button>
                 </>
               ) : (
                 <div style={{ display: 'flex', gap: 4, background: 'white', border: '1px solid #E2E8F0', borderRadius: 10, padding: '4px 7px', boxShadow: '0 4px 14px rgba(15,23,42,0.12)', whiteSpace: 'nowrap' }}>
@@ -821,6 +857,19 @@ function GroupInfoPanel({ channel, onClose, isAdmin, onMembersChange, onChannelU
     } catch { setDeleting(false); }
   }
 
+  async function handleClearChat() {
+    const label = isDirect
+      ? `Clear all messages with ${otherUser?.first_name ?? 'this contact'}?`
+      : `Clear all messages in "${channel.name}"?`;
+    if (!confirm(`${label} This cannot be undone.`)) return;
+    setDeleting(true);
+    try {
+      await chatApi.deleteGroup(channel.id);
+      onMembersChange();
+      onClose();
+    } catch { setDeleting(false); }
+  }
+
   async function handleLeave() {
     if (!confirm('Leave this group?')) return;
     setLeaving(true);
@@ -987,7 +1036,7 @@ function GroupInfoPanel({ channel, onClose, isAdmin, onMembersChange, onChannelU
               })()}
             </div>
 
-            {/* Mute + Block */}
+            {/* Mute + Block + Delete Conversation */}
             <div style={{ padding: '12px 20px', borderBottom: '1px solid #F1F5F9', display: 'flex', flexDirection: 'column', gap: 6 }}>
               <MuteDropdown />
               <button onClick={handleBlockToggle} disabled={blocking}
@@ -997,6 +1046,13 @@ function GroupInfoPanel({ channel, onClose, isAdmin, onMembersChange, onChannelU
                   {isBlocked ? `Unblock ${otherUser?.first_name}` : `Block ${otherUser?.first_name}`}
                 </span>
                 {blocking && <span className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />}
+              </button>
+              <button onClick={handleClearChat} disabled={deleting}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 10, border: '1.5px solid #FECDD3', background: '#FFF1F2', cursor: 'pointer', textAlign: 'left' }}>
+                <span style={{ color: '#DC2626' }}><IcoTrash /></span>
+                <span style={{ fontWeight: 600, fontSize: '0.83rem', color: '#DC2626', flex: 1 }}>
+                  {deleting ? 'Deleting…' : 'Delete Conversation'}
+                </span>
               </button>
             </div>
 
