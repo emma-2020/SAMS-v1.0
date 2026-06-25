@@ -10,7 +10,7 @@
 
 const { Router } = require('express');
 const controller = require('../controllers/announcements.controller');
-const { authenticate, extractTenant, requireRole } = require('../middleware/auth.middleware');
+const { authenticate, extractTenant, requireRole, requireAcademyPermission } = require('../middleware/auth.middleware');
 const { validateAnnouncementBody } = require('../middleware/validate');
 
 const router = Router();
@@ -19,7 +19,7 @@ router.use(authenticate, extractTenant);
 const allRoles = ['Admin', 'Coach', 'Player', 'Parent'];
 
 router.get(    '/',    requireRole(...allRoles),                               controller.listAnnouncements);
-router.post(   '/',    requireRole('Admin'), validateAnnouncementBody,         controller.createAnnouncement);
+router.post(   '/',    requireRole('Admin', 'Coach'), requireAcademyPermission('coaches_can_post_announcements'), validateAnnouncementBody, controller.createAnnouncement);
 router.delete( '/:id', requireRole('Admin'),                                   controller.deleteAnnouncement);
 
 module.exports = router;

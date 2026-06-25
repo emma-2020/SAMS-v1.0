@@ -752,6 +752,79 @@ async function sendFeeReceiptEmail({
   });
 }
 
+// ─── Email: Fee Reminder ──────────────────────────────────────────────────────
+
+async function sendFeeReminderEmail({
+  to,
+  firstName,
+  playerName,
+  description,
+  amountDue,
+  paymentDate,
+  academyName,
+  paymentUrl,
+  dashboardUrl,
+}) {
+  const fmtGhs = (p) => `GHS ${(p / 100).toFixed(2)}`;
+  const dueDateFmt = paymentDate
+    ? new Date(paymentDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+    : 'soon';
+  const forWhom = playerName ? ` for <strong style="color:#0F172A;">${playerName}</strong>` : '';
+
+  const html = emailShell(`
+    <tr>
+      <td style="padding:40px 44px 8px;">
+        ${badge('Fee Reminder', '#D97706')}
+        ${h1(`Hi ${firstName},`)}
+        ${para(`This is a friendly reminder that the following fee${forWhom} is due on
+          <strong style="color:#D97706;">${dueDateFmt}</strong>.`)}
+
+        <div style="background:#FFFBEB;border:1.5px solid #FDE68A;border-radius:14px;
+                    padding:24px 28px;margin-bottom:28px;">
+          <table cellpadding="0" cellspacing="0" width="100%">
+            <tr>
+              <td style="padding:8px 0;font-size:0.78rem;font-weight:700;color:#94A3B8;
+                          text-transform:uppercase;letter-spacing:0.08em;width:38%;">Description</td>
+              <td style="padding:8px 0;font-size:0.93rem;color:#0F172A;">${description}</td>
+            </tr>
+            <tr><td colspan="2" style="height:1px;background:#FDE68A;"></td></tr>
+            <tr>
+              <td style="padding:8px 0;font-size:0.78rem;font-weight:700;color:#94A3B8;
+                          text-transform:uppercase;letter-spacing:0.08em;">Amount Due</td>
+              <td style="padding:8px 0;font-size:1.1rem;font-weight:800;color:#D97706;">${fmtGhs(amountDue)}</td>
+            </tr>
+            <tr><td colspan="2" style="height:1px;background:#FDE68A;"></td></tr>
+            <tr>
+              <td style="padding:8px 0;font-size:0.78rem;font-weight:700;color:#94A3B8;
+                          text-transform:uppercase;letter-spacing:0.08em;">Due Date</td>
+              <td style="padding:8px 0;font-size:0.93rem;font-weight:700;color:#92400E;">${dueDateFmt}</td>
+            </tr>
+          </table>
+        </div>
+
+        ${paymentUrl ? ctaButton('Pay Now →', paymentUrl, '#D97706') : ctaButton('View Fee →', dashboardUrl, '#6366F1')}
+        ${para(`<span style="font-size:0.83rem;color:#94A3B8;">
+          You can manage all fees from the ${academyName} dashboard.
+        </span>`)}
+      </td>
+    </tr>
+  `);
+
+  const text =
+    `Hi ${firstName},\n\n` +
+    `Reminder: "${description}"${playerName ? ` for ${playerName}` : ''} is due on ${dueDateFmt}.\n\n` +
+    `Amount due: ${fmtGhs(amountDue)}\n\n` +
+    (paymentUrl ? `Pay now: ${paymentUrl}\n\n` : `View fees: ${dashboardUrl}\n\n`) +
+    `— ${academyName} via SAMS Platform`;
+
+  return dispatch({
+    to,
+    subject: `Fee reminder: ${description} due ${dueDateFmt} — ${academyName}`,
+    html,
+    text,
+  });
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 module.exports = {
@@ -763,4 +836,5 @@ module.exports = {
   sendPasswordResetEmail,
   sendFeeNotificationEmail,
   sendFeeReceiptEmail,
+  sendFeeReminderEmail,
 };

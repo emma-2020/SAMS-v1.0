@@ -19,7 +19,7 @@
  */
 
 const { supabaseAdmin } = require('../config/supabase');
-const { ConflictError, ForbiddenError, NotFoundError } = require('../utils/errors');
+const { ConflictError, ForbiddenError, NotFoundError, InternalError } = require('../utils/errors');
 const notif = require('./notifications.service');
 
 // ─────────────────────────────────────────────────────────────────
@@ -140,10 +140,13 @@ async function getHealthLogs({ userId, academyId, role, targetPlayerId, days = 3
       }
       playerIds = [targetPlayerId];
     }
+    playerIds = await filterByHealthSharing(playerIds, academyId, 'Coach');
+    if (playerIds.length === 0) return [];
 
   } else if (role === 'Admin') {
-    // Admin can target a specific player or get all
-    playerIds = targetPlayerId ? [targetPlayerId] : null;   // null = no IN filter
+    playerIds = targetPlayerId ? [targetPlayerId] : null;
+    playerIds = await filterByHealthSharing(playerIds, academyId, 'Admin');
+    if (playerIds !== null && playerIds.length === 0) return [];
   }
 
   let query = supabaseAdmin
@@ -193,11 +196,15 @@ async function getActiveAlerts({ userId, academyId, role }) {
     playerIds = await getChildIds(userId, academyId);
   } else if (role === 'Coach') {
     playerIds = await getCoachPlayerIds(userId, academyId);
+    playerIds = await filterByHealthSharing(playerIds, academyId, 'Coach');
   } else if (role === 'Admin') {
-    playerIds = null;   // all players
+    playerIds = null;
+    playerIds = await filterByHealthSharing(playerIds, academyId, 'Admin');
   } else {
     throw new ForbiddenError('Players cannot access alert feeds.');
   }
+
+  if (playerIds !== null && playerIds.length === 0) return [];
 
   let query = supabaseAdmin
     .from('health_logs')
@@ -279,6 +286,43 @@ async function getCoachPlayerIds(coachId, academyId) {
     .in('team_id', teamIds);
 
   return [...new Set((rosters || []).map((r) => r.player_id))];
+}
+
+// ─────────────────────────────────────────────────────────────────
+// HEALTH SHARING FILTER
+// When a Coach or Admin fetches health data, exclude players who
+// have explicitly opted out via preferences.health_sharing.
+// Default (no preference set) is treated as sharing enabled.
+// ─────────────────────────────────────────────────────────────────
+
+async function filterByHealthSharing(playerIds, academyId, viewerRole) {
+  const sharingKey = viewerRole === 'Coach' ? 'share_with_coaches' : 'share_with_admin';
+
+  // Admin with no target: resolve all player IDs so we can check preferences
+  let ids = playerIds;
+  if (ids === null) {
+    const { data: allPlayers } = await supabaseAdmin
+      .from('users')
+      .select('id')
+      .eq('academy_id', academyId)
+      .eq('role', 'Player');
+    ids = (allPlayers || []).map(u => u.id);
+    if (ids.length === 0) return [];
+  }
+
+  if (ids.length === 0) return [];
+
+  const { data: prefRows } = await supabaseAdmin
+    .from('users')
+    .select('id, preferences')
+    .eq('academy_id', academyId)
+    .in('id', ids);
+
+  const filtered = (prefRows || [])
+    .filter(u => u.preferences?.health_sharing?.[sharingKey] !== false)
+    .map(u => u.id);
+
+  return filtered;
 }
 
 module.exports = { submitHealthLog, getHealthLogs, getActiveAlerts };

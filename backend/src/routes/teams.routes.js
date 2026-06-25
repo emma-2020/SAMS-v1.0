@@ -146,7 +146,7 @@ router.get('/:id/members', async (req, res, next) => {
       .eq('id', req.params.id).eq('academy_id', req.academyId).single();
     if (!team) throw new NotFoundError('Team not found.');
 
-    const { data: rosters } = await supabaseAdmin
+    let { data: rosters } = await supabaseAdmin
       .from('rosters')
       .select(`player_id, parent_id,
         players:users!rosters_player_id_fkey ( id, first_name, last_name, email ),
@@ -154,6 +154,18 @@ router.get('/:id/members', async (req, res, next) => {
       `)
       .eq('team_id', req.params.id)
       .eq('academy_id', req.academyId);
+
+    // Gate email visibility for Players based on academy permission
+    if (req.user.role === 'Player') {
+      const { data: academy } = await supabaseAdmin
+        .from('academies').select('role_permissions').eq('id', req.academyId).single();
+      const canSeeContacts = academy?.role_permissions?.players_can_see_teammate_contacts === true;
+      rosters = (rosters || []).map(r => ({
+        ...r,
+        players: r.players ? { ...r.players, email: canSeeContacts ? r.players.email : null } : null,
+        parents: null, // parent contact never exposed to players
+      }));
+    }
 
     return res.json({ success: true, data: { team, rosters: rosters || [] } });
   } catch (err) { next(err); }

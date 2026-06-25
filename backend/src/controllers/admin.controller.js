@@ -317,13 +317,29 @@ async function getSettings(req, res, next) {
 
 async function updateSettings(req, res, next) {
   try {
-    const { paystack_secret_key } = req.body;
+    const { paystack_secret_key, academy_name, role_permissions } = req.body;
     const settings = await adminService.updateAcademySettings({
       academyId:        req.academyId,
       paystackSecretKey: paystack_secret_key,
+      academyName:       academy_name,
+      rolePermissions:   role_permissions,
     });
     return res.status(200).json({ success: true, data: { settings } });
   } catch (err) { next(err); }
 }
 
-module.exports = { createInvitation, listInvitations, revokeInvitation, listRoster, getMemberDetail, setMemberStatus, updateMember, getMemberResetLink, updateAvailability, getSettings, updateSettings };
+async function uploadLogo(req, res, next) {
+  try {
+    const { BadRequestError } = require('../utils/errors');
+    if (!req.file) throw new BadRequestError('No image file provided.');
+    const result = await adminService.uploadAcademyLogo({
+      academyId:    req.academyId,
+      fileBuffer:   req.file.buffer,
+      mimetype:     req.file.mimetype,
+      originalname: req.file.originalname,
+    });
+    return res.status(200).json({ success: true, data: result });
+  } catch (err) { next(err); }
+}
+
+module.exports = { createInvitation, listInvitations, revokeInvitation, listRoster, getMemberDetail, setMemberStatus, updateMember, getMemberResetLink, updateAvailability, getSettings, updateSettings, uploadLogo };

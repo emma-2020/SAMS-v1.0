@@ -376,14 +376,19 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{
                 width: 36, height: 36, borderRadius: 11, flexShrink: 0,
-                background: ROLE_GRADIENT[user?.role ?? 'Admin'],
+                background: user?.logo_url ? 'transparent' : ROLE_GRADIENT[user?.role ?? 'Admin'],
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
+                overflow: 'hidden',
                 boxShadow: `0 4px 12px ${trueRoleColor}40`,
               }}>
-                <Trophy size={17} color="white" strokeWidth={2.5} />
+                {user?.logo_url
+                  ? <img src={user.logo_url} alt="Academy logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : <Trophy size={17} color="white" strokeWidth={2.5} />}
               </div>
               <div>
-                <div style={{ fontWeight: 900, fontSize: '0.95rem', color: 'var(--text-primary)', letterSpacing: '0.04em' }}>SAMS</div>
+                <div style={{ fontWeight: 900, fontSize: '0.95rem', color: 'var(--text-primary)', letterSpacing: '0.04em', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {user?.academy_name ?? 'SAMS'}
+                </div>
                 <div style={{ fontSize: '0.6rem', color: '#94A3B8', letterSpacing: '0.06em', marginTop: -1 }}>Sports Academy</div>
               </div>
             </div>

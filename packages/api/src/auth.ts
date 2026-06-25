@@ -87,3 +87,21 @@ export async function uploadAvatar(file: File): Promise<UserProfile> {
   const res = (await apiClient.post('/auth/avatar', fd)) as { success: boolean; data: { profile: UserProfile } };
   return res.data.profile;
 }
+
+export async function getPreferences(): Promise<import('./types').UserPreferences> {
+  const res = (await apiClient.get('/auth/preferences')) as {
+    success: boolean;
+    data: { preferences: import('./types').UserPreferences };
+  };
+  return res.data?.preferences ?? {};
+}
+
+export async function updatePreferences(
+  patch: import('./types').UserPreferences
+): Promise<import('./types').UserPreferences> {
+  const res = (await apiClient.patch('/auth/preferences', patch)) as {
+    success: boolean;
+    data: { preferences: import('./types').UserPreferences };
+  };
+  return res.data?.preferences ?? {};
+}
