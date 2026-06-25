@@ -79,16 +79,11 @@ export async function updateProfile(payload: { first_name?: string; last_name?: 
 }
 
 // POST /auth/avatar — multipart/form-data with field "avatar"
+// Content-Type is removed by the apiClient interceptor so the browser sets
+// multipart/form-data with the correct boundary automatically.
 export async function uploadAvatar(file: File): Promise<UserProfile> {
   const fd = new FormData();
   fd.append('avatar', file);
-  const res = (await apiClient.post('/auth/avatar', fd, {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    transformRequest: [(data: FormData, headers: any) => {
-      if (headers?.delete) headers.delete('Content-Type');
-      else if (headers) delete headers['Content-Type'];
-      return data;
-    }],
-  })) as { success: boolean; data: { profile: UserProfile } };
+  const res = (await apiClient.post('/auth/avatar', fd)) as { success: boolean; data: { profile: UserProfile } };
   return res.data.profile;
 }

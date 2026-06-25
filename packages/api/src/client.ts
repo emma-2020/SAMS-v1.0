@@ -57,9 +57,15 @@ export const apiClient = axios.create({
 
 // Attach bearer token on every request — but only when the caller hasn't
 // already supplied its own Authorization header (e.g. platform API calls).
+// Also strip Content-Type for FormData so the browser sets multipart/form-data
+// with the correct boundary (Axios v1.x would otherwise serialize FormData as
+// JSON because the instance default Content-Type is application/json).
 apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = _getToken();
   if (token && !config.headers.Authorization) config.headers.Authorization = `Bearer ${token}`;
+  if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+    config.headers.delete('Content-Type');
+  }
   return config;
 });
 

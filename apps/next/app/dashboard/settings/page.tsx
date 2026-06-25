@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { UploadCloud } from 'lucide-react';
 import { useAuthStore } from '@sams/store';
-import { apiClient, chatApi, adminApi } from '@sams/api';
+import { apiClient, authApi, chatApi, adminApi } from '@sams/api';
 import type { BlockedUser, AcademySettings } from '@sams/api';
 
 interface AcademyAdminSettings {
@@ -230,11 +230,8 @@ export default function SettingsPage() {
     if (!avatarFile) return;
     setAvatarUploading(true); setAvatarError('');
     try {
-      const fd = new FormData();
-      fd.append('avatar', avatarFile);
-      const res = (await apiClient.post('/auth/avatar', fd)) as { data?: { profile?: { avatar_url?: string } } };
-      const newUrl = (res as any)?.data?.profile?.avatar_url ?? (res as any)?.avatar_url;
-      if (user) setUser({ ...user, avatar_url: newUrl });
+      const profile = await authApi.uploadAvatar(avatarFile);
+      if (user) setUser({ ...user, avatar_url: profile.avatar_url });
       setAvatarSuccess(true); setAvatarFile(null);
       setTimeout(() => setAvatarSuccess(false), 3000);
     } catch (err: unknown) {
