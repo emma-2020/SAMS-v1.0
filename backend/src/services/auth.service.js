@@ -163,7 +163,7 @@ async function login({ email, password, academy_id, ip }) {
 
   const { data: profile, error: profileError } = await supabaseAdmin
     .from('users')
-    .select('id, academy_id, email, role, first_name, last_name, avatar_url, created_at, is_active')
+    .select('id, academy_id, email, role, first_name, last_name, avatar_url, created_at, is_active, academies(name, logo_url)')
     .eq('id', authData.user.id)
     .eq('academy_id', academy_id)
     .single();
@@ -183,7 +183,7 @@ async function login({ email, password, academy_id, ip }) {
   clearFailures(cleanEmail);
   audit.authLogin({ academy_id, actor_id: profile.id, actor_email: cleanEmail, actor_role: profile.role, ip });
 
-  const { is_active, ...safeProfile } = profile;
+  const { is_active, academies, ...safeProfile } = profile;
 
   return {
     session: {
@@ -192,7 +192,11 @@ async function login({ email, password, academy_id, ip }) {
       expires_in:    authData.session.expires_in,
       token_type:    'Bearer',
     },
-    profile: safeProfile,
+    profile: {
+      ...safeProfile,
+      academy_name: academies?.name ?? null,
+      logo_url:     academies?.logo_url ?? null,
+    },
   };
 }
 
@@ -217,7 +221,7 @@ async function logout(accessToken, { userId, email, academyId, ip } = {}) {
 async function getMe(userId, academyId) {
   const { data: profile, error } = await supabaseAdmin
     .from('users')
-    .select('id, academy_id, email, role, first_name, last_name, avatar_url, created_at')
+    .select('id, academy_id, email, role, first_name, last_name, avatar_url, created_at, academies(name, logo_url)')
     .eq('id', userId)
     .eq('academy_id', academyId)
     .single();
@@ -226,7 +230,12 @@ async function getMe(userId, academyId) {
     throw new NotFoundError('User profile not found.');
   }
 
-  return profile;
+  const { academies, ...profileData } = profile;
+  return {
+    ...profileData,
+    academy_name: academies?.name ?? null,
+    logo_url:     academies?.logo_url ?? null,
+  };
 }
 
 

@@ -13,6 +13,8 @@ export interface UserProfile {
   first_name: string;
   last_name: string;
   avatar_url?: string | null;
+  academy_name?: string | null;
+  logo_url?: string | null;
   is_active?: boolean;
   created_at?: string;
   availability_status?: 'Available' | 'Injured' | 'Suspended' | 'Resting';

@@ -401,6 +401,8 @@ export default function SettingsPage() {
   const [logoFile,         setLogoFile]         = useState<File | null>(null);
   const [logoPreview,      setLogoPreview]      = useState<string | null>(null);
   const [uploadingLogo,    setUploadingLogo]    = useState(false);
+  const [logoError,        setLogoError]        = useState('');
+  const [logoSaved,        setLogoSaved]        = useState(false);
 
   // Role permissions
   const [savingPerms, setSavingPerms] = useState(false);
@@ -435,7 +437,9 @@ export default function SettingsPage() {
     setSavingAcademy(true); setAcademyError(''); setAcademySaved(false);
     try {
       const updated = await adminApi.updateAcademySettings({ academy_name: academyName.trim() });
-      setAcademySettings(updated); setAcademySaved(true);
+      setAcademySettings(updated);
+      if (user) setUser({ ...user, academy_name: updated.academy_name });
+      setAcademySaved(true);
       setTimeout(() => setAcademySaved(false), 3000);
     } catch (e: unknown) {
       setAcademyError(e instanceof Error ? e.message : 'Failed to save academy name.');
@@ -452,13 +456,16 @@ export default function SettingsPage() {
 
   async function handleUploadLogo() {
     if (!logoFile) return;
-    setUploadingLogo(true);
+    setUploadingLogo(true); setLogoError(''); setLogoSaved(false);
     try {
       const result = await adminApi.uploadAcademyLogo(logoFile);
       setAcademySettings(prev => prev ? { ...prev, logo_url: result.logo_url } : prev);
+      if (user) setUser({ ...user, logo_url: result.logo_url });
       setLogoFile(null); setLogoPreview(null);
-    } catch { /* ignore */ }
-    finally { setUploadingLogo(false); }
+      setLogoSaved(true); setTimeout(() => setLogoSaved(false), 3000);
+    } catch (e: unknown) {
+      setLogoError(e instanceof Error ? e.message : 'Logo upload failed. Please try again.');
+    } finally { setUploadingLogo(false); }
   }
 
   async function handleToggleDmPolicy() {
@@ -987,6 +994,8 @@ export default function SettingsPage() {
                     </div>
                   </div>
                 </div>
+                {logoError  && <div className="alert alert-error"   style={{ padding: '9px 14px', marginTop: 12, fontSize: '0.82rem' }}>{logoError}</div>}
+                {logoSaved  && <div className="alert alert-success" style={{ padding: '9px 14px', marginTop: 12, fontSize: '0.82rem' }}><IcoCheck /> Academy logo updated!</div>}
 
                 {/* Academy name */}
                 <FormField label="Academy Name" description="This name appears throughout the platform">
