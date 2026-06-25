@@ -23,6 +23,7 @@ const crypto      = require('crypto');
 const { supabaseAdmin } = require('../config/supabase');
 const env         = require('../config/env');
 const {
+  BadRequestError,
   ConflictError,
   NotFoundError,
   ForbiddenError,
@@ -298,7 +299,7 @@ async function setMemberStatus({ memberId, academyId, requestingAdminId, isActiv
 async function getAcademySettings({ academyId }) {
   const { data, error } = await supabaseAdmin
     .from('academies')
-    .select('name, paystack_secret_key')
+    .select('name, paystack_secret_key, logo_url, role_permissions')
     .eq('id', academyId)
     .single();
 
@@ -306,30 +307,84 @@ async function getAcademySettings({ academyId }) {
 
   const key = data.paystack_secret_key;
   return {
-    academy_name:        data.name,
-    paystack_configured: Boolean(key && key.length > 10),
-    // Return only last 4 chars for display — never expose the full key
+    academy_name:         data.name,
+    logo_url:             data.logo_url ?? null,
+    role_permissions:     data.role_permissions ?? {},
+    paystack_configured:  Boolean(key && key.length > 10),
     paystack_key_preview: key ? `${key.slice(0, 7)}…${key.slice(-4)}` : null,
   };
 }
 
-async function updateAcademySettings({ academyId, paystackSecretKey }) {
+async function updateAcademySettings({ academyId, paystackSecretKey, academyName, rolePermissions }) {
+  const updates = {};
+
   if (paystackSecretKey !== undefined) {
     const trimmed = (paystackSecretKey || '').trim();
-    // Accept sk_live_... or sk_test_... or empty string (to remove)
     if (trimmed && !trimmed.startsWith('sk_')) {
       throw new Error('Invalid Paystack key format. Expected sk_live_... or sk_test_...');
     }
+    updates.paystack_secret_key = trimmed || null;
+  }
 
+  if (academyName !== undefined) {
+    const trimmed = (academyName || '').trim();
+    if (!trimmed) throw new BadRequestError('Academy name cannot be empty.');
+    updates.name = trimmed;
+  }
+
+  if (rolePermissions !== undefined) {
+    // Merge incoming permission keys with existing — never wipe the full object
+    const { data: current } = await supabaseAdmin
+      .from('academies')
+      .select('role_permissions')
+      .eq('id', academyId)
+      .single();
+    updates.role_permissions = { ...(current?.role_permissions ?? {}), ...rolePermissions };
+  }
+
+  if (Object.keys(updates).length) {
     const { error } = await supabaseAdmin
       .from('academies')
-      .update({ paystack_secret_key: trimmed || null })
+      .update(updates)
       .eq('id', academyId);
-
-    if (error) throw new InternalError('Failed to save Paystack key.');
+    if (error) throw new InternalError('Failed to save academy settings.');
   }
 
   return getAcademySettings({ academyId });
 }
 
-module.exports = { createInvitation, listInvitations, revokeInvitation, setMemberStatus, getAcademySettings, updateAcademySettings };
+async function uploadAcademyLogo({ academyId, fileBuffer, mimetype, originalname }) {
+  const ext      = originalname.split('.').pop().toLowerCase() || 'jpg';
+  const fileName = `${academyId}.${ext}`;
+
+  const { error: uploadError } = await supabaseAdmin
+    .storage
+    .from('academy-logos')
+    .upload(fileName, fileBuffer, { contentType: mimetype, upsert: true });
+
+  if (uploadError) {
+    console.error('[AdminService.uploadAcademyLogo] storage upload failed:', uploadError.message);
+    throw new InternalError('Logo upload failed. Please try again.');
+  }
+
+  const { data: { publicUrl } } = supabaseAdmin
+    .storage
+    .from('academy-logos')
+    .getPublicUrl(fileName);
+
+  const urlWithCacheBust = `${publicUrl}?t=${Date.now()}`;
+
+  const { error: updateError } = await supabaseAdmin
+    .from('academies')
+    .update({ logo_url: urlWithCacheBust })
+    .eq('id', academyId);
+
+  if (updateError) {
+    console.error('[AdminService.uploadAcademyLogo] DB update failed:', updateError.message);
+    throw new InternalError('Failed to save logo URL.');
+  }
+
+  return { logo_url: urlWithCacheBust };
+}
+
+module.exports = { createInvitation, listInvitations, revokeInvitation, setMemberStatus, getAcademySettings, updateAcademySettings, uploadAcademyLogo };

@@ -277,4 +277,34 @@ async function resetPassword(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { signup, login, logout, refresh, me, updateProfile, changePassword, verifyInviteToken, register, uploadAvatar, setupAccount, forgotPassword, resetPassword };
+// ─────────────────────────────────────────────────────────────────
+// GET /api/auth/preferences
+// ─────────────────────────────────────────────────────────────────
+
+async function getPreferences(req, res, next) {
+  try {
+    const prefs = await authService.getPreferences({
+      userId:    req.user.id,
+      academyId: req.user.academy_id,
+    });
+    return res.status(200).json({ success: true, data: { preferences: prefs } });
+  } catch (err) { next(err); }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// PATCH /api/auth/preferences
+// Body: partial preferences object (top-level keys merged)
+// ─────────────────────────────────────────────────────────────────
+
+async function updatePreferences(req, res, next) {
+  try {
+    const prefs = await authService.updatePreferences({
+      userId:      req.user.id,
+      academyId:   req.user.academy_id,
+      preferences: req.body,
+    });
+    return res.status(200).json({ success: true, data: { preferences: prefs } });
+  } catch (err) { next(err); }
+}
+
+module.exports = { signup, login, logout, refresh, me, updateProfile, changePassword, verifyInviteToken, register, uploadAvatar, setupAccount, forgotPassword, resetPassword, getPreferences, updatePreferences };

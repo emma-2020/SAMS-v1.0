@@ -65,4 +65,14 @@ async function exportAttendanceCsv(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { getRosterWithAttendance, logAttendance, exportAttendanceCsv };
+async function getChildAttendance(req, res, next) {
+  try {
+    const records = await attendanceService.getChildAttendance({
+      parentId:  req.user.id,
+      academyId: req.academyId,
+    });
+    return res.status(200).json({ success: true, data: { records } });
+  } catch (err) { next(err); }
+}
+
+module.exports = { getRosterWithAttendance, logAttendance, exportAttendanceCsv, getChildAttendance };

@@ -221,6 +221,61 @@ export interface AcademySettings {
   [key: string]: unknown;
 }
 
+export interface NotificationPreferences {
+  new_messages?: boolean;
+  schedule_changes?: boolean;
+  upcoming_sessions?: boolean;
+  // Admin
+  new_member_joined?: boolean;
+  fee_payment_received?: boolean;
+  // Coach
+  attendance_due?: boolean;
+  player_health_alerts?: boolean;
+  // Player
+  fee_due_reminders?: boolean;
+  team_announcements?: boolean;
+  // Parent
+  child_fee_reminders?: boolean;
+  child_health_updates?: boolean;
+}
+
+export interface EmergencyContact {
+  name?: string;
+  phone?: string;
+  relationship?: string;
+}
+
+export interface UserPreferences {
+  notifications?: NotificationPreferences;
+  // Coach-specific
+  default_session?: {
+    duration_minutes?: number;
+    location?: string;
+  };
+  receive_player_health_alerts?: boolean;
+  // Player-specific
+  health_sharing?: {
+    share_with_coaches?: boolean;
+    share_with_admin?: boolean;
+  };
+  emergency_contact?: EmergencyContact;
+  // Parent-specific
+  fee_reminder_days?: number;
+  default_child_id?: string | null;
+}
+
+export interface AcademyAdminSettings {
+  academy_name: string;
+  logo_url: string | null;
+  role_permissions: {
+    parents_can_view_attendance?: boolean;
+    players_can_see_teammate_contacts?: boolean;
+    coaches_can_post_announcements?: boolean;
+  };
+  paystack_configured: boolean;
+  paystack_key_preview: string | null;
+}
+
 export interface UserSearchResult {
   users: TeamMember[];
   academy_allows_coach_player_dm: boolean;

@@ -322,4 +322,88 @@ async function deleteFee({ academyId, feeId }) {
   if (error) throw new InternalError('Failed to delete fee record.');
 }
 
-module.exports = { listFees, createFee, updateFee, deleteFee, handlePaystackWebhook };
+// ─────────────────────────────────────────────────────────────────
+// SEND FEE REMINDER EMAILS
+// Reads each parent's fee_reminder_days preference and emails them
+// (plus the player) when a fee's payment_date falls within that window.
+// ─────────────────────────────────────────────────────────────────
+
+async function sendFeeReminderEmails({ academyId }) {
+  const { data: academy } = await supabaseAdmin
+    .from('academies').select('name').eq('id', academyId).single();
+  const academyName = academy?.name || 'Your Academy';
+
+  const { data: parents } = await supabaseAdmin
+    .from('users')
+    .select('id, first_name, email, preferences')
+    .eq('academy_id', academyId)
+    .eq('role', 'Parent');
+
+  let sent = 0;
+
+  for (const parent of parents || []) {
+    const reminderDays = parent.preferences?.fee_reminder_days ?? 3;
+    if (!reminderDays || reminderDays <= 0) continue;
+
+    const { data: rosterLinks } = await supabaseAdmin
+      .from('rosters')
+      .select('player_id')
+      .eq('parent_id', parent.id)
+      .eq('academy_id', academyId);
+    const childIds = (rosterLinks || []).map(r => r.player_id);
+    if (!childIds.length) continue;
+
+    const today  = new Date().toISOString().slice(0, 10);
+    const cutoff = new Date(Date.now() + reminderDays * 86_400_000).toISOString().slice(0, 10);
+
+    const { data: fees } = await supabaseAdmin
+      .from('fee_ledger')
+      .select(`
+        id, description, amount_owed, amount_paid, payment_date, payment_url,
+        player:users!fee_ledger_player_id_fkey (id, first_name, last_name, email)
+      `)
+      .eq('academy_id', academyId)
+      .in('player_id', childIds)
+      .gte('payment_date', today)
+      .lte('payment_date', cutoff);
+
+    for (const fee of fees || []) {
+      if (fee.amount_paid >= fee.amount_owed) continue; // already settled
+      const amountDue = fee.amount_owed - fee.amount_paid;
+
+      if (parent.email) {
+        await emailService.sendFeeReminderEmail({
+          to:          parent.email,
+          firstName:   parent.first_name,
+          playerName:  `${fee.player?.first_name} ${fee.player?.last_name}`.trim(),
+          description: fee.description,
+          amountDue,
+          paymentDate: fee.payment_date,
+          academyName,
+          paymentUrl:  fee.payment_url,
+          dashboardUrl: `${DASHBOARD_URL}/dashboard/parent`,
+        }).catch(err => console.error('[fee.service] reminder email to parent failed:', err.message));
+        sent++;
+      }
+
+      if (fee.player?.email) {
+        await emailService.sendFeeReminderEmail({
+          to:          fee.player.email,
+          firstName:   fee.player.first_name,
+          playerName:  null,
+          description: fee.description,
+          amountDue,
+          paymentDate: fee.payment_date,
+          academyName,
+          paymentUrl:  fee.payment_url,
+          dashboardUrl: `${DASHBOARD_URL}/dashboard/player`,
+        }).catch(err => console.error('[fee.service] reminder email to player failed:', err.message));
+        sent++;
+      }
+    }
+  }
+
+  return { sent };
+}
+
+module.exports = { listFees, createFee, updateFee, deleteFee, handlePaystackWebhook, sendFeeReminderEmails };

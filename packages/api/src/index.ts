@@ -18,4 +18,4 @@ export { getPlatformToken, setPlatformToken, clearPlatformToken } from './platfo
 export * as feesApi from './fees';
 export * as documentsApi from './documents';
 export * as announcementsApi from './announcements';
-export type { FeeLedgerEntry, PlayerDocument, Announcement } from './types';
+export type { FeeLedgerEntry, PlayerDocument, Announcement, UserPreferences, AcademyAdminSettings, NotificationPreferences } from './types';

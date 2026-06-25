@@ -151,6 +151,27 @@ async function optionalAuth(req, res, next) {
   return authenticate(req, res, next);
 }
 
+// ─────────────────────────────────────────────────────────────────
+// REQUIRE ACADEMY PERMISSION
+// Reads role_permissions from the academy record and rejects if the
+// named flag is not explicitly true. Admin always passes through.
+// ─────────────────────────────────────────────────────────────────
+
+function requireAcademyPermission(key) {
+  return async function permissionGuard(req, res, next) {
+    try {
+      if (req.user?.role === 'Admin') return next();
+      const { data } = await supabaseAdmin
+        .from('academies')
+        .select('role_permissions')
+        .eq('id', req.academyId)
+        .single();
+      if (data?.role_permissions?.[key] === true) return next();
+      throw new ForbiddenError('Academy settings do not permit this action for your role.');
+    } catch (err) { next(err); }
+  };
+}
+
 module.exports = {
-  authenticate, extractTenant, requireRole, selfOrAdmin, optionalAuth, VALID_ROLES,
+  authenticate, extractTenant, requireRole, requireAcademyPermission, selfOrAdmin, optionalAuth, VALID_ROLES,
 };

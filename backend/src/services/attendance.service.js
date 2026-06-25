@@ -296,4 +296,47 @@ async function exportAttendanceCsv({ academyId, userId, role, eventId, teamId, f
   }));
 }
 
-module.exports = { getRosterWithAttendance, logAttendance, exportAttendanceCsv };
+// ─────────────────────────────────────────────────────────────────
+// GET CHILD ATTENDANCE (Parent)
+// Returns the attendance history for all linked children, across
+// all events, when the academy has enabled parents_can_view_attendance.
+// ─────────────────────────────────────────────────────────────────
+
+async function getChildAttendance({ parentId, academyId }) {
+  const { data: links } = await supabaseAdmin
+    .from('rosters')
+    .select('player_id, users!rosters_player_id_fkey (id, first_name, last_name)')
+    .eq('parent_id', parentId)
+    .eq('academy_id', academyId);
+
+  const childIds = (links || []).map(l => l.player_id);
+  if (!childIds.length) return [];
+
+  const playerMap = Object.fromEntries(
+    (links || []).map(l => [l.player_id, l.users])
+  );
+
+  const { data, error } = await supabaseAdmin
+    .from('attendance')
+    .select('player_id, status, notes, updated_at, events!attendance_event_id_fkey (id, title, type, start_time, location)')
+    .eq('academy_id', academyId)
+    .in('player_id', childIds)
+    .order('updated_at', { ascending: false })
+    .limit(200);
+
+  if (error) {
+    console.error('[AttendanceService.getChildAttendance] fetch:', error.message);
+    throw new InternalError('Failed to fetch child attendance records.');
+  }
+
+  return (data || []).map(r => ({
+    player:     playerMap[r.player_id] ?? null,
+    player_id:  r.player_id,
+    status:     r.status,
+    notes:      r.notes,
+    updated_at: r.updated_at,
+    event:      r.events ?? null,
+  }));
+}
+
+module.exports = { getRosterWithAttendance, logAttendance, exportAttendanceCsv, getChildAttendance };

@@ -22,9 +22,10 @@ router.post('/webhook/paystack', controller.webhookPaystack);
 
 router.use(authenticate, extractTenant);
 
-router.get(    '/',    requireRole('Admin', 'Coach', 'Player', 'Parent'), controller.listFees);
-router.post(   '/',    requireRole('Admin'), validateFeeBody,             controller.createFee);
-router.patch(  '/:id', requireRole('Admin'),                              controller.updateFee);
-router.delete( '/:id', requireRole('Admin'),                              controller.deleteFee);
+router.get(    '/',               requireRole('Admin', 'Coach', 'Player', 'Parent'), controller.listFees);
+router.post(   '/',               requireRole('Admin'), validateFeeBody,             controller.createFee);
+router.post(   '/send-reminders', requireRole('Admin'),                              controller.sendReminders);
+router.patch(  '/:id',            requireRole('Admin'),                              controller.updateFee);
+router.delete( '/:id',            requireRole('Admin'),                              controller.deleteFee);
 
 module.exports = router;

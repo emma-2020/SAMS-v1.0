@@ -68,4 +68,11 @@ async function webhookPaystack(req, res, next) {
   }
 }
 
-module.exports = { listFees, createFee, updateFee, deleteFee, webhookPaystack };
+async function sendReminders(req, res, next) {
+  try {
+    const result = await feeService.sendFeeReminderEmails({ academyId: req.academyId });
+    return res.status(200).json({ success: true, data: result });
+  } catch (err) { next(err); }
+}
+
+module.exports = { listFees, createFee, updateFee, deleteFee, webhookPaystack, sendReminders };

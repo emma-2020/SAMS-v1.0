@@ -1,6 +1,6 @@
 import { apiClient } from './client';
-import type { InvitationRecord, UserProfile, MemberDetail } from './types';
-export type { MemberDetail };
+import type { InvitationRecord, UserProfile, MemberDetail, AcademyAdminSettings } from './types';
+export type { MemberDetail, AcademyAdminSettings };
 
 interface DashboardStats {
   total_members: number;
@@ -112,12 +112,6 @@ export async function updateAvailability(
   return res.data.member;
 }
 
-export interface AcademyAdminSettings {
-  academy_name: string;
-  paystack_configured: boolean;
-  paystack_key_preview: string | null;
-}
-
 // Backend: GET /admin/settings
 export async function getAcademySettings(): Promise<AcademyAdminSettings> {
   const res = (await apiClient.get('/admin/settings')) as {
@@ -130,10 +124,23 @@ export async function getAcademySettings(): Promise<AcademyAdminSettings> {
 // Backend: PATCH /admin/settings
 export async function updateAcademySettings(payload: {
   paystack_secret_key?: string;
+  academy_name?: string;
+  role_permissions?: AcademyAdminSettings['role_permissions'];
 }): Promise<AcademyAdminSettings> {
   const res = (await apiClient.patch('/admin/settings', payload)) as {
     success: boolean;
     data: { settings: AcademyAdminSettings };
   };
   return res.data.settings;
+}
+
+// Backend: POST /admin/settings/logo
+export async function uploadAcademyLogo(file: File): Promise<{ logo_url: string }> {
+  const fd = new FormData();
+  fd.append('logo', file);
+  const res = (await apiClient.post('/admin/settings/logo', fd)) as {
+    success: boolean;
+    data: { logo_url: string };
+  };
+  return res.data;
 }

@@ -608,4 +608,51 @@ async function resetPassword(accessToken, newPassword) {
   }
 }
 
-module.exports = { signup, login, logout, getMe, refreshSession, updateProfile, changePassword, verifyInviteToken, registerByInvitation, uploadAvatar, setupAccount, forgotPassword, resetPassword };
+// ─────────────────────────────────────────────────────────────────
+// GET USER PREFERENCES
+// ─────────────────────────────────────────────────────────────────
+
+async function getPreferences({ userId, academyId }) {
+  const { data, error } = await supabaseAdmin
+    .from('users')
+    .select('preferences')
+    .eq('id', userId)
+    .eq('academy_id', academyId)
+    .single();
+
+  if (error || !data) throw new NotFoundError('User preferences not found.');
+  return data.preferences ?? {};
+}
+
+// ─────────────────────────────────────────────────────────────────
+// UPDATE USER PREFERENCES
+// Merges the incoming patch into the existing preferences JSONB.
+// ─────────────────────────────────────────────────────────────────
+
+async function updatePreferences({ userId, academyId, preferences }) {
+  // First fetch current preferences so we can deep-merge
+  const { data: current } = await supabaseAdmin
+    .from('users')
+    .select('preferences')
+    .eq('id', userId)
+    .eq('academy_id', academyId)
+    .single();
+
+  const merged = { ...(current?.preferences ?? {}), ...preferences };
+
+  const { data, error } = await supabaseAdmin
+    .from('users')
+    .update({ preferences: merged })
+    .eq('id', userId)
+    .eq('academy_id', academyId)
+    .select('preferences')
+    .single();
+
+  if (error || !data) {
+    console.error('[AuthService.updatePreferences]', error?.message);
+    throw new InternalError('Failed to save preferences.');
+  }
+  return data.preferences;
+}
+
+module.exports = { signup, login, logout, getMe, refreshSession, updateProfile, changePassword, verifyInviteToken, registerByInvitation, uploadAvatar, setupAccount, forgotPassword, resetPassword, getPreferences, updatePreferences };
