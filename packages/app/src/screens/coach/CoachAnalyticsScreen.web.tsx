@@ -6,8 +6,10 @@ import type { AttendanceAnalytics, WellnessAnalytics, WorkoutAnalytics } from '@
 import {
   StatCard, AnimatedBarChart, DonutBreakdown, TrendAreaChart,
   HorizontalPlayerBar, SectionCard, StatusBadge, SkeletonCard, PeriodToggle,
+  ExportButton, downloadCsv,
   ANALYTICS_CSS, BRAND, SUCCESS, DANGER, WARNING, INFO, ACCENT,
 } from '@sams/ui/src/charts/analytics';
+import { PlayerDetailModal } from '../../components/PlayerDetailModal';
 
 type Tab = 'attendance' | 'wellness' | 'workouts';
 
@@ -31,8 +33,8 @@ export function CoachAnalyticsScreen() {
   const [workLoading, setWorkLoading] = useState(false);
 
   const [error, setError] = useState('');
+  const [modalPlayerId, setModalPlayerId] = useState<string | null>(null);
 
-  // Load attendance once on mount
   useEffect(() => {
     analyticsApi.getAttendanceAnalytics()
       .then(setAttendance)
@@ -40,7 +42,6 @@ export function CoachAnalyticsScreen() {
       .finally(() => setAttLoading(false));
   }, []);
 
-  // Load wellness when tab or days change
   useEffect(() => {
     if (tab !== 'wellness') return;
     setWellLoading(true);
@@ -50,7 +51,6 @@ export function CoachAnalyticsScreen() {
       .finally(() => setWellLoading(false));
   }, [tab, wellnessDays]);
 
-  // Load workouts when tab switches there
   useEffect(() => {
     if (tab !== 'workouts' || workouts) return;
     setWorkLoading(true);
@@ -60,9 +60,32 @@ export function CoachAnalyticsScreen() {
       .finally(() => setWorkLoading(false));
   }, [tab]);
 
+  function exportAttendance() {
+    if (!attendance) return;
+    const headers = ['Player', 'Present', 'Late', 'Absent', 'Total', 'Rate %', 'GFA Eligible'];
+    const rows = attendance.playerRates.map(p => [p.name, p.present, p.late, p.absent, p.total, p.rate, p.gfaEligible === true ? 'Yes' : p.gfaEligible === false ? 'No' : '']);
+    downloadCsv(headers, rows, 'attendance-report.csv');
+  }
+
+  function exportWellness() {
+    if (!wellness) return;
+    const headers = ['Player', 'Avg Score', 'Status', 'Alerts'];
+    const rows = wellness.playerRanking.map(p => [p.name, p.value, p.value >= 70 ? 'Fully Fit' : p.value >= 45 ? 'Moderate' : 'High Risk', p.alerts]);
+    downloadCsv(headers, rows, 'wellness-report.csv');
+  }
+
+  function exportWorkouts() {
+    if (!workouts) return;
+    const headers = ['Player', 'Done', 'Total', 'Completion Rate %'];
+    const rows = workouts.playerRanking.map(p => [p.name, p.done, p.total, p.rate]);
+    downloadCsv(headers, rows, 'workout-completion-report.csv');
+  }
+
   return (
     <div style={{ animation: 'fadeIn 0.3s ease' }}>
       <style>{ANALYTICS_CSS}</style>
+
+      <PlayerDetailModal playerId={modalPlayerId} onClose={() => setModalPlayerId(null)} />
 
       {/* ── Header ── */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
@@ -75,23 +98,33 @@ export function CoachAnalyticsScreen() {
           </p>
         </div>
 
-        {/* Tab toggle */}
-        <div style={{ display: 'flex', gap: 2, background: 'var(--bg-elevated,#F8FAFC)', borderRadius: 10, padding: 4, border: '1px solid var(--border-subtle,#E2E8F0)' }}>
-          {([['attendance','Attendance'],['wellness','Wellness'],['workouts','Workouts']] as [Tab,string][]).map(([t, label]) => (
-            <button
-              key={t}
-              onClick={() => { setError(''); setTab(t); }}
-              style={{
-                padding: '6px 16px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                fontSize: '0.82rem', fontWeight: 600, transition: 'all 0.15s',
-                background: tab === t ? BRAND : 'transparent',
-                color:      tab === t ? '#fff' : 'var(--text-muted,#64748B)',
-                boxShadow:  tab === t ? `0 2px 8px ${BRAND}40` : 'none',
-              }}
-            >
-              {label}
-            </button>
-          ))}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          {tab === 'attendance' && !attLoading && attendance && attendance.playerRates.length > 0 && (
+            <ExportButton onClick={exportAttendance} />
+          )}
+          {tab === 'wellness' && !wellLoading && wellness && wellness.playerRanking.length > 0 && (
+            <ExportButton onClick={exportWellness} />
+          )}
+          {tab === 'workouts' && !workLoading && workouts && workouts.playerRanking.length > 0 && (
+            <ExportButton onClick={exportWorkouts} />
+          )}
+          <div style={{ display: 'flex', gap: 2, background: 'var(--bg-elevated,#F8FAFC)', borderRadius: 10, padding: 4, border: '1px solid var(--border-subtle,#E2E8F0)' }}>
+            {([['attendance','Attendance'],['wellness','Wellness'],['workouts','Workouts']] as [Tab,string][]).map(([t, label]) => (
+              <button
+                key={t}
+                onClick={() => { setError(''); setTab(t); }}
+                style={{
+                  padding: '6px 16px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                  fontSize: '0.82rem', fontWeight: 600, transition: 'all 0.15s',
+                  background: tab === t ? BRAND : 'transparent',
+                  color:      tab === t ? '#fff' : 'var(--text-muted,#64748B)',
+                  boxShadow:  tab === t ? `0 2px 8px ${BRAND}40` : 'none',
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -187,11 +220,12 @@ export function CoachAnalyticsScreen() {
           {!attLoading && attendance && attendance.playerRates.length > 0 && (
             <SectionCard
               title="Player Attendance Ranking"
-              subtitle="Individual attendance rates — GFA 70% threshold required for match eligibility"
+              subtitle="Click a player to view their full profile · GFA 70% threshold required"
               accent={`linear-gradient(90deg,${BRAND},${WARNING})`}
             >
               <HorizontalPlayerBar
                 rows={attendance.playerRates.map(p => ({
+                  id:    p.id,
                   name:  p.name,
                   value: p.rate,
                   color: p.rate >= 80 ? SUCCESS : p.rate >= 60 ? WARNING : DANGER,
@@ -199,6 +233,7 @@ export function CoachAnalyticsScreen() {
                 }))}
                 max={100}
                 unit="%"
+                onRowClick={(id) => setModalPlayerId(id)}
               />
             </SectionCard>
           )}
@@ -208,7 +243,6 @@ export function CoachAnalyticsScreen() {
       {/* ══════════════ WELLNESS TAB ══════════════ */}
       {tab === 'wellness' && (
         <>
-          {/* Days filter */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
             <PeriodToggle
               options={WELLNESS_DAYS}
@@ -286,11 +320,12 @@ export function CoachAnalyticsScreen() {
           {!wellLoading && wellness && wellness.playerRanking.length > 0 && (
             <SectionCard
               title="Player Wellness Ranking"
-              subtitle="Average wellness score — green ≥70, amber 45–69, red <45"
+              subtitle="Click a player to view their full profile · green ≥70, amber 45–69, red <45"
               accent={`linear-gradient(90deg,${SUCCESS},${DANGER})`}
             >
               <HorizontalPlayerBar
                 rows={wellness.playerRanking.map(p => ({
+                  id:    p.id,
                   name:  p.name,
                   value: p.value,
                   color: p.color,
@@ -298,6 +333,7 @@ export function CoachAnalyticsScreen() {
                 }))}
                 max={100}
                 unit=""
+                onRowClick={(id) => setModalPlayerId(id)}
               />
             </SectionCard>
           )}
@@ -314,15 +350,13 @@ export function CoachAnalyticsScreen() {
             </>
           ) : !workouts ? null : (
             <>
-              {/* KPIs */}
               <div className="analytics-kpi-grid">
-                <StatCard label="Workouts Assigned" value={workouts.kpis.totalAssigned} color={BRAND}    subtitle="All time" />
-                <StatCard label="Exercises Total"   value={workouts.kpis.totalExercises} color={ACCENT}  subtitle="Across all workouts" />
+                <StatCard label="Workouts Assigned" value={workouts.kpis.totalAssigned}  color={BRAND}    subtitle="All time" />
+                <StatCard label="Exercises Total"   value={workouts.kpis.totalExercises} color={ACCENT}   subtitle="Across all workouts" />
                 <StatCard label="Exercises Done"    value={workouts.kpis.totalDone}      color={SUCCESS}  subtitle="Completed by players" />
                 <StatCard label="Overall Rate"      value={workouts.kpis.overallRate}    format={(n) => `${n}%`} color={workouts.kpis.overallRate >= 70 ? SUCCESS : WARNING} subtitle="Completion rate" />
               </div>
 
-              {/* Volume trend + recent assignments */}
               <div className="analytics-2col">
                 <SectionCard title="Assignment Volume" subtitle="Workouts created per month" accent={`linear-gradient(90deg,${BRAND},${ACCENT})`}>
                   {workouts.volumeTrend.some(m => m.assigned > 0) ? (
@@ -367,15 +401,15 @@ export function CoachAnalyticsScreen() {
                 </SectionCard>
               </div>
 
-              {/* Player completion ranking */}
               {workouts.playerRanking.length > 0 && (
                 <SectionCard
                   title="Player Completion Ranking"
-                  subtitle="Exercise completion rate per player"
+                  subtitle="Click a player to view their full profile · exercise completion rate"
                   accent={`linear-gradient(90deg,${SUCCESS},${WARNING})`}
                 >
                   <HorizontalPlayerBar
                     rows={workouts.playerRanking.map(p => ({
+                      id:    p.id,
                       name:  p.name,
                       value: p.rate,
                       color: p.rate >= 80 ? SUCCESS : p.rate >= 50 ? WARNING : DANGER,
@@ -383,6 +417,7 @@ export function CoachAnalyticsScreen() {
                     }))}
                     max={100}
                     unit="%"
+                    onRowClick={(id) => setModalPlayerId(id)}
                   />
                 </SectionCard>
               )}

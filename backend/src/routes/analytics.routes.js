@@ -24,5 +24,7 @@ router.get('/wellness/me',    requireRole('Player', 'Admin'),                   
 router.get('/parent',         requireRole('Parent', 'Admin'),                   controller.getParentAnalytics);
 router.get('/workouts',       requireRole('Admin', 'Coach'),                    controller.getWorkoutAnalytics);
 router.get('/teams',          requireRole('Admin'),                             controller.getTeamComparison);
+router.get('/summary',        requireRole('Admin'),                             controller.getAnalyticsSummary);
+router.get('/player/:id',     requireRole('Admin', 'Coach'),                    controller.getPlayerDetail);
 
 module.exports = router;

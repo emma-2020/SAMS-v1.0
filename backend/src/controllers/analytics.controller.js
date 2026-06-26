@@ -4,7 +4,8 @@ const analytics = require('../services/analytics.service');
 
 async function getFeeAnalytics(req, res, next) {
   try {
-    const data = await analytics.getFeesAnalytics({ academyId: req.academyId });
+    const { startDate, endDate } = req.query;
+    const data = await analytics.getFeesAnalytics({ academyId: req.academyId, startDate, endDate });
     res.json({ success: true, data });
   } catch (err) { next(err); }
 }
@@ -57,7 +58,21 @@ async function getTeamComparison(req, res, next) {
   } catch (err) { next(err); }
 }
 
+async function getPlayerDetail(req, res, next) {
+  try {
+    const data = await analytics.getPlayerDetail({ academyId: req.academyId, playerId: req.params.id });
+    res.json({ success: true, data });
+  } catch (err) { next(err); }
+}
+
+async function getAnalyticsSummary(req, res, next) {
+  try {
+    const data = await analytics.getAnalyticsSummary({ academyId: req.academyId });
+    res.json({ success: true, data });
+  } catch (err) { next(err); }
+}
+
 module.exports = {
   getFeeAnalytics, getAttendanceAnalytics, getWellnessAnalytics, getMyWellnessAnalytics,
-  getParentAnalytics, getWorkoutAnalytics, getTeamComparison,
+  getParentAnalytics, getWorkoutAnalytics, getTeamComparison, getPlayerDetail, getAnalyticsSummary,
 };

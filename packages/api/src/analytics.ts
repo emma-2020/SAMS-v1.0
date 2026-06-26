@@ -15,7 +15,7 @@ export interface FeeAnalytics {
   kpis:            FeeKpis;
   monthlyTrend:    { month: string; collected: number; owed: number; outstanding: number }[];
   methodBreakdown: { name: string; value: number }[];
-  topOutstanding:  { name: string; balance: number }[];
+  topOutstanding:  { id: string; name: string; balance: number }[];
   recentPayments:  { player: string; amount: number; method: string; date: string; status: string }[];
 }
 
@@ -31,7 +31,7 @@ export interface AttendanceKpis {
 export interface AttendanceAnalytics {
   kpis:              AttendanceKpis;
   monthlyTrend:      { month: string; present: number; absent: number; late: number; rate: number }[];
-  playerRates:       { name: string; present: number; absent: number; late: number; total: number; rate: number; gfaEligible: boolean | null }[];
+  playerRates:       { id: string; name: string; present: number; absent: number; late: number; total: number; rate: number; gfaEligible: boolean | null }[];
   squadAvailability: { name: string; value: number; color: string }[];
 }
 
@@ -47,7 +47,7 @@ export interface WellnessAnalytics {
   kpis:              WellnessKpis;
   wellnessTrend:     { date: string; avg: number }[];
   squadAvailability: { name: string; value: number; color: string }[];
-  playerRanking:     { name: string; value: number; color: string; alerts: number }[];
+  playerRanking:     { id: string; name: string; value: number; color: string; alerts: number }[];
 }
 
 export interface MyWellnessAnalytics {
@@ -86,7 +86,7 @@ export interface ParentAnalytics {
 export interface WorkoutAnalytics {
   kpis: { totalAssigned: number; totalExercises: number; totalDone: number; overallRate: number; activeThisMonth: number };
   volumeTrend:        { month: string; assigned: number; exerciseCount: number }[];
-  playerRanking:      { name: string; total: number; done: number; rate: number }[];
+  playerRanking:      { id: string; name: string; total: number; done: number; rate: number }[];
   recentAssignments:  { title: string; team: string; dueDate: string | null; exercises: number; rate: number }[];
 }
 
@@ -94,10 +94,36 @@ export interface TeamComparison {
   teams: { id: string; name: string; division: string; sport: string; squad: number; attRate: number; wellness: number; feeRate: number }[];
 }
 
+export interface PlayerDetail {
+  id:         string;
+  name:       string;
+  avatar_url: string | null;
+  attendance: { rate: number; present: number; total: number; gfaEligible: boolean | null } | null;
+  wellness:   { latestScore: number; avgScore: number; totalLogs: number; flagCount: number; trend: { date: string; score: number }[] } | null;
+  workouts:   { total: number; done: number; rate: number };
+}
+
+export interface AnalyticsSummary {
+  outstandingFees:  number;
+  collectionRate:   number;
+  wellnessFlags:    number;
+  flaggedPlayers:   number;
+  totalPlayers:     number;
+  recentEvents:     number;
+}
+
 // ── API calls ─────────────────────────────────────────────────────────────────
 
-export async function getFeeAnalytics(): Promise<FeeAnalytics> {
-  const res = (await apiClient.get('/analytics/fees')) as { success: boolean; data: FeeAnalytics };
+export interface FeeAnalyticsParams {
+  startDate?: string;
+  endDate?:   string;
+}
+
+export async function getFeeAnalytics(params?: FeeAnalyticsParams): Promise<FeeAnalytics> {
+  const qs = params
+    ? `?${new URLSearchParams(Object.fromEntries(Object.entries(params).filter(([,v]) => v != null) as [string,string][]))}`
+    : '';
+  const res = (await apiClient.get(`/analytics/fees${qs}`)) as { success: boolean; data: FeeAnalytics };
   return res.data;
 }
 
@@ -128,5 +154,15 @@ export async function getWorkoutAnalytics(): Promise<WorkoutAnalytics> {
 
 export async function getTeamComparison(): Promise<TeamComparison> {
   const res = (await apiClient.get('/analytics/teams')) as { success: boolean; data: TeamComparison };
+  return res.data;
+}
+
+export async function getPlayerDetail(playerId: string): Promise<PlayerDetail> {
+  const res = (await apiClient.get(`/analytics/player/${playerId}`)) as { success: boolean; data: PlayerDetail };
+  return res.data;
+}
+
+export async function getAnalyticsSummary(): Promise<AnalyticsSummary> {
+  const res = (await apiClient.get('/analytics/summary')) as { success: boolean; data: AnalyticsSummary };
   return res.data;
 }

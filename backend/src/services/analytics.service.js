@@ -30,8 +30,8 @@ function computeWellnessScore(row) {
 
 // ─── Fee Analytics (Admin) ────────────────────────────────────────────────────
 
-async function getFeesAnalytics({ academyId }) {
-  const { data: fees, error } = await supabaseAdmin
+async function getFeesAnalytics({ academyId, startDate, endDate }) {
+  let query = supabaseAdmin
     .from('fee_ledger')
     .select(`
       amount_owed, amount_paid, payment_method, created_at, player_id,
@@ -39,6 +39,11 @@ async function getFeesAnalytics({ academyId }) {
     `)
     .eq('academy_id', academyId)
     .order('created_at', { ascending: false });
+
+  if (startDate) query = query.gte('created_at', startDate);
+  if (endDate)   query = query.lte('created_at', endDate);
+
+  const { data: fees, error } = await query;
 
   if (error) throw new InternalError('Failed to fetch fee analytics.');
 
@@ -92,10 +97,11 @@ async function getFeesAnalytics({ academyId }) {
     if (!playerMap[f.player_id]) playerMap[f.player_id] = { player: f.player, balance: 0 };
     playerMap[f.player_id].balance += balance;
   });
-  const topOutstanding = Object.values(playerMap)
-    .sort((a, b) => b.balance - a.balance)
+  const topOutstanding = Object.entries(playerMap)
+    .sort(([, a], [, b]) => b.balance - a.balance)
     .slice(0, 8)
-    .map(p => ({
+    .map(([pid, p]) => ({
+      id:      pid,
       name:    `${p.player.first_name} ${p.player.last_name}`,
       balance: +(p.balance / 100).toFixed(2),
     }));
@@ -166,6 +172,7 @@ async function getAttendanceAnalytics({ academyId }) {
     const pid = r.player_id;
     if (!playerStats[pid]) {
       playerStats[pid] = {
+        id:      pid,
         name:    r.player ? `${r.player.first_name} ${r.player.last_name}` : '—',
         present: 0, absent: 0, late: 0, total: 0,
       };
@@ -274,6 +281,7 @@ async function getWellnessAnalytics({ academyId, days = 30 }) {
     const score = computeWellnessScore(r);
     if (!playerMap[pid]) {
       playerMap[pid] = {
+        id:         pid,
         name:       r.player ? `${r.player.first_name} ${r.player.last_name}` : '—',
         scores:     [],
         alertCount: 0,
@@ -319,6 +327,7 @@ async function getWellnessAnalytics({ academyId, days = 30 }) {
   ].filter(s => s.value > 0);
 
   const playerRanking = playerWellness.slice(0, 15).map(p => ({
+    id:     p.id,
     name:   p.name,
     value:  p.avg,
     color:  p.avg >= 70 ? '#10B981' : p.avg >= 45 ? '#F59E0B' : '#EF4444',
@@ -574,6 +583,7 @@ async function getWorkoutAnalytics({ academyId }) {
 
   const playerRanking = Object.entries(playerMap)
     .map(([pid, s]) => ({
+      id:    pid,
       name:  playerNames[pid] ?? '—',
       total: s.total,
       done:  s.completed,
@@ -756,6 +766,91 @@ async function getTeamComparison({ academyId }) {
   return { teams: result };
 }
 
+// ─── Player Detail (Admin + Coach drill-down) ─────────────────────────────────
+
+async function getPlayerDetail({ academyId, playerId }) {
+  const since60 = new Date(); since60.setDate(since60.getDate() - 60);
+  const since30 = new Date(); since30.setDate(since30.getDate() - 30);
+
+  const [profileRes, eventsRes, healthRes, compRes] = await Promise.all([
+    supabaseAdmin.from('users').select('id, first_name, last_name, avatar_url').eq('id', playerId).eq('academy_id', academyId).single(),
+    supabaseAdmin.from('events').select('id, title, start_time').eq('academy_id', academyId).lt('start_time', new Date().toISOString()).order('start_time', { ascending: false }).limit(200),
+    supabaseAdmin.from('health_logs').select('fatigue, soreness, sleep_quality, is_flagged, logged_at').eq('academy_id', academyId).eq('player_id', playerId).gte('logged_at', since60.toISOString()).order('logged_at', { ascending: true }),
+    supabaseAdmin.from('workout_completions').select('exercise_id, is_completed').eq('academy_id', academyId).eq('player_id', playerId),
+  ]);
+
+  const profile = profileRes.data;
+  const name    = profile ? `${profile.first_name} ${profile.last_name}` : '—';
+
+  // Attendance
+  let attendance = null;
+  if (eventsRes.data && eventsRes.data.length > 0) {
+    const eventIds = eventsRes.data.map(e => e.id);
+    const { data: attRows } = await supabaseAdmin
+      .from('attendance').select('event_id, status')
+      .eq('academy_id', academyId).eq('player_id', playerId).in('event_id', eventIds);
+    const rows   = attRows || [];
+    const total   = rows.length;
+    const present = rows.filter(r => r.status === 'present').length;
+    const late    = rows.filter(r => r.status === 'late').length;
+    const rate    = total > 0 ? Math.round(((present + late * 0.5) / total) * 100) : 0;
+    attendance = { rate, present, total, gfaEligible: total > 0 ? ((present + late) / total) >= 0.7 : null };
+  }
+
+  // Wellness
+  const healthRows = healthRes.data || [];
+  let wellness = null;
+  if (healthRows.length > 0) {
+    const scored = healthRows.map(r => ({ score: computeWellnessScore(r), date: r.logged_at.slice(0, 10), flagged: r.is_flagged }));
+    const scores = scored.map(s => s.score);
+    const latestScore = scores[scores.length - 1] ?? 0;
+    const avgScore    = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
+    const flagCount   = scored.filter(s => s.flagged).length;
+    const trend       = scored.map(s => ({
+      date:  new Date(s.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+      score: s.score,
+    }));
+    wellness = { latestScore, avgScore, totalLogs: scores.length, flagCount, trend };
+  }
+
+  // Workouts
+  const comps = compRes.data || [];
+  const workouts = {
+    total: comps.length,
+    done:  comps.filter(c => c.is_completed).length,
+    rate:  comps.length > 0 ? Math.round((comps.filter(c => c.is_completed).length / comps.length) * 100) : 0,
+  };
+
+  return { id: playerId, name, avatar_url: profile?.avatar_url ?? null, attendance, wellness, workouts };
+}
+
+// ─── Analytics Summary (Admin dashboard widget) ───────────────────────────────
+
+async function getAnalyticsSummary({ academyId }) {
+  const since30 = new Date(); since30.setDate(since30.getDate() - 30);
+
+  const [feesRes, healthRes, playersRes, eventsRes] = await Promise.all([
+    supabaseAdmin.from('fee_ledger').select('amount_owed, amount_paid').eq('academy_id', academyId),
+    supabaseAdmin.from('health_logs').select('player_id, is_flagged').eq('academy_id', academyId).gte('logged_at', since30.toISOString()),
+    supabaseAdmin.from('users').select('id', { count: 'exact', head: true }).eq('academy_id', academyId).eq('role', 'Player').eq('is_active', true),
+    supabaseAdmin.from('events').select('id').eq('academy_id', academyId).lt('start_time', new Date().toISOString()).gte('start_time', since30.toISOString()),
+  ]);
+
+  const fees = feesRes.data || [];
+  const outstandingFees = +(fees.reduce((s, f) => s + Math.max(0, f.amount_owed - f.amount_paid), 0) / 100).toFixed(2);
+  const collectionRate  = fees.length > 0
+    ? Math.round(fees.reduce((s, f) => s + f.amount_paid, 0) / Math.max(1, fees.reduce((s, f) => s + f.amount_owed, 0)) * 100) : 0;
+
+  const health        = healthRes.data || [];
+  const wellnessFlags = health.filter(h => h.is_flagged).length;
+  const flaggedPlayers = new Set(health.filter(h => h.is_flagged).map(h => h.player_id)).size;
+
+  const totalPlayers = playersRes.count ?? 0;
+  const recentEvents = (eventsRes.data || []).length;
+
+  return { outstandingFees, collectionRate, wellnessFlags, flaggedPlayers, totalPlayers, recentEvents };
+}
+
 module.exports = {
   getFeesAnalytics,
   getAttendanceAnalytics,
@@ -764,4 +859,6 @@ module.exports = {
   getParentAnalytics,
   getWorkoutAnalytics,
   getTeamComparison,
+  getPlayerDetail,
+  getAnalyticsSummary,
 };
