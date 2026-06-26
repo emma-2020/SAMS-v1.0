@@ -18,4 +18,6 @@ export { getPlatformToken, setPlatformToken, clearPlatformToken } from './platfo
 export * as feesApi from './fees';
 export * as documentsApi from './documents';
 export * as announcementsApi from './announcements';
+export * as analyticsApi from './analytics';
+export type { FeeAnalytics, AttendanceAnalytics, WellnessAnalytics, MyWellnessAnalytics } from './analytics';
 export type { FeeLedgerEntry, PlayerDocument, Announcement, UserPreferences, AcademyAdminSettings, NotificationPreferences } from './types';
