@@ -326,12 +326,18 @@ const validateFeeBody = runChecks([
   },
 ]);
 
+const VALID_AUDIENCES = ['everyone', 'players', 'coaches', 'parents'];
+
 const validateAnnouncementBody = runChecks([
   ({ body }) => {
     if (!body.title || !body.title.trim()) return '"title" is required.';
   },
   ({ body }) => {
     if (!body.body || !body.body.trim()) return '"body" is required.';
+  },
+  ({ body }) => {
+    if (body.audience !== undefined && !VALID_AUDIENCES.includes(body.audience))
+      return `"audience" must be one of: ${VALID_AUDIENCES.join(', ')}.`;
   },
 ]);
 

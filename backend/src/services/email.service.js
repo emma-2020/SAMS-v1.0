@@ -825,6 +825,55 @@ async function sendFeeReminderEmail({
   });
 }
 
+// ─── Email: Announcement ──────────────────────────────────────────────────────
+
+const AUDIENCE_LABEL = {
+  everyone: 'All Members',
+  players:  'Players',
+  coaches:  'Coaches',
+  parents:  'Parents',
+};
+
+/**
+ * sendAnnouncementEmail
+ * Sent to all members in the target audience when an announcement is created.
+ */
+async function sendAnnouncementEmail({ to, firstName, academyName, title, body, audience = 'everyone', dashboardUrl }) {
+  const audienceLabel = AUDIENCE_LABEL[audience] || 'All Members';
+
+  const html = emailShell(`
+    <tr>
+      <td style="padding:40px 44px 8px;">
+        ${badge(`📢 Announcement · ${audienceLabel}`, '#6366F1')}
+        ${h1(title)}
+        ${para(`Hi ${firstName}, <strong style="color:#0F172A;">${academyName}</strong> has a new announcement for you.`)}
+
+        <div style="background:#F8FAFC;border:1.5px solid #E2E8F0;border-left:4px solid #6366F1;
+                    border-radius:12px;padding:20px 24px;margin-bottom:28px;
+                    font-size:0.93rem;color:#334155;line-height:1.75;white-space:pre-wrap;">${body.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+
+        ${ctaButton('View Dashboard →', dashboardUrl, '#6366F1')}
+      </td>
+    </tr>
+  `);
+
+  const text =
+    `Hi ${firstName},\n\n` +
+    `New announcement from ${academyName}:\n\n` +
+    `${title}\n` +
+    `${'─'.repeat(title.length)}\n` +
+    `${body}\n\n` +
+    `View your dashboard: ${dashboardUrl}\n\n` +
+    `— SAMS Platform`;
+
+  return dispatch({
+    to,
+    subject: `[${academyName}] ${title}`,
+    html,
+    text,
+  });
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 module.exports = {
@@ -837,4 +886,5 @@ module.exports = {
   sendFeeNotificationEmail,
   sendFeeReceiptEmail,
   sendFeeReminderEmail,
+  sendAnnouncementEmail,
 };

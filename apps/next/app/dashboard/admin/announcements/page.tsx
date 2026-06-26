@@ -4,39 +4,60 @@ import { useState, useEffect } from 'react';
 import { announcementsApi } from '@sams/api';
 import type { Announcement } from '@sams/api';
 
+type Audience = 'everyone' | 'players' | 'coaches' | 'parents';
+
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
+
+const AUDIENCE_META: Record<Audience, { label: string; color: string; bg: string; border: string; icon: string }> = {
+  everyone: { label: 'Everyone',  color: '#6366F1', bg: '#EEF2FF', border: '#DDD6FE', icon: '📢' },
+  players:  { label: 'Players',   color: '#059669', bg: '#F0FDF4', border: '#A7F3D0', icon: '⚽' },
+  coaches:  { label: 'Coaches',   color: '#2563EB', bg: '#EFF6FF', border: '#BFDBFE', icon: '🎽' },
+  parents:  { label: 'Parents',   color: '#D97706', bg: '#FFFBEB', border: '#FDE68A', icon: '👨‍👩‍👧' },
+};
 
 const Ico = {
   Plus:      () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
   Trash:     () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>,
   X:         () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
   Megaphone: () => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>,
+  ChevronDown: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="6 9 12 15 18 9"/></svg>,
 };
+
+function AudienceBadge({ audience }: { audience: Audience }) {
+  const m = AUDIENCE_META[audience] || AUDIENCE_META.everyone;
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.65rem', fontWeight: 700, padding: '3px 9px', borderRadius: 99, color: m.color, background: m.bg, border: `1px solid ${m.border}` }}>
+      {m.icon} {m.label}
+    </span>
+  );
+}
 
 function AnnouncementCard({ ann, onDelete }: { ann: Announcement; onDelete: () => void }) {
   const [expanded, setExpanded] = useState(false);
   const preview = ann.body.length > 160 && !expanded ? ann.body.slice(0, 160) + '…' : ann.body;
+  const audience = (ann.audience || 'everyone') as Audience;
 
   return (
     <div style={{ background: '#fff', border: '1.5px solid #E2E8F0', borderRadius: 16, padding: '20px 22px', boxShadow: '0 1px 4px rgba(15,23,42,0.04)', borderLeft: '4px solid #6366F1' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-        {/* Icon */}
         <div style={{ width: 42, height: 42, borderRadius: 12, background: 'linear-gradient(135deg,#EEF2FF,#F5F3FF)', border: '1.5px solid #DDD6FE', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: '#6366F1' }}>
           <Ico.Megaphone />
         </div>
-        {/* Content */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-            <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#0F172A', lineHeight: 1.3 }}>{ann.title}</h3>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#0F172A', lineHeight: 1.3 }}>{ann.title}</h3>
+              <div style={{ marginTop: 5 }}><AudienceBadge audience={audience} /></div>
+            </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
               <span style={{ fontSize: '0.67rem', color: '#94A3B8', whiteSpace: 'nowrap' }}>{fmtDate(ann.created_at)}</span>
               <button onClick={onDelete} style={{ padding: '6px', borderRadius: 8, border: '1.5px solid #FECACA', background: '#FEF2F2', color: '#DC2626', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><Ico.Trash /></button>
             </div>
           </div>
           {ann.author && (
-            <div style={{ fontSize: '0.72rem', color: '#7C3AED', fontWeight: 600, marginTop: 4 }}>
+            <div style={{ fontSize: '0.72rem', color: '#7C3AED', fontWeight: 600, marginTop: 6 }}>
               {ann.author.first_name} {ann.author.last_name}
             </div>
           )}
@@ -52,18 +73,29 @@ function AnnouncementCard({ ann, onDelete }: { ann: Announcement; onDelete: () =
   );
 }
 
+const AUDIENCE_OPTIONS: { value: Audience; label: string; desc: string; icon: string }[] = [
+  { value: 'everyone', label: 'Everyone',         desc: 'All players, coaches, and parents',  icon: '📢' },
+  { value: 'players',  label: 'Players only',     desc: 'Only players will receive this',     icon: '⚽' },
+  { value: 'coaches',  label: 'Coaches only',     desc: 'Only coaches will receive this',     icon: '🎽' },
+  { value: 'parents',  label: 'Parents only',     desc: 'Only parents will receive this',     icon: '👨‍👩‍👧' },
+];
+
 function ComposeModal({ onSend, onClose }: { onSend: () => void; onClose: () => void }) {
-  const [title,   setTitle]   = useState('');
-  const [body,    setBody]    = useState('');
-  const [sending, setSending] = useState(false);
-  const [error,   setError]   = useState('');
+  const [title,    setTitle]    = useState('');
+  const [body,     setBody]     = useState('');
+  const [audience, setAudience] = useState<Audience>('everyone');
+  const [sending,  setSending]  = useState(false);
+  const [error,    setError]    = useState('');
+
+  const selectedAudience = AUDIENCE_OPTIONS.find(o => o.value === audience)!;
+  const am = AUDIENCE_META[audience];
 
   async function handleSend() {
     if (!title.trim()) { setError('Title is required.'); return; }
     if (!body.trim())  { setError('Message body is required.'); return; }
     setSending(true); setError('');
     try {
-      await announcementsApi.createAnnouncement({ title: title.trim(), body: body.trim() });
+      await announcementsApi.createAnnouncement({ title: title.trim(), body: body.trim(), audience });
       onSend();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to send announcement.');
@@ -73,7 +105,7 @@ function ComposeModal({ onSend, onClose }: { onSend: () => void; onClose: () => 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
       onClick={onClose}>
-      <div style={{ background: '#fff', borderRadius: 20, padding: 28, width: '100%', maxWidth: 520, boxShadow: '0 24px 64px rgba(15,23,42,0.18)', display: 'flex', flexDirection: 'column', gap: 16 }}
+      <div style={{ background: '#fff', borderRadius: 20, padding: 28, width: '100%', maxWidth: 540, boxShadow: '0 24px 64px rgba(15,23,42,0.18)', display: 'flex', flexDirection: 'column', gap: 16 }}
         onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h2 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0F172A' }}>New Announcement</h2>
@@ -81,6 +113,25 @@ function ComposeModal({ onSend, onClose }: { onSend: () => void; onClose: () => 
         </div>
 
         {error && <div style={{ padding: '10px 14px', borderRadius: 10, background: '#FEF2F2', border: '1px solid #FECACA', color: '#DC2626', fontSize: '0.82rem' }}>{error}</div>}
+
+        {/* Audience selector */}
+        <div>
+          <label style={{ display: 'block', fontSize: '0.63rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Broadcast To</label>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            {AUDIENCE_OPTIONS.map(opt => {
+              const m = AUDIENCE_META[opt.value];
+              const selected = audience === opt.value;
+              return (
+                <button key={opt.value} onClick={() => setAudience(opt.value)}
+                  style={{ padding: '10px 12px', borderRadius: 11, border: `2px solid ${selected ? m.color : '#E2E8F0'}`, background: selected ? m.bg : '#fff', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s' }}>
+                  <div style={{ fontSize: '0.88rem', marginBottom: 2 }}>{opt.icon}</div>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 700, color: selected ? m.color : '#0F172A' }}>{opt.label}</div>
+                  <div style={{ fontSize: '0.65rem', color: '#94A3B8', marginTop: 2 }}>{opt.desc}</div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
         <div>
           <label style={{ display: 'block', fontSize: '0.63rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5 }}>Title</label>
@@ -92,16 +143,18 @@ function ComposeModal({ onSend, onClose }: { onSend: () => void; onClose: () => 
 
         <div>
           <label style={{ display: 'block', fontSize: '0.63rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5 }}>Message</label>
-          <textarea value={body} onChange={e => setBody(e.target.value)} rows={6}
-            placeholder="Write your announcement here. All academy members will see this."
+          <textarea value={body} onChange={e => setBody(e.target.value)} rows={5}
+            placeholder="Write your announcement here…"
             style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #E2E8F0', borderRadius: 10, fontSize: '0.875rem', color: '#0F172A', outline: 'none', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.65, boxSizing: 'border-box' }}
             onFocus={e => e.target.style.borderColor = '#6366F1'}
             onBlur={e => e.target.style.borderColor = '#E2E8F0'} />
           <div style={{ textAlign: 'right', fontSize: '0.65rem', color: '#94A3B8', marginTop: 4 }}>{body.length} chars</div>
         </div>
 
-        <div style={{ padding: '10px 14px', borderRadius: 10, background: '#F0FDF4', border: '1px solid #A7F3D0', fontSize: '0.78rem', color: '#059669', display: 'flex', gap: 8, alignItems: 'center' }}>
-          <span>📢</span> This announcement will be visible to all players, coaches, and parents in your academy.
+        {/* Summary */}
+        <div style={{ padding: '10px 14px', borderRadius: 10, background: am.bg, border: `1px solid ${am.border}`, fontSize: '0.78rem', color: am.color, display: 'flex', gap: 8, alignItems: 'center' }}>
+          <span>{selectedAudience.icon}</span>
+          <span>Sent to <strong>{selectedAudience.desc}</strong> · expires in 24 hours · email + in-app notification</span>
         </div>
 
         <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
@@ -141,7 +194,7 @@ export default function AnnouncementsPage() {
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, gap: 16, flexWrap: 'wrap' }}>
         <div>
           <h1 style={{ fontSize: '1.55rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.025em', margin: 0 }}>Announcements</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: 6 }}>Broadcast updates to everyone in your academy</p>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: 6 }}>Broadcast updates to your academy — expires after 24 hours</p>
         </div>
         <button onClick={() => setShowCompose(true)}
           style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 18px', borderRadius: 11, border: 'none', background: 'linear-gradient(135deg,#6366F1,#8B5CF6)', color: '#fff', fontWeight: 700, fontSize: '0.875rem', cursor: 'pointer', boxShadow: '0 4px 12px rgba(99,102,241,0.35)', flexShrink: 0 }}>
@@ -161,7 +214,7 @@ export default function AnnouncementsPage() {
       {/* List */}
       {loading ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {[1, 2, 3].map(i => <div key={i} className="skeleton" style={{ height: 110, borderRadius: 16 }} />)}
+          {[1, 2, 3].map(i => <div key={i} className="skeleton" style={{ height: 120, borderRadius: 16 }} />)}
         </div>
       ) : !announcements.length ? (
         <div style={{ textAlign: 'center', padding: '56px 24px', background: '#F8FAFC', borderRadius: 20, border: '1.5px dashed #CBD5E1' }}>
