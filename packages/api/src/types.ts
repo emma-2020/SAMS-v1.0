@@ -50,6 +50,7 @@ export interface Announcement {
   id: string;
   title: string;
   body: string;
+  audience: 'everyone' | 'players' | 'coaches' | 'parents';
   created_at: string;
   author?: { id: string; first_name: string; last_name: string } | null;
 }
