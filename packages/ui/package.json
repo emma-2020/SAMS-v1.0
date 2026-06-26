@@ -6,7 +6,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./src/theme/tailwind": "./src/theme/tailwind.ts",
-    "./src/theme/colors": "./src/theme/colors.ts"
+    "./src/theme/colors": "./src/theme/colors.ts",
+    "./src/charts/analytics": "./src/charts/analytics.web.tsx"
   },
   "peerDependencies": {
     "react": "^18.3.1",

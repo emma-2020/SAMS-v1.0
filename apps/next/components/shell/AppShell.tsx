@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Users, CalendarDays, ClipboardList, Activity,
   Dumbbell, MessageSquare, Settings, LogOut, Menu, Bell,
   ChevronUp, ChevronRight, Sun, Moon,
-  Shield, Trophy, Zap, UserCircle,
+  Shield, Trophy, Zap, UserCircle, BarChart2,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useAuthStore } from '@sams/store';
@@ -19,7 +19,7 @@ import type { Notification, UserProfile } from '@sams/api';
 // ── Icon resolver ──────────────────────────────────────────────────────────────
 const ICON_MAP: Record<string, LucideIcon> = {
   LayoutDashboard, Users, CalendarDays, ClipboardList, Activity,
-  Dumbbell, MessageSquare, Settings, LogOut, Shield, Trophy, Zap, UserCircle,
+  Dumbbell, MessageSquare, Settings, LogOut, Shield, Trophy, Zap, UserCircle, BarChart2,
 };
 function NavIcon({ name, size = 16, ...rest }: { name: string; size?: number; [k: string]: unknown }) {
   const Icon = ICON_MAP[name] ?? LayoutDashboard;
