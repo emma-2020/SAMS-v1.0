@@ -21,5 +21,8 @@ router.get('/fees',           requireRole('Admin'),                             
 router.get('/attendance',     requireRole('Admin', 'Coach'),                    controller.getAttendanceAnalytics);
 router.get('/wellness',       requireRole('Admin', 'Coach'),                    controller.getWellnessAnalytics);
 router.get('/wellness/me',    requireRole('Player'),                            controller.getMyWellnessAnalytics);
+router.get('/parent',         requireRole('Parent'),                            controller.getParentAnalytics);
+router.get('/workouts',       requireRole('Admin', 'Coach'),                    controller.getWorkoutAnalytics);
+router.get('/teams',          requireRole('Admin'),                             controller.getTeamComparison);
 
 module.exports = router;
