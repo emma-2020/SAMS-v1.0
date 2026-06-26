@@ -11,8 +11,8 @@ import {
   PieChart, Pie, Cell,
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
 } from 'recharts';
-import { adminApi, teamsApi, scheduleApi } from '@sams/api';
-import type { InvitationRecord, ScheduleEvent, Team, UserProfile } from '@sams/api';
+import { adminApi, teamsApi, scheduleApi, analyticsApi } from '@sams/api';
+import type { InvitationRecord, ScheduleEvent, Team, UserProfile, AnalyticsSummary } from '@sams/api';
 import { useAuthStore } from '@sams/store';
 import { AnnouncementsBanner } from '../../components/AnnouncementsBanner';
 
@@ -369,6 +369,7 @@ export function AdminDashboardScreen() {
   const [members,     setMembers]     = useState<UserProfile[]>([]);
   const [teams,       setTeams]       = useState<Team[]>([]);
   const [events,      setEvents]      = useState<ScheduleEvent[]>([]);
+  const [summary,     setSummary]     = useState<AnalyticsSummary | null>(null);
   const [invLoading,  setInvLoading]  = useState(true);
   const [rosterLoading, setRosterLoading] = useState(true);
 
@@ -383,6 +384,7 @@ export function AdminDashboardScreen() {
       .finally(() => setRosterLoading(false));
     teamsApi.getTeams().then(setTeams).catch(() => {});
     scheduleApi.getEvents().then(setEvents).catch(() => {});
+    analyticsApi.getAnalyticsSummary().then(setSummary).catch(() => {});
 
     // Safety net: if the auth-refresh queue hangs (e.g. expired refresh token),
     // promises may never settle. Clear loading flags after 10 s so the dashboard
@@ -515,6 +517,65 @@ export function AdminDashboardScreen() {
           onClick={() => router.push('/dashboard/admin/invite')}
         />
       </div>
+
+      {/* ── Analytics Pulse ── */}
+      {summary && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 16 }}>
+          {[
+            {
+              label: 'Outstanding Fees',
+              value: `GHS ${summary.outstandingFees.toLocaleString('en-GH', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
+              sub:   `${summary.collectionRate}% collected`,
+              color: summary.outstandingFees > 0 ? '#EF4444' : '#10B981',
+              icon:  '💰',
+              path:  '/dashboard/admin/analytics',
+            },
+            {
+              label: 'Wellness Flags',
+              value: String(summary.wellnessFlags),
+              sub:   `${summary.flaggedPlayers} player${summary.flaggedPlayers !== 1 ? 's' : ''} · last 30 days`,
+              color: summary.wellnessFlags > 0 ? '#F59E0B' : '#10B981',
+              icon:  summary.wellnessFlags > 0 ? '⚠️' : '✅',
+              path:  '/dashboard/admin/analytics',
+            },
+            {
+              label: 'Active Players',
+              value: String(summary.totalPlayers),
+              sub:   'registered players',
+              color: '#7C3AED',
+              icon:  '⚽',
+              path:  '/dashboard/admin/roster',
+            },
+            {
+              label: 'Events (30d)',
+              value: String(summary.recentEvents),
+              sub:   'sessions in last 30 days',
+              color: '#0EA5E9',
+              icon:  '📅',
+              path:  '/dashboard/admin/schedule',
+            },
+          ].map(({ label, value, sub, color, icon, path }) => (
+            <button
+              key={label}
+              onClick={() => router.push(path)}
+              style={{
+                background: '#fff', border: `1px solid ${color}25`, borderRadius: 14,
+                padding: '14px 16px', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s',
+                boxShadow: `0 2px 12px ${color}08`,
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = `${color}50`; (e.currentTarget as HTMLElement).style.boxShadow = `0 4px 16px ${color}15`; (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = `${color}25`; (e.currentTarget as HTMLElement).style.boxShadow = `0 2px 12px ${color}08`; (e.currentTarget as HTMLElement).style.transform = 'none'; }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <span style={{ fontSize: '1rem' }}>{icon}</span>
+                <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{label}</span>
+              </div>
+              <div style={{ fontSize: '1.4rem', fontWeight: 900, color, lineHeight: 1, letterSpacing: '-0.02em', marginBottom: 4 }}>{value}</div>
+              <div style={{ fontSize: '0.68rem', color: '#94A3B8' }}>{sub}</div>
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* ── Analytics + Calendar row ── */}
       <div className="admin-dash-2col" style={{ marginBottom: 14 }}>

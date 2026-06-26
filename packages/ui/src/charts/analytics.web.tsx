@@ -370,9 +370,47 @@ export function DonutBreakdown({ data, centerLabel, centerSub, size = 160 }: Don
   );
 }
 
+// ─── CSV Export ───────────────────────────────────────────────────────────────
+
+export function downloadCsv(headers: string[], rows: (string | number)[][], filename: string) {
+  const escape = (v: string | number) => {
+    const s = String(v ?? '');
+    return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const lines = [headers.map(escape).join(','), ...rows.map(r => r.map(escape).join(','))];
+  const blob  = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url   = URL.createObjectURL(blob);
+  const a     = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+export function ExportButton({ onClick, label = 'Export CSV' }: { onClick: () => void; label?: string }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 6,
+        padding: '6px 14px', borderRadius: 8, border: '1.5px solid var(--border-default,#CBD5E1)',
+        background: 'var(--bg-surface,#fff)', color: 'var(--text-secondary,#475569)',
+        fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
+        flexShrink: 0,
+      }}
+      onMouseOver={e => { (e.currentTarget as HTMLElement).style.borderColor = '#7C3AED'; (e.currentTarget as HTMLElement).style.color = '#7C3AED'; }}
+      onMouseOut={e  => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-default,#CBD5E1)'; (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary,#475569)'; }}
+    >
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      {label}
+    </button>
+  );
+}
+
 // ─── Horizontal Player Bar ────────────────────────────────────────────────────
 
-interface HBarRow {
+export interface HBarRow {
+  id?:   string;
   name:  string;
   value: number;
   max?:  number;
@@ -380,16 +418,34 @@ interface HBarRow {
   badge?: string;
 }
 
-export function HorizontalPlayerBar({ rows, max = 100, unit = '%' }: { rows: HBarRow[]; max?: number; unit?: string }) {
+export function HorizontalPlayerBar({
+  rows,
+  max = 100,
+  unit = '%',
+  onRowClick,
+}: {
+  rows:         HBarRow[];
+  max?:         number;
+  unit?:        string;
+  onRowClick?:  (id: string, name: string) => void;
+}) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {rows.map((row, i) => {
-        const pct = Math.min((row.value / (row.max ?? max)) * 100, 100);
+        const pct       = Math.min((row.value / (row.max ?? max)) * 100, 100);
+        const clickable = !!onRowClick && !!row.id;
         return (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div
+            key={i}
+            onClick={clickable ? () => onRowClick!(row.id!, row.name) : undefined}
+            style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: clickable ? 'pointer' : 'default', borderRadius: 8, padding: '2px 4px', transition: 'background 0.15s' }}
+            onMouseOver={e => { if (clickable) (e.currentTarget as HTMLElement).style.background = 'var(--bg-elevated,#F8FAFC)'; }}
+            onMouseOut={e  => { if (clickable) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+          >
             <span style={{
-              fontSize: '0.78rem', fontWeight: 500, color: 'var(--text-secondary,#475569)',
+              fontSize: '0.78rem', fontWeight: 500, color: clickable ? BRAND : 'var(--text-secondary,#475569)',
               width: 120, flexShrink: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+              textDecoration: clickable ? 'underline dotted' : 'none',
             }}>
               {row.name}
             </span>
