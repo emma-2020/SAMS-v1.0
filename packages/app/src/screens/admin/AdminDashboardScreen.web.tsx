@@ -536,7 +536,7 @@ export function AdminDashboardScreen() {
               sub:   `${summary.flaggedPlayers} player${summary.flaggedPlayers !== 1 ? 's' : ''} · last 30 days`,
               color: summary.wellnessFlags > 0 ? '#F59E0B' : '#10B981',
               icon:  summary.wellnessFlags > 0 ? '⚠️' : '✅',
-              path:  '/dashboard/admin/analytics',
+              path:  '/dashboard/coach/analytics',
             },
             {
               label: 'Active Players',
