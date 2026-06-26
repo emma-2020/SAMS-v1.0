@@ -82,7 +82,7 @@ export function ParentAnalyticsScreen() {
           <div className="analytics-kpi-grid">{[1,2,3,4].map(i => <SkeletonCard key={i} height={130} />)}</div>
           <div className="analytics-2col"><SkeletonCard height={260} /><SkeletonCard height={260} /></div>
         </>
-      ) : !data?.linked ? (
+      ) : error ? null : !data?.linked ? (
         <div style={{ textAlign: 'center', padding: '64px 24px', background: 'var(--bg-elevated,#F8FAFC)', borderRadius: 20, border: '1.5px dashed var(--border-default,#CBD5E1)' }}>
           <div style={{ fontSize: '3rem', marginBottom: 12 }}>👤</div>
           <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6, fontSize: '1.05rem' }}>No child linked</div>
