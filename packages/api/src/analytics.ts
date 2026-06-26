@@ -64,7 +64,6 @@ export interface MyWellnessAnalytics {
     fatigue:  number;
     soreness: number;
     sleep:    number;
-    stress:   number;
     notes:    string | null;
   }[];
   heatmap: Record<string, number>;

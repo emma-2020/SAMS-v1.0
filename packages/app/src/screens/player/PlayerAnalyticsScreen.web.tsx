@@ -18,8 +18,11 @@ function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-function metricBar(label: string, raw: number, color: string) {
-  const pct = Math.round(((5 - (raw - 1)) / 4) * 100);
+// fatigue/soreness: 1=good, 5=bad (invert). sleep: 1=poor, 5=excellent (direct).
+function metricBar(label: string, raw: number, color: string, invert = true) {
+  const pct = invert
+    ? Math.round(((5 - raw) / 4) * 100)
+    : Math.round(((raw - 1) / 4) * 100);
   return (
     <div style={{ marginBottom: 8 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
@@ -81,7 +84,7 @@ export function PlayerAnalyticsScreen() {
           </div>
           <SkeletonCard height={300} />
         </>
-      ) : !data || data.kpis.totalLogs === 0 ? (
+      ) : error ? null : !data || data.kpis.totalLogs === 0 ? (
         <div style={{ textAlign: 'center', padding: '64px 24px', background: 'var(--bg-elevated,#F8FAFC)', borderRadius: 20, border: '1.5px dashed var(--border-default,#CBD5E1)' }}>
           <div style={{ fontSize: '3rem', marginBottom: 12 }}>📊</div>
           <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6, fontSize: '1.05rem' }}>No wellness data yet</div>
@@ -182,9 +185,9 @@ export function PlayerAnalyticsScreen() {
                         <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{fmtDate(log.date)}</span>
                         <span style={{ fontSize: '1rem', fontWeight: 900, color: c }}>{log.score}<span style={{ fontSize: '0.65rem', fontWeight: 600, color: 'var(--text-muted)' }}>/100</span></span>
                       </div>
-                      {metricBar('Energy',   log.fatigue,  SUCCESS)}
-                      {metricBar('Recovery', log.soreness, WARNING)}
-                      {metricBar('Sleep',    log.sleep,    INFO)}
+                      {metricBar('Energy',   log.fatigue,  SUCCESS, true)}
+                      {metricBar('Recovery', log.soreness, WARNING, true)}
+                      {metricBar('Sleep',    log.sleep,    INFO,    false)}
                       {log.notes && (
                         <div style={{ marginTop: 8, fontSize: '0.72rem', color: 'var(--text-muted)', fontStyle: 'italic', borderTop: '1px solid var(--border-subtle,#F1F5F9)', paddingTop: 8 }}>
                           "{log.notes}"

@@ -19,6 +19,15 @@ function last6MonthKeys() {
   return keys;
 }
 
+// Derive 0–100 wellness score from the three columns that actually exist in health_logs.
+// fatigue/soreness: 1=good, 5=bad → invert.  sleep_quality: 1=bad, 5=good → direct.
+function computeWellnessScore(row) {
+  const fat = (5 - row.fatigue)       / 4;  // 1→1.0, 5→0.0
+  const sor = (5 - row.soreness)      / 4;
+  const slp = (row.sleep_quality - 1) / 4;  // 1→0.0, 5→1.0
+  return Math.round(((fat + sor + slp) / 3) * 100);
+}
+
 // ─── Fee Analytics (Admin) ────────────────────────────────────────────────────
 
 async function getFeesAnalytics({ academyId }) {
@@ -246,7 +255,7 @@ async function getWellnessAnalytics({ academyId, days = 30 }) {
   const { data: logs, error } = await supabaseAdmin
     .from('health_logs')
     .select(`
-      player_id, overall_score, fatigue, soreness, sleep_quality,
+      player_id, fatigue, soreness, sleep_quality,
       logged_at, is_flagged,
       player:users!health_logs_player_id_fkey (id, first_name, last_name)
     `)
@@ -258,10 +267,11 @@ async function getWellnessAnalytics({ academyId, days = 30 }) {
 
   const rows = logs || [];
 
-  // Per-player stats
+  // Per-player stats — derive score from existing columns
   const playerMap = {};
   rows.forEach(r => {
-    const pid = r.player_id;
+    const pid   = r.player_id;
+    const score = computeWellnessScore(r);
     if (!playerMap[pid]) {
       playerMap[pid] = {
         name:       r.player ? `${r.player.first_name} ${r.player.last_name}` : '—',
@@ -269,7 +279,7 @@ async function getWellnessAnalytics({ academyId, days = 30 }) {
         alertCount: 0,
       };
     }
-    playerMap[pid].scores.push(r.overall_score);
+    playerMap[pid].scores.push(score);
     if (r.is_flagged) playerMap[pid].alertCount++;
   });
 
@@ -285,7 +295,7 @@ async function getWellnessAnalytics({ academyId, days = 30 }) {
   rows.forEach(r => {
     const day = r.logged_at.slice(0, 10);
     if (!dailyMap[day]) dailyMap[day] = { date: day, scores: [] };
-    dailyMap[day].scores.push(r.overall_score);
+    dailyMap[day].scores.push(computeWellnessScore(r));
   });
   const wellnessTrend = Object.values(dailyMap)
     .sort((a, b) => a.date.localeCompare(b.date))
@@ -331,7 +341,7 @@ async function getMyWellnessAnalytics({ academyId, userId, days = 60 }) {
 
   const { data: logs, error } = await supabaseAdmin
     .from('health_logs')
-    .select('overall_score, fatigue, soreness, sleep_quality, stress, logged_at, notes')
+    .select('fatigue, soreness, sleep_quality, logged_at, notes')
     .eq('academy_id', academyId)
     .eq('player_id', userId)
     .gte('logged_at', since.toISOString())
@@ -339,25 +349,26 @@ async function getMyWellnessAnalytics({ academyId, userId, days = 60 }) {
 
   if (error) throw new InternalError('Failed to fetch personal wellness data.');
 
-  const rows   = logs || [];
-  const latest = rows[rows.length - 1];
-  const avgScore = rows.length > 0
-    ? Math.round(rows.reduce((s, r) => s + r.overall_score, 0) / rows.length) : 0;
+  const rows = logs || [];
+  const scored = rows.map(r => ({ ...r, score: computeWellnessScore(r) }));
 
-  const trend = rows.map(r => ({
+  const latestRow = scored[scored.length - 1];
+  const avgScore  = scored.length > 0
+    ? Math.round(scored.reduce((s, r) => s + r.score, 0) / scored.length) : 0;
+
+  const trend = scored.map(r => ({
     date:  new Date(r.logged_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
-    score: r.overall_score,
+    score: r.score,
   }));
 
   const sparkline = trend.map(t => ({ v: t.score }));
 
-  const recentLogs = rows.slice(-5).reverse().map(r => ({
+  const recentLogs = scored.slice(-5).reverse().map(r => ({
     date:     r.logged_at,
-    score:    r.overall_score,
+    score:    r.score,
     fatigue:  r.fatigue,
     soreness: r.soreness,
     sleep:    r.sleep_quality,
-    stress:   r.stress,
     notes:    r.notes,
   }));
 
@@ -366,7 +377,7 @@ async function getMyWellnessAnalytics({ academyId, userId, days = 60 }) {
 
   return {
     kpis: {
-      latestScore: latest?.overall_score ?? 0,
+      latestScore: latestRow?.score ?? 0,
       avgScore,
       totalLogs:   rows.length,
       sparkline,
