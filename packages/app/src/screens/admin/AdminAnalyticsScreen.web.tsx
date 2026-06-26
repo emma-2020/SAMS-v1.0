@@ -2,12 +2,14 @@
 
 import React, { useEffect, useState } from 'react';
 import { analyticsApi } from '@sams/api';
-import type { FeeAnalytics } from '@sams/api';
+import type { FeeAnalytics, TeamComparison } from '@sams/api';
 import {
   StatCard, AnimatedBarChart, DonutBreakdown, TrendAreaChart,
   HorizontalPlayerBar, SectionCard, StatusBadge, SkeletonCard, PeriodToggle,
-  ANALYTICS_CSS, BRAND, SUCCESS, DANGER, WARNING, INFO,
+  ANALYTICS_CSS, BRAND, SUCCESS, DANGER, WARNING, INFO, ACCENT,
 } from '@sams/ui/src/charts/analytics';
+
+type AdminTab = 'fees' | 'teams';
 
 function fmt(n: number) { return `GHS ${n.toLocaleString('en-GH', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`; }
 function fmtDate(iso: string) { return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }); }
@@ -20,10 +22,17 @@ const METHOD_COLORS: Record<string, string> = {
   Other:  '#94A3B8',
 };
 
+const TEAM_PALETTE = [BRAND, SUCCESS, WARNING, INFO, ACCENT, DANGER, '#8B5CF6', '#EC4899'];
+
 export function AdminAnalyticsScreen() {
+  const [tab, setTab] = useState<AdminTab>('fees');
+
   const [data,    setData]    = useState<FeeAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState('');
+
+  const [teams,        setTeams]        = useState<TeamComparison | null>(null);
+  const [teamsLoading, setTeamsLoading] = useState(false);
 
   useEffect(() => {
     analyticsApi.getFeeAnalytics()
@@ -31,6 +40,15 @@ export function AdminAnalyticsScreen() {
       .catch(() => setError('Failed to load analytics. Please try again.'))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (tab !== 'teams' || teams) return;
+    setTeamsLoading(true);
+    analyticsApi.getTeamComparison()
+      .then(setTeams)
+      .catch(() => setError('Failed to load team data.'))
+      .finally(() => setTeamsLoading(false));
+  }, [tab]);
 
   const donutData = data?.methodBreakdown.map(m => ({
     name:  m.name,
@@ -43,13 +61,28 @@ export function AdminAnalyticsScreen() {
       <style>{ANALYTICS_CSS}</style>
 
       {/* ── Page header ── */}
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.025em', margin: 0 }}>
-          Fee Analytics
-        </h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: 4 }}>
-          Collection trends, outstanding balances, and payment breakdowns
-        </p>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.025em', margin: 0 }}>
+            {tab === 'fees' ? 'Fee Analytics' : 'Team Comparison'}
+          </h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: 4 }}>
+            {tab === 'fees' ? 'Collection trends, outstanding balances, and payment breakdowns' : 'Side-by-side team attendance, wellness, and fee performance'}
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: 2, background: 'var(--bg-elevated,#F8FAFC)', borderRadius: 10, padding: 4, border: '1px solid var(--border-subtle,#E2E8F0)' }}>
+          {([['fees','Fees'],['teams','Teams']] as [AdminTab,string][]).map(([t, label]) => (
+            <button key={t} onClick={() => { setError(''); setTab(t); }}
+              style={{
+                padding: '6px 18px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                fontSize: '0.82rem', fontWeight: 600, transition: 'all 0.15s',
+                background: tab === t ? BRAND : 'transparent',
+                color:      tab === t ? '#fff' : 'var(--text-muted,#64748B)',
+                boxShadow:  tab === t ? `0 2px 8px ${BRAND}40` : 'none',
+              }}
+            >{label}</button>
+          ))}
+        </div>
       </div>
 
       {error && (
@@ -58,6 +91,94 @@ export function AdminAnalyticsScreen() {
         </div>
       )}
 
+      {/* ══════════════ TEAMS TAB ══════════════ */}
+      {tab === 'teams' && (
+        <>
+          {teamsLoading ? (
+            <>
+              <div className="analytics-kpi-grid">{[1,2,3,4].map(i => <SkeletonCard key={i} height={130} />)}</div>
+              <SkeletonCard height={320} />
+            </>
+          ) : !teams || teams.teams.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '64px 24px', background: 'var(--bg-elevated,#F8FAFC)', borderRadius: 20, border: '1.5px dashed var(--border-default,#CBD5E1)' }}>
+              <div style={{ fontSize: '3rem', marginBottom: 12 }}>🏆</div>
+              <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>No teams yet</div>
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Create teams and add players to see comparison data.</div>
+            </div>
+          ) : (
+            <>
+              {/* Summary KPIs */}
+              <div className="analytics-kpi-grid">
+                <StatCard label="Total Teams"        value={teams.teams.length}                                                                                                          color={BRAND}   subtitle="Active squads" />
+                <StatCard label="Avg Attendance"     value={Math.round(teams.teams.reduce((s,t)=>s+t.attRate,0)/teams.teams.length)}   format={(n) => `${n}%`}          color={SUCCESS} subtitle="Academy-wide" />
+                <StatCard label="Avg Wellness"       value={Math.round(teams.teams.reduce((s,t)=>s+t.wellness,0)/teams.teams.length)}                                    color={WARNING} subtitle="Last 30 days" />
+                <StatCard label="Avg Fee Collection" value={Math.round(teams.teams.reduce((s,t)=>s+t.feeRate,0)/teams.teams.length)}   format={(n) => `${n}%`}          color={INFO}    subtitle="Collection rate" />
+              </div>
+
+              {/* Attendance comparison */}
+              <SectionCard title="Attendance Rate by Team" subtitle="Percentage of sessions attended" accent={`linear-gradient(90deg,${SUCCESS},${BRAND})`}>
+                <AnimatedBarChart
+                  data={teams.teams.map(t => ({ name: t.name, rate: t.attRate }))}
+                  dataKeys={[{ key: 'rate', color: SUCCESS, label: 'Attendance %' }]}
+                  xAxisKey="name"
+                  height={220}
+                />
+              </SectionCard>
+
+              <div className="analytics-2col">
+                {/* Wellness comparison */}
+                <SectionCard title="Avg Wellness Score" subtitle="Last 30 days (computed from check-ins)" accent={`linear-gradient(90deg,${WARNING},${BRAND})`}>
+                  <AnimatedBarChart
+                    data={teams.teams.map(t => ({ name: t.name, score: t.wellness }))}
+                    dataKeys={[{ key: 'score', color: WARNING, label: 'Wellness' }]}
+                    xAxisKey="name"
+                    height={200}
+                  />
+                </SectionCard>
+
+                {/* Fee rate comparison */}
+                <SectionCard title="Fee Collection Rate" subtitle="Amount paid vs. amount owed per team" accent={`linear-gradient(90deg,${INFO},${ACCENT})`}>
+                  <AnimatedBarChart
+                    data={teams.teams.map(t => ({ name: t.name, rate: t.feeRate }))}
+                    dataKeys={[{ key: 'rate', color: INFO, label: 'Collection %' }]}
+                    xAxisKey="name"
+                    height={200}
+                  />
+                </SectionCard>
+              </div>
+
+              {/* Team cards grid */}
+              <SectionCard title="Team Scorecard" subtitle="All metrics at a glance" accent={`linear-gradient(90deg,${BRAND},${ACCENT})`}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
+                  {teams.teams.map((t, i) => {
+                    const c = TEAM_PALETTE[i % TEAM_PALETTE.length];
+                    return (
+                      <div key={t.id} style={{ padding: '16px', borderRadius: 14, border: `2px solid ${c}30`, background: `${c}08`, position: 'relative', overflow: 'hidden' }}>
+                        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: `linear-gradient(90deg,${c},${c}80)` }} />
+                        <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-primary)', marginBottom: 4 }}>{t.name}</div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: 12 }}>{t.division !== '—' ? `${t.division} · ` : ''}{t.sport !== '—' ? t.sport : 'Football'} · {t.squad} players</div>
+                        {[
+                          { label: 'Attendance', value: `${t.attRate}%`,   color: t.attRate >= 70 ? SUCCESS : DANGER },
+                          { label: 'Wellness',   value: `${t.wellness}/100`, color: t.wellness >= 70 ? SUCCESS : WARNING },
+                          { label: 'Fees',       value: `${t.feeRate}%`,   color: t.feeRate >= 80 ? SUCCESS : t.feeRate >= 50 ? WARNING : DANGER },
+                        ].map(row => (
+                          <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                            <span style={{ fontSize: '0.73rem', color: 'var(--text-muted)' }}>{row.label}</span>
+                            <span style={{ fontSize: '0.73rem', fontWeight: 800, color: row.color }}>{row.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })}
+                </div>
+              </SectionCard>
+            </>
+          )}
+        </>
+      )}
+
+      {/* ══════════════ FEES TAB ══════════════ */}
+      {tab === 'fees' && (<>
       {/* ── KPI Cards ── */}
       {loading ? (
         <div className="analytics-kpi-grid">
@@ -234,6 +355,7 @@ export function AdminAnalyticsScreen() {
           />
         </SectionCard>
       )}
+      </>)}
     </div>
   );
 }

@@ -69,6 +69,31 @@ export interface MyWellnessAnalytics {
   heatmap: Record<string, number>;
 }
 
+export interface ParentAnalytics {
+  linked: boolean;
+  child:  { id: string; name: string; team: string } | null;
+  attendance: { rate: number; present: number; total: number; gfaEligible: boolean | null } | null;
+  wellness: {
+    latestScore: number; avgScore: number; totalLogs: number; flagCount: number;
+    trend: { date: string; score: number }[];
+  } | null;
+  fees: {
+    totalOwed: number; totalPaid: number; outstanding: number; collectionRate: number;
+    recentPayments: { description: string; amount: number; paid: number; method: string | null; date: string; status: string }[];
+  } | null;
+}
+
+export interface WorkoutAnalytics {
+  kpis: { totalAssigned: number; totalExercises: number; totalDone: number; overallRate: number; activeThisMonth: number };
+  volumeTrend:        { month: string; assigned: number; exerciseCount: number }[];
+  playerRanking:      { name: string; total: number; done: number; rate: number }[];
+  recentAssignments:  { title: string; team: string; dueDate: string | null; exercises: number; rate: number }[];
+}
+
+export interface TeamComparison {
+  teams: { id: string; name: string; division: string; sport: string; squad: number; attRate: number; wellness: number; feeRate: number }[];
+}
+
 // ── API calls ─────────────────────────────────────────────────────────────────
 
 export async function getFeeAnalytics(): Promise<FeeAnalytics> {
@@ -88,5 +113,20 @@ export async function getWellnessAnalytics(days = 30): Promise<WellnessAnalytics
 
 export async function getMyWellnessAnalytics(days = 60): Promise<MyWellnessAnalytics> {
   const res = (await apiClient.get(`/analytics/wellness/me?days=${days}`)) as { success: boolean; data: MyWellnessAnalytics };
+  return res.data;
+}
+
+export async function getParentAnalytics(): Promise<ParentAnalytics> {
+  const res = (await apiClient.get('/analytics/parent')) as { success: boolean; data: ParentAnalytics };
+  return res.data;
+}
+
+export async function getWorkoutAnalytics(): Promise<WorkoutAnalytics> {
+  const res = (await apiClient.get('/analytics/workouts')) as { success: boolean; data: WorkoutAnalytics };
+  return res.data;
+}
+
+export async function getTeamComparison(): Promise<TeamComparison> {
+  const res = (await apiClient.get('/analytics/teams')) as { success: boolean; data: TeamComparison };
   return res.data;
 }

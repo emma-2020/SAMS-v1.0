@@ -36,4 +36,28 @@ async function getMyWellnessAnalytics(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { getFeeAnalytics, getAttendanceAnalytics, getWellnessAnalytics, getMyWellnessAnalytics };
+async function getParentAnalytics(req, res, next) {
+  try {
+    const data = await analytics.getParentAnalytics({ academyId: req.academyId, userId: req.user.id });
+    res.json({ success: true, data });
+  } catch (err) { next(err); }
+}
+
+async function getWorkoutAnalytics(req, res, next) {
+  try {
+    const data = await analytics.getWorkoutAnalytics({ academyId: req.academyId });
+    res.json({ success: true, data });
+  } catch (err) { next(err); }
+}
+
+async function getTeamComparison(req, res, next) {
+  try {
+    const data = await analytics.getTeamComparison({ academyId: req.academyId });
+    res.json({ success: true, data });
+  } catch (err) { next(err); }
+}
+
+module.exports = {
+  getFeeAnalytics, getAttendanceAnalytics, getWellnessAnalytics, getMyWellnessAnalytics,
+  getParentAnalytics, getWorkoutAnalytics, getTeamComparison,
+};

@@ -2,14 +2,14 @@
 
 import React, { useEffect, useState } from 'react';
 import { analyticsApi } from '@sams/api';
-import type { AttendanceAnalytics, WellnessAnalytics } from '@sams/api';
+import type { AttendanceAnalytics, WellnessAnalytics, WorkoutAnalytics } from '@sams/api';
 import {
   StatCard, AnimatedBarChart, DonutBreakdown, TrendAreaChart,
   HorizontalPlayerBar, SectionCard, StatusBadge, SkeletonCard, PeriodToggle,
-  ANALYTICS_CSS, BRAND, SUCCESS, DANGER, WARNING, INFO,
+  ANALYTICS_CSS, BRAND, SUCCESS, DANGER, WARNING, INFO, ACCENT,
 } from '@sams/ui/src/charts/analytics';
 
-type Tab = 'attendance' | 'wellness';
+type Tab = 'attendance' | 'wellness' | 'workouts';
 
 const WELLNESS_DAYS = [
   { label: '30d', value: '30' },
@@ -26,6 +26,9 @@ export function CoachAnalyticsScreen() {
   const [wellness,     setWellness]     = useState<WellnessAnalytics | null>(null);
   const [wellLoading,  setWellLoading]  = useState(false);
   const [wellnessDays, setWellnessDays] = useState('30');
+
+  const [workouts,    setWorkouts]    = useState<WorkoutAnalytics | null>(null);
+  const [workLoading, setWorkLoading] = useState(false);
 
   const [error, setError] = useState('');
 
@@ -47,6 +50,16 @@ export function CoachAnalyticsScreen() {
       .finally(() => setWellLoading(false));
   }, [tab, wellnessDays]);
 
+  // Load workouts when tab switches there
+  useEffect(() => {
+    if (tab !== 'workouts' || workouts) return;
+    setWorkLoading(true);
+    analyticsApi.getWorkoutAnalytics()
+      .then(setWorkouts)
+      .catch(() => setError('Failed to load workout data.'))
+      .finally(() => setWorkLoading(false));
+  }, [tab]);
+
   return (
     <div style={{ animation: 'fadeIn 0.3s ease' }}>
       <style>{ANALYTICS_CSS}</style>
@@ -64,19 +77,19 @@ export function CoachAnalyticsScreen() {
 
         {/* Tab toggle */}
         <div style={{ display: 'flex', gap: 2, background: 'var(--bg-elevated,#F8FAFC)', borderRadius: 10, padding: 4, border: '1px solid var(--border-subtle,#E2E8F0)' }}>
-          {(['attendance', 'wellness'] as Tab[]).map(t => (
+          {([['attendance','Attendance'],['wellness','Wellness'],['workouts','Workouts']] as [Tab,string][]).map(([t, label]) => (
             <button
               key={t}
-              onClick={() => setTab(t)}
+              onClick={() => { setError(''); setTab(t); }}
               style={{
                 padding: '6px 16px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                fontSize: '0.82rem', fontWeight: 600, textTransform: 'capitalize', transition: 'all 0.15s',
+                fontSize: '0.82rem', fontWeight: 600, transition: 'all 0.15s',
                 background: tab === t ? BRAND : 'transparent',
                 color:      tab === t ? '#fff' : 'var(--text-muted,#64748B)',
                 boxShadow:  tab === t ? `0 2px 8px ${BRAND}40` : 'none',
               }}
             >
-              {t === 'attendance' ? 'Attendance' : 'Wellness'}
+              {label}
             </button>
           ))}
         </div>
@@ -287,6 +300,93 @@ export function CoachAnalyticsScreen() {
                 unit=""
               />
             </SectionCard>
+          )}
+        </>
+      )}
+
+      {/* ══════════════ WORKOUTS TAB ══════════════ */}
+      {tab === 'workouts' && (
+        <>
+          {workLoading ? (
+            <>
+              <div className="analytics-kpi-grid">{[1,2,3,4].map(i => <SkeletonCard key={i} height={130} />)}</div>
+              <div className="analytics-2col"><SkeletonCard height={280} /><SkeletonCard height={280} /></div>
+            </>
+          ) : !workouts ? null : (
+            <>
+              {/* KPIs */}
+              <div className="analytics-kpi-grid">
+                <StatCard label="Workouts Assigned" value={workouts.kpis.totalAssigned} color={BRAND}    subtitle="All time" />
+                <StatCard label="Exercises Total"   value={workouts.kpis.totalExercises} color={ACCENT}  subtitle="Across all workouts" />
+                <StatCard label="Exercises Done"    value={workouts.kpis.totalDone}      color={SUCCESS}  subtitle="Completed by players" />
+                <StatCard label="Overall Rate"      value={workouts.kpis.overallRate}    format={(n) => `${n}%`} color={workouts.kpis.overallRate >= 70 ? SUCCESS : WARNING} subtitle="Completion rate" />
+              </div>
+
+              {/* Volume trend + recent assignments */}
+              <div className="analytics-2col">
+                <SectionCard title="Assignment Volume" subtitle="Workouts created per month" accent={`linear-gradient(90deg,${BRAND},${ACCENT})`}>
+                  {workouts.volumeTrend.some(m => m.assigned > 0) ? (
+                    <AnimatedBarChart
+                      data={workouts.volumeTrend}
+                      dataKeys={[
+                        { key: 'assigned',      color: BRAND,   label: 'Workouts'  },
+                        { key: 'exerciseCount', color: ACCENT,  label: 'Exercises' },
+                      ]}
+                      xAxisKey="month"
+                      height={200}
+                    />
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>No workouts assigned yet</div>
+                  )}
+                </SectionCard>
+
+                <SectionCard title="Recent Assignments" subtitle="Latest 10 workout assignments" accent={`linear-gradient(90deg,${ACCENT},${INFO})`}>
+                  {workouts.recentAssignments.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {workouts.recentAssignments.map((a, i) => {
+                        const rColor = a.rate >= 80 ? SUCCESS : a.rate >= 50 ? WARNING : DANGER;
+                        return (
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 10, background: 'var(--bg-elevated,#F8FAFC)', border: '1px solid var(--border-subtle,#F1F5F9)' }}>
+                            <div>
+                              <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>{a.title}</div>
+                              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 2 }}>{a.team} · {a.exercises} exercise{a.exercises !== 1 ? 's' : ''}{a.dueDate ? ` · Due ${a.dueDate}` : ''}</div>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <div style={{ width: 48, height: 6, borderRadius: 99, background: 'var(--bg-card,#E2E8F0)', overflow: 'hidden' }}>
+                                <div style={{ width: `${a.rate}%`, height: '100%', background: rColor, borderRadius: 99 }} />
+                              </div>
+                              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: rColor, minWidth: 34 }}>{a.rate}%</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>No assignments yet</div>
+                  )}
+                </SectionCard>
+              </div>
+
+              {/* Player completion ranking */}
+              {workouts.playerRanking.length > 0 && (
+                <SectionCard
+                  title="Player Completion Ranking"
+                  subtitle="Exercise completion rate per player"
+                  accent={`linear-gradient(90deg,${SUCCESS},${WARNING})`}
+                >
+                  <HorizontalPlayerBar
+                    rows={workouts.playerRanking.map(p => ({
+                      name:  p.name,
+                      value: p.rate,
+                      color: p.rate >= 80 ? SUCCESS : p.rate >= 50 ? WARNING : DANGER,
+                      badge: `${p.done}/${p.total}`,
+                    }))}
+                    max={100}
+                    unit="%"
+                  />
+                </SectionCard>
+              )}
+            </>
           )}
         </>
       )}

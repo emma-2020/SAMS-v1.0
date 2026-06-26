@@ -373,7 +373,7 @@ async function getMyWellnessAnalytics({ academyId, userId, days = 60 }) {
   }));
 
   const heatmap = {};
-  rows.forEach(r => { heatmap[r.logged_at.slice(0, 10)] = r.overall_score; });
+  scored.forEach(r => { heatmap[r.logged_at.slice(0, 10)] = r.score; });
 
   return {
     kpis: {
@@ -388,9 +388,380 @@ async function getMyWellnessAnalytics({ academyId, userId, days = 60 }) {
   };
 }
 
+// ─── Parent Analytics ─────────────────────────────────────────────────────────
+
+async function getParentAnalytics({ academyId, userId }) {
+  // Find the child linked to this parent in rosters
+  const { data: rosterRow, error: rErr } = await supabaseAdmin
+    .from('rosters')
+    .select(`
+      player_id,
+      player:users!rosters_player_id_fkey (id, first_name, last_name),
+      team:teams (id, name)
+    `)
+    .eq('academy_id', academyId)
+    .eq('parent_id', userId)
+    .maybeSingle();
+
+  if (rErr) throw new InternalError('Failed to fetch child roster data.');
+  if (!rosterRow) {
+    return { linked: false, child: null, attendance: null, wellness: null, fees: null };
+  }
+
+  const childId   = rosterRow.player_id;
+  const childName = rosterRow.player
+    ? `${rosterRow.player.first_name} ${rosterRow.player.last_name}` : '—';
+  const teamName  = rosterRow.team?.name ?? '—';
+
+  // ── Attendance ──
+  const { data: events } = await supabaseAdmin
+    .from('events')
+    .select('id')
+    .eq('academy_id', academyId)
+    .lt('start_time', new Date().toISOString())
+    .limit(200);
+
+  const eventIds = (events || []).map(e => e.id);
+  let attRate = 0, gfaEligible = null, attPresent = 0, attTotal = 0;
+
+  if (eventIds.length) {
+    const { data: attRows } = await supabaseAdmin
+      .from('attendance')
+      .select('status')
+      .eq('academy_id', academyId)
+      .eq('player_id', childId)
+      .in('event_id', eventIds);
+
+    const rows = attRows || [];
+    attTotal   = rows.length;
+    attPresent = rows.filter(r => r.status === 'present' || r.status === 'late').length;
+    attRate    = attTotal > 0 ? Math.round((attPresent / attTotal) * 100) : 0;
+    gfaEligible = attTotal > 0 ? attRate >= 70 : null;
+  }
+
+  // ── Wellness (last 60 days) ──
+  const since60 = new Date();
+  since60.setDate(since60.getDate() - 60);
+
+  const { data: healthRows } = await supabaseAdmin
+    .from('health_logs')
+    .select('fatigue, soreness, sleep_quality, logged_at, is_flagged')
+    .eq('academy_id', academyId)
+    .eq('player_id', childId)
+    .gte('logged_at', since60.toISOString())
+    .order('logged_at', { ascending: true });
+
+  const hRows  = (healthRows || []).map(r => ({ ...r, score: computeWellnessScore(r) }));
+  const latestHealth = hRows[hRows.length - 1];
+  const avgWellness  = hRows.length > 0
+    ? Math.round(hRows.reduce((s, r) => s + r.score, 0) / hRows.length) : 0;
+  const flagCount    = hRows.filter(r => r.is_flagged).length;
+  const wellnessTrend = hRows.map(r => ({
+    date:  new Date(r.logged_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+    score: r.score,
+  }));
+
+  // ── Fees ──
+  const { data: feeRows } = await supabaseAdmin
+    .from('fee_ledger')
+    .select('amount_owed, amount_paid, payment_method, created_at, description')
+    .eq('academy_id', academyId)
+    .eq('player_id', childId)
+    .order('created_at', { ascending: false });
+
+  const fees = feeRows || [];
+  const totalOwed      = fees.reduce((s, f) => s + f.amount_owed, 0);
+  const totalPaid      = fees.reduce((s, f) => s + f.amount_paid, 0);
+  const outstanding    = totalOwed - totalPaid;
+  const collectionRate = totalOwed > 0 ? Math.round((totalPaid / totalOwed) * 100) : 100;
+
+  return {
+    linked: true,
+    child:  { id: childId, name: childName, team: teamName },
+    attendance: {
+      rate: attRate, present: attPresent, total: attTotal, gfaEligible,
+    },
+    wellness: {
+      latestScore: latestHealth?.score ?? 0,
+      avgScore:    avgWellness,
+      totalLogs:   hRows.length,
+      flagCount,
+      trend:       wellnessTrend,
+    },
+    fees: {
+      totalOwed:      +(totalOwed / 100).toFixed(2),
+      totalPaid:      +(totalPaid / 100).toFixed(2),
+      outstanding:    +(outstanding / 100).toFixed(2),
+      collectionRate,
+      recentPayments: fees.slice(0, 5).map(f => ({
+        description: f.description,
+        amount:      +(f.amount_owed / 100).toFixed(2),
+        paid:        +(f.amount_paid / 100).toFixed(2),
+        method:      f.payment_method ?? null,
+        date:        f.created_at,
+        status:      (f.amount_owed - f.amount_paid) <= 0 ? 'paid' : f.amount_paid > 0 ? 'partial' : 'overdue',
+      })),
+    },
+  };
+}
+
+// ─── Workout Analytics (Admin + Coach) ───────────────────────────────────────
+
+async function getWorkoutAnalytics({ academyId }) {
+  // All assignments for the academy
+  const { data: assignments, error: aErr } = await supabaseAdmin
+    .from('workout_assignments')
+    .select(`
+      id, title, due_date, created_at, team_id, player_id,
+      team:teams (id, name),
+      exercises:workout_exercises (id)
+    `)
+    .eq('academy_id', academyId)
+    .order('created_at', { ascending: false });
+
+  if (aErr) throw new InternalError('Failed to fetch workout assignments.');
+
+  const rows = assignments || [];
+
+  // All completions for the academy
+  const { data: completions, error: cErr } = await supabaseAdmin
+    .from('workout_completions')
+    .select('exercise_id, player_id, is_completed')
+    .eq('academy_id', academyId);
+
+  if (cErr) throw new InternalError('Failed to fetch workout completions.');
+
+  const comps = completions || [];
+
+  // Build exercise→assignment map and count completions
+  const assignmentMap = {};
+  rows.forEach(a => {
+    assignmentMap[a.id] = {
+      id:          a.id,
+      title:       a.title,
+      teamName:    a.team?.name ?? (a.player_id ? 'Individual' : '—'),
+      exerciseIds: (a.exercises || []).map(e => e.id),
+      dueDate:     a.due_date,
+      createdAt:   a.created_at,
+    };
+  });
+
+  // Per-player completion
+  const playerMap = {};
+  const compByExercise = {};
+  comps.forEach(c => {
+    const pid = c.player_id;
+    if (!playerMap[pid]) playerMap[pid] = { total: 0, completed: 0 };
+    playerMap[pid].total++;
+    if (c.is_completed) playerMap[pid].completed++;
+    if (!compByExercise[c.exercise_id]) compByExercise[c.exercise_id] = 0;
+    if (c.is_completed) compByExercise[c.exercise_id]++;
+  });
+
+  // Enrich player names
+  const playerIds = Object.keys(playerMap);
+  let playerNames = {};
+  if (playerIds.length) {
+    const { data: users } = await supabaseAdmin
+      .from('users')
+      .select('id, first_name, last_name')
+      .in('id', playerIds)
+      .eq('academy_id', academyId);
+    (users || []).forEach(u => {
+      playerNames[u.id] = `${u.first_name} ${u.last_name}`;
+    });
+  }
+
+  const playerRanking = Object.entries(playerMap)
+    .map(([pid, s]) => ({
+      name:  playerNames[pid] ?? '—',
+      total: s.total,
+      done:  s.completed,
+      rate:  s.total > 0 ? Math.round((s.completed / s.total) * 100) : 0,
+    }))
+    .sort((a, b) => b.rate - a.rate);
+
+  // Monthly assignment volume (last 6 months)
+  const monthlyMap = {};
+  last6MonthKeys().forEach(k => {
+    monthlyMap[k] = { month: monthLabel(k), assigned: 0, exerciseCount: 0 };
+  });
+  rows.forEach(a => {
+    const d = new Date(a.createdAt);
+    const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    if (monthlyMap[k]) {
+      monthlyMap[k].assigned++;
+      monthlyMap[k].exerciseCount += (a.exercises || []).length;
+    }
+  });
+  const volumeTrend = Object.values(monthlyMap);
+
+  // Per-assignment completion rate (most recent 10)
+  const recentAssignments = rows.slice(0, 10).map(a => {
+    const totalExercises = a.exerciseIds?.length ?? 0;
+    const doneCount = a.exerciseIds?.reduce((s, eid) => s + (compByExercise[eid] ?? 0), 0) ?? 0;
+    const rate = totalExercises > 0 ? Math.round((doneCount / totalExercises) * 100) : 0;
+    return {
+      title:    a.title,
+      team:     a.teamName,
+      dueDate:  a.dueDate,
+      exercises: totalExercises,
+      rate,
+    };
+  });
+
+  // KPIs
+  const totalAssigned = rows.length;
+  const totalExercises = rows.reduce((s, a) => s + (a.exercises?.length ?? 0), 0);
+  const totalDone   = comps.filter(c => c.is_completed).length;
+  const overallRate = comps.length > 0 ? Math.round((totalDone / comps.length) * 100) : 0;
+  const activeThisMonth = (monthlyMap[last6MonthKeys()[5]] || {}).assigned ?? 0;
+
+  return {
+    kpis: { totalAssigned, totalExercises, totalDone, overallRate, activeThisMonth },
+    volumeTrend,
+    playerRanking: playerRanking.slice(0, 15),
+    recentAssignments,
+  };
+}
+
+// ─── Team Comparison (Admin) ──────────────────────────────────────────────────
+
+async function getTeamComparison({ academyId }) {
+  const { data: teams, error: tErr } = await supabaseAdmin
+    .from('teams')
+    .select('id, name, division, sport')
+    .eq('academy_id', academyId)
+    .order('name');
+
+  if (tErr) throw new InternalError('Failed to fetch teams for comparison.');
+  if (!teams || teams.length === 0) return { teams: [] };
+
+  const teamIds = teams.map(t => t.id);
+
+  // Rosters — player count per team
+  const { data: rosterRows } = await supabaseAdmin
+    .from('rosters')
+    .select('team_id, player_id')
+    .eq('academy_id', academyId)
+    .in('team_id', teamIds);
+
+  const rosterMap = {};
+  (rosterRows || []).forEach(r => {
+    if (!rosterMap[r.team_id]) rosterMap[r.team_id] = new Set();
+    rosterMap[r.team_id].add(r.player_id);
+  });
+
+  // Attendance — per team (via events)
+  const { data: events } = await supabaseAdmin
+    .from('events')
+    .select('id, team_id')
+    .eq('academy_id', academyId)
+    .lt('start_time', new Date().toISOString())
+    .in('team_id', teamIds)
+    .limit(500);
+
+  const teamEventIds = {};
+  (events || []).forEach(e => {
+    if (!teamEventIds[e.team_id]) teamEventIds[e.team_id] = [];
+    teamEventIds[e.team_id].push(e.id);
+  });
+
+  const allEventIds = (events || []).map(e => e.id);
+  let attMap = {};
+  if (allEventIds.length) {
+    const { data: attRows } = await supabaseAdmin
+      .from('attendance')
+      .select('event_id, status')
+      .eq('academy_id', academyId)
+      .in('event_id', allEventIds);
+
+    // Build event→team lookup
+    const eventTeam = Object.fromEntries((events || []).map(e => [e.id, e.team_id]));
+    (attRows || []).forEach(r => {
+      const tid = eventTeam[r.event_id];
+      if (!tid) return;
+      if (!attMap[tid]) attMap[tid] = { present: 0, total: 0 };
+      attMap[tid].total++;
+      if (r.status === 'present' || r.status === 'late') attMap[tid].present++;
+    });
+  }
+
+  // Wellness — per player in each team (last 30 days)
+  const since30 = new Date();
+  since30.setDate(since30.getDate() - 30);
+  const allPlayerIds = [...new Set((rosterRows || []).map(r => r.player_id))];
+
+  let wellnessMap = {};
+  if (allPlayerIds.length) {
+    const { data: hlRows } = await supabaseAdmin
+      .from('health_logs')
+      .select('player_id, fatigue, soreness, sleep_quality')
+      .eq('academy_id', academyId)
+      .gte('logged_at', since30.toISOString())
+      .in('player_id', allPlayerIds);
+
+    // Build player→team lookup
+    const playerTeam = {};
+    (rosterRows || []).forEach(r => { playerTeam[r.player_id] = r.team_id; });
+
+    (hlRows || []).forEach(r => {
+      const tid = playerTeam[r.player_id];
+      if (!tid) return;
+      if (!wellnessMap[tid]) wellnessMap[tid] = [];
+      wellnessMap[tid].push(computeWellnessScore(r));
+    });
+  }
+
+  // Fees — collection rate per team
+  const { data: feeRows } = await supabaseAdmin
+    .from('fee_ledger')
+    .select('player_id, amount_owed, amount_paid')
+    .eq('academy_id', academyId);
+
+  const playerTeamFee = {};
+  (rosterRows || []).forEach(r => { playerTeamFee[r.player_id] = r.team_id; });
+  const feeByTeam = {};
+  (feeRows || []).forEach(f => {
+    const tid = playerTeamFee[f.player_id];
+    if (!tid) return;
+    if (!feeByTeam[tid]) feeByTeam[tid] = { owed: 0, paid: 0 };
+    feeByTeam[tid].owed += f.amount_owed;
+    feeByTeam[tid].paid += f.amount_paid;
+  });
+
+  const result = teams.map(t => {
+    const squad    = rosterMap[t.id]?.size ?? 0;
+    const att      = attMap[t.id];
+    const attRate  = att ? Math.round((att.present / att.total) * 100) : 0;
+    const wScores  = wellnessMap[t.id] || [];
+    const wellness = wScores.length > 0
+      ? Math.round(wScores.reduce((s, x) => s + x, 0) / wScores.length) : 0;
+    const fee      = feeByTeam[t.id];
+    const feeRate  = fee && fee.owed > 0
+      ? Math.round((fee.paid / fee.owed) * 100) : 0;
+
+    return {
+      id:       t.id,
+      name:     t.name,
+      division: t.division ?? '—',
+      sport:    t.sport ?? '—',
+      squad,
+      attRate,
+      wellness,
+      feeRate,
+    };
+  });
+
+  return { teams: result };
+}
+
 module.exports = {
   getFeesAnalytics,
   getAttendanceAnalytics,
   getWellnessAnalytics,
   getMyWellnessAnalytics,
+  getParentAnalytics,
+  getWorkoutAnalytics,
+  getTeamComparison,
 };

@@ -9,6 +9,7 @@ export { ParentDashboardScreen } from './screens/parent/ParentDashboardScreen';
 export { AdminAnalyticsScreen } from './screens/admin/AdminAnalyticsScreen';
 export { CoachAnalyticsScreen } from './screens/coach/CoachAnalyticsScreen';
 export { PlayerAnalyticsScreen } from './screens/player/PlayerAnalyticsScreen';
+export { ParentAnalyticsScreen } from './screens/parent/ParentAnalyticsScreen';
 
 // Navigation
 export { NAV_CONFIG, ROLE_DASHBOARD } from './navigation/config';

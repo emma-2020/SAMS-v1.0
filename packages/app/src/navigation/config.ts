@@ -50,11 +50,12 @@ export const NAV_CONFIG: Record<UserProfile['role'], { main: NavItem[]; other: N
   },
   Parent: {
     main: [
-      { label: 'Dashboard', path: '/dashboard/parent',           icon: 'LayoutDashboard' },
-      { label: 'Schedule',  path: '/dashboard/parent/schedule',  icon: 'CalendarDays'    },
-      { label: 'Workouts',  path: '/dashboard/parent/workouts',  icon: 'Dumbbell'        },
-      { label: 'Health',    path: '/dashboard/parent/health',    icon: 'Activity'        },
-      { label: 'Messages',  path: '/dashboard/parent/chat',      icon: 'MessageSquare'   },
+      { label: 'Dashboard',    path: '/dashboard/parent',            icon: 'LayoutDashboard' },
+      { label: "Child's Progress", path: '/dashboard/parent/analytics', icon: 'BarChart2'    },
+      { label: 'Schedule',     path: '/dashboard/parent/schedule',   icon: 'CalendarDays'    },
+      { label: 'Workouts',     path: '/dashboard/parent/workouts',   icon: 'Dumbbell'        },
+      { label: 'Health',       path: '/dashboard/parent/health',     icon: 'Activity'        },
+      { label: 'Messages',     path: '/dashboard/parent/chat',       icon: 'MessageSquare'   },
     ],
     other: [SETTINGS_ITEM],
   },
