@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { healthApi, scheduleApi, workoutApi } from '@sams/api';
 import { useAuthStore } from '@sams/store';
 import type { HealthEntry, ScheduleEvent, WorkoutPlan } from '@sams/api';
+import { AnnouncementsBanner } from '@sams/app';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function daysUntil(iso: string) {
@@ -172,6 +173,9 @@ export default function PlayerDashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* ── Announcements ───────────────────────────────────────────────────── */}
+      <AnnouncementsBanner role="Player" />
 
       {/* ── Stats row ────────────────────────────────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14, marginBottom: 24 }}>
