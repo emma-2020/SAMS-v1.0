@@ -40,7 +40,7 @@ interface EventBlock {
   color: ColorEntry; eventType: string;
 }
 
-const BLANK_FORM = { teamId: '', venue: '', label: '', date: '', start: '09:00', end: '11:00', type: 'Practice' as 'Practice' | 'Game' };
+const BLANK_FORM = { teamId: '', venue: '', label: '', date: '', start: '09:00', end: '11:00', type: 'Practice' as ScheduleEvent['type'] };
 
 export default function AdminSchedulePage() {
   const today = new Date();
@@ -254,7 +254,7 @@ export default function AdminSchedulePage() {
               <div className="field">
                 <label className="field-label">Type</label>
                 <select className="field-input" style={{ height: 42, cursor: 'pointer' }}
-                  value={newBlock.type} onChange={e => setNewBlock(p => ({ ...p, type: e.target.value as 'Practice' | 'Game' }))}>
+                  value={newBlock.type} onChange={e => setNewBlock(p => ({ ...p, type: e.target.value as ScheduleEvent['type'] }))}>
                   <option value="Practice">Practice</option>
                   <option value="Game">Game</option>
                 </select>
@@ -338,7 +338,7 @@ export default function AdminSchedulePage() {
                 <div className="field">
                   <label className="field-label">Type</label>
                   <select className="field-input" style={{ height: 42, cursor: 'pointer' }}
-                    value={editForm.type} onChange={e => setEditForm(p => ({ ...p, type: e.target.value as 'Practice' | 'Game' }))}>
+                    value={editForm.type} onChange={e => setEditForm(p => ({ ...p, type: e.target.value as ScheduleEvent['type'] }))}>
                     <option value="Practice">Practice</option>
                     <option value="Game">Game</option>
                   </select>
