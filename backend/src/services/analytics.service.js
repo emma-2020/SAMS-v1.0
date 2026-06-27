@@ -366,8 +366,11 @@ async function getMyWellnessAnalytics({ academyId, userId, days = 60 }) {
     ? Math.round(scored.reduce((s, r) => s + r.score, 0) / scored.length) : 0;
 
   const trend = scored.map(r => ({
-    date:  new Date(r.logged_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
-    score: r.score,
+    date:     new Date(r.logged_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+    score:    r.score,
+    energy:   Math.round(((5 - r.fatigue)       / 4) * 100),
+    sleep:    Math.round(((r.sleep_quality - 1)  / 4) * 100),
+    recovery: Math.round(((5 - r.soreness)       / 4) * 100),
   }));
 
   const sparkline = trend.map(t => ({ v: t.score }));
@@ -851,11 +854,91 @@ async function getAnalyticsSummary({ academyId }) {
   return { outstandingFees, collectionRate, wellnessFlags, flaggedPlayers, totalPlayers, recentEvents };
 }
 
+// ─── Player's Own Attendance ──────────────────────────────────────────────────
+
+async function getMyAttendanceAnalytics({ academyId, userId }) {
+  // Past events for this academy
+  const { data: events, error: evErr } = await supabaseAdmin
+    .from('events')
+    .select('id, start_time')
+    .eq('academy_id', academyId)
+    .lt('start_time', new Date().toISOString())
+    .order('start_time', { ascending: false })
+    .limit(300);
+
+  if (evErr) throw new InternalError('Failed to fetch events for attendance.');
+
+  const eventIds = (events || []).map(e => e.id);
+  if (!eventIds.length) {
+    return {
+      kpis: { rate: 0, present: 0, absent: 0, late: 0, total: 0, gfaEligible: null },
+      monthlyTrend: [],
+      breakdown: [],
+    };
+  }
+
+  const { data: attRows, error: attErr } = await supabaseAdmin
+    .from('attendance')
+    .select('event_id, status')
+    .eq('academy_id', academyId)
+    .eq('player_id', userId)
+    .in('event_id', eventIds);
+
+  if (attErr) throw new InternalError('Failed to fetch player attendance records.');
+
+  const rows    = attRows || [];
+  const total   = rows.length;
+  const present = rows.filter(r => r.status === 'present').length;
+  const absent  = rows.filter(r => r.status === 'absent').length;
+  const late    = rows.filter(r => r.status === 'late').length;
+  const rate    = total > 0 ? Math.round(((present + late * 0.5) / total) * 100) : 0;
+  const gfaEligible = total > 0 ? ((present + late) / total) >= 0.7 : null;
+
+  // Monthly trend (last 6 months)
+  const eventMap = Object.fromEntries((events || []).map(e => [e.id, e]));
+  const monthlyMap = {};
+  last6MonthKeys().forEach(k => {
+    monthlyMap[k] = { month: monthLabel(k), present: 0, absent: 0, late: 0, total: 0 };
+  });
+  rows.forEach(r => {
+    const ev = eventMap[r.event_id];
+    if (!ev) return;
+    const d = new Date(ev.start_time);
+    const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    if (monthlyMap[k]) {
+      monthlyMap[k].total++;
+      if (r.status === 'present')     monthlyMap[k].present++;
+      else if (r.status === 'absent') monthlyMap[k].absent++;
+      else if (r.status === 'late')   monthlyMap[k].late++;
+    }
+  });
+  const monthlyTrend = Object.values(monthlyMap).map(m => ({
+    month:   m.month,
+    present: m.present,
+    absent:  m.absent,
+    late:    m.late,
+    rate:    m.total > 0 ? Math.round(((m.present + m.late * 0.5) / m.total) * 100) : 0,
+  }));
+
+  const breakdown = [
+    { name: 'Present', value: present, color: '#10B981' },
+    { name: 'Late',    value: late,    color: '#F59E0B' },
+    { name: 'Absent',  value: absent,  color: '#EF4444' },
+  ].filter(d => d.value > 0);
+
+  return {
+    kpis: { rate, present, absent, late, total, gfaEligible },
+    monthlyTrend,
+    breakdown,
+  };
+}
+
 module.exports = {
   getFeesAnalytics,
   getAttendanceAnalytics,
   getWellnessAnalytics,
   getMyWellnessAnalytics,
+  getMyAttendanceAnalytics,
   getParentAnalytics,
   getWorkoutAnalytics,
   getTeamComparison,
