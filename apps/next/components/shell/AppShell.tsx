@@ -280,19 +280,33 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   useClickOutside(rolePickerRef,  () => setShowRolePicker(false));
   useClickOutside(notifRef,       () => setShowNotifPanel(false));
 
+  const failCount = useRef(0);
+
   const fetchNotifications = useCallback(async () => {
     try {
       const data = await notificationsApi.getAll();
+      failCount.current = 0;
       setNotifications(data ?? []);
       setUnreadCount((data ?? []).filter(n => !n.is_read).length);
-    } catch (_) {}
+    } catch (_) {
+      failCount.current += 1;
+    }
   }, []);
 
   useEffect(() => {
     if (!user) return;
     fetchNotifications();
-    const id = setInterval(fetchNotifications, 30_000);
-    return () => clearInterval(id);
+    // Normal cadence: every 30s. After 3 consecutive failures (backend down),
+    // back off to every 5 minutes to avoid console spam.
+    const id = setInterval(() => {
+      if (failCount.current >= 3) return;
+      fetchNotifications();
+    }, 30_000);
+    // Slow retry when circuit is open — resets failCount on success via fetchNotifications
+    const backoffId = setInterval(() => {
+      if (failCount.current >= 3) fetchNotifications();
+    }, 5 * 60_000);
+    return () => { clearInterval(id); clearInterval(backoffId); };
   }, [user, fetchNotifications]);
 
   const handleMarkRead = async (id: string) => {
