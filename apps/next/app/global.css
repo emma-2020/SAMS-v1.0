@@ -659,6 +659,9 @@ select.input, select.field-input {
     --density-px:  1rem;
     --density-gap: 0.875rem;
   }
+  /* Ensure buttons meet WCAG 44px minimum touch target on phones */
+  .btn { min-height: 44px; }
+  .btn.btn-sm { min-height: 36px; }
 }
 
 /* ── Prevent iOS auto-zoom on input focus (requires font-size ≥ 16px) */
@@ -695,6 +698,10 @@ select.input, select.field-input {
   .kpi-grid-4 { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .kpi-grid-3 { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .kpi-grid-2 { grid-template-columns: 1fr; gap: 10px; }
+}
+@media (max-width: 400px) {
+  .kpi-grid-4 { grid-template-columns: 1fr; gap: 10px; }
+  .kpi-grid-3 { grid-template-columns: 1fr; gap: 10px; }
 }
 
 /* ── Responsive form grids ───────────────────────────────────── */

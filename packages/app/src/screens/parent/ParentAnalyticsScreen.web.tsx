@@ -229,7 +229,7 @@ export function ParentAnalyticsScreen() {
               accent={`linear-gradient(90deg,${fees.outstanding > 0 ? DANGER : SUCCESS},${BRAND})`}
             >
               {/* Summary row */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, marginBottom: 20 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(90px, 100%), 1fr))', gap: 12, marginBottom: 20 }}>
                 {[
                   { label: 'Total Owed',     value: `GHS ${fees.totalOwed.toFixed(2)}`,    color: 'var(--text-primary)' },
                   { label: 'Total Paid',     value: `GHS ${fees.totalPaid.toFixed(2)}`,    color: SUCCESS               },

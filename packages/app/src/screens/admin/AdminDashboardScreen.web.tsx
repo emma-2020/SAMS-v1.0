@@ -520,7 +520,7 @@ export function AdminDashboardScreen() {
 
       {/* ── Analytics Pulse ── */}
       {summary && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(140px, 100%), 1fr))', gap: 12, marginBottom: 16 }}>
           {[
             {
               label: 'Outstanding Fees',

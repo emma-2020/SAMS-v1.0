@@ -73,7 +73,7 @@ function PerformanceTab({
   return (
     <>
       {/* ── Performance KPI row ── */}
-      <div className="analytics-kpi-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+      <div className="analytics-kpi-grid">
         <StatCard label="Avg Energy"    value={avgEnergy}   color={SUCCESS} subtitle={`Last ${days} days`} />
         <StatCard label="Avg Sleep"     value={avgSleep}    color={INFO}    subtitle={`Last ${days} days`} />
         <StatCard label="Avg Recovery"  value={avgRecovery} color={WARNING} subtitle={`Last ${days} days`} />
@@ -300,7 +300,7 @@ export function PlayerAnalyticsScreen() {
         ) : (
           <>
             {/* ── KPI row ── */}
-            <div className="analytics-kpi-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+            <div className="analytics-kpi-grid">
               <StatCard
                 label="Latest Score"
                 value={data.kpis.latestScore}

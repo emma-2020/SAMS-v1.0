@@ -28,6 +28,7 @@ const CSS = `
   .pg4 { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
   @media(max-width:860px) { .pg4 { grid-template-columns:repeat(2,1fr); } }
   @media(max-width:500px) { .mg2 { grid-template-columns:1fr; } .pg4 { grid-template-columns:1fr 1fr; } }
+  @media(max-width:400px) { .pg4 { grid-template-columns:1fr; } .mg2 { grid-template-columns:1fr; } }
 `;
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -364,7 +365,7 @@ export default function ParentHealthPage() {
       </div>
 
       {/* ── Tab bar ─────────────────────────────────────────────── */}
-      <div style={{ display:'flex', gap:4, marginBottom:24, background:'var(--bg-surface)', padding:4, borderRadius:14, border:'1px solid var(--border-subtle)', boxShadow:'0 1px 3px rgba(0,0,0,.04)', width:'fit-content' }}>
+      <div style={{ display:'flex', gap:4, marginBottom:24, background:'var(--bg-surface)', padding:4, borderRadius:14, border:'1px solid var(--border-subtle)', boxShadow:'0 1px 3px rgba(0,0,0,.04)', maxWidth:'100%', overflowX:'auto', scrollbarWidth:'none' }}>
         {TABS.map(t => (
           <button key={t} className={`htab${tab === t ? ' active' : ''}`} onClick={() => setTab(t)}>{t}</button>
         ))}

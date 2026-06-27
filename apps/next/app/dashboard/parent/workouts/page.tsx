@@ -260,7 +260,7 @@ export default function ParentWorkoutsPage() {
 
       {/* ── Loading skeletons ───────────────────────────────────────────────── */}
       {loading && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(280px, 100%), 1fr))', gap: 20 }}>
           {[1, 2, 3].map(i => (
             <div key={i} className="skeleton" style={{ height: 160, borderRadius: 18 }} />
           ))}
@@ -287,7 +287,7 @@ export default function ParentWorkoutsPage() {
 
       {/* ── Workout grid ────────────────────────────────────────────────────── */}
       {!loading && workouts.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(280px, 100%), 1fr))', gap: 20 }}>
           {workouts.map(w => <WorkoutCard key={w.id} workout={w} />)}
         </div>
       )}

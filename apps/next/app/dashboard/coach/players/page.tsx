@@ -449,7 +449,7 @@ export default function PlayersPage() {
 
       {/* Grid */}
       {loading ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(260px, 100%), 1fr))', gap: 20 }}>
           {[1,2,3,4,5,6].map(i => <div key={i} className="skeleton" style={{ height: 300, borderRadius: 20 }} />)}
         </div>
       ) : error ? (
@@ -461,7 +461,7 @@ export default function PlayersPage() {
           <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: 6 }}>{search ? 'Try a different name.' : 'Players appear here once rostered on your teams.'}</div>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(260px, 100%), 1fr))', gap: 20 }}>
           {filtered.map(p => <PlayerCard key={p.id} player={p} onSelect={setSelected} />)}
         </div>
       )}

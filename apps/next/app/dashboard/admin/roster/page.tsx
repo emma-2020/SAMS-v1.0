@@ -989,7 +989,7 @@ function MemberDetailPanel({ memberId, onClose, onToggleStatus, onMemberUpdated,
         {/* ── KPI row (4 cards) ── */}
         {!loading && detail && (
           <div style={{ background: '#FFF', borderBottom: `1px solid ${C.slate100}`, padding: '14px 20px', flexShrink: 0 }}>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(80px, 100%), 1fr))', gap: 8 }}>
               {detail.role === 'Player' && (
                 <>
                   <KPICard label="Teams"    value={teamCount}                                                sub="enrolled"   color={C.indigo}             icon={<Ico.Users />} />
