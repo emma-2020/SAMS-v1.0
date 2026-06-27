@@ -403,7 +403,7 @@ export default function WorkoutsPage() {
           <button onClick={() => setShowModal(true)} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>+ Create First Plan</button>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20, alignItems: 'start' }}>
           {assignments.map(a => <AssignmentCard key={a.id} assignment={a} onDelete={handleDelete} />)}
         </div>
       )}
