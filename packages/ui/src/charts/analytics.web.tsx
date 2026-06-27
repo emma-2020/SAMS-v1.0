@@ -673,4 +673,11 @@ export const ANALYTICS_CSS = `
   @media (max-width: 400px) {
     .analytics-kpi-grid { grid-template-columns: 1fr; gap: 10px; }
   }
+  /* Recent check-ins table — shrink metric columns on narrow phones so date fits */
+  @media (max-width: 480px) {
+    .rcl-header, .rcl-row {
+      grid-template-columns: 34px 1fr 50px 50px 50px !important;
+      gap: 6px !important;
+    }
+  }
 `;

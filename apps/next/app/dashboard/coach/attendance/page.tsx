@@ -21,6 +21,14 @@ const IcoClipboard = () => (
   </svg>
 );
 
+// ─── Mobile CSS ─────────────────────────────────────────────────────
+const MOBILE_CSS = `
+  @media(max-width:640px){
+    .att-row-inner { flex-wrap: wrap; }
+    .att-save-bar  { flex-wrap: wrap; gap: 10px; }
+  }
+`;
+
 // ─── Config ─────────────────────────────────────────────────────────
 const STATUS_CFG: Record<string, { color: string; bg: string; border: string; label: string; icon: string }> = {
   Present: { color: '#059669', bg: '#ECFDF5', border: '#A7F3D0', label: 'Present', icon: '✓' },
@@ -99,7 +107,7 @@ function PlayerRow({ player, status, note, onSet, onNoteChange }: {
   const current = status ? STATUS_CFG[status] : null;
   return (
     <div style={{ borderRadius: 14, background: current ? current.bg : '#F8FAFC', border: `1.5px solid ${current ? current.border : '#E2E8F0'}`, transition: 'all 0.14s', borderLeft: `4px solid ${current ? current.color : '#CBD5E1'}`, overflow: 'hidden' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px' }}>
+      <div className="att-row-inner" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px' }}>
         <div style={{ width: 38, height: 38, borderRadius: '50%', flexShrink: 0, background: '#F5F3FF', border: '1.5px solid #DDD6FE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.75rem', color: '#7C3AED' }}>
           {initials(player.first_name, player.last_name)}
         </div>
@@ -289,6 +297,7 @@ function AttendanceInner() {
 
   return (
     <div style={{ animation: 'fadeIn 0.3s ease' }}>
+      <style dangerouslySetInnerHTML={{ __html: MOBILE_CSS }}/>
       {/* Header */}
       <div style={{ marginBottom: 28 }}>
         <h1 style={{ fontSize: '1.55rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.025em', lineHeight: 1.2, margin: 0 }}>Attendance Tracker</h1>
@@ -392,7 +401,7 @@ function AttendanceInner() {
 
               {/* Save bar */}
               {roster.length > 0 && (
-                <div style={{ marginTop: 16, padding: '14px 18px', background: savedSuccess ? '#ECFDF5' : '#fff', border: `1.5px solid ${savedSuccess ? '#A7F3D0' : '#E2E8F0'}`, borderRadius: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'all 0.2s' }}>
+                <div className="att-save-bar" style={{ marginTop: 16, padding: '14px 18px', background: savedSuccess ? '#ECFDF5' : '#fff', border: `1.5px solid ${savedSuccess ? '#A7F3D0' : '#E2E8F0'}`, borderRadius: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'all 0.2s' }}>
                   {savedSuccess ? (
                     <span style={{ fontSize: '0.875rem', color: '#059669', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 7 }}>
                       <span style={{ width: 22, height: 22, borderRadius: 99, background: '#059669', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>✓</span>

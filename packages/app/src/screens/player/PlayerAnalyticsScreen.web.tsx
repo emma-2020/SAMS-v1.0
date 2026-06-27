@@ -380,7 +380,7 @@ export function PlayerAnalyticsScreen() {
                 accent={`linear-gradient(90deg,${BRAND},${WARNING})`}
               >
                 {/* Column headers */}
-                <div style={{ display: 'grid', gridTemplateColumns: '40px 1fr 72px 72px 72px', gap: 12, padding: '0 4px 10px', borderBottom: '1px solid var(--border-subtle,#F1F5F9)', marginBottom: 4 }}>
+                <div className="rcl-header" style={{ display: 'grid', gridTemplateColumns: '40px 1fr 72px 72px 72px', gap: 12, padding: '0 4px 10px', borderBottom: '1px solid var(--border-subtle,#F1F5F9)', marginBottom: 4 }}>
                   <span />
                   <span style={{ fontSize: '0.62rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Date</span>
                   {[['Energy', SUCCESS], ['Recovery', WARNING], ['Sleep', INFO]].map(([lbl, col]) => (
@@ -400,6 +400,7 @@ export function PlayerAnalyticsScreen() {
                     return (
                       <div
                         key={i}
+                        className="rcl-row"
                         style={{
                           display: 'grid',
                           gridTemplateColumns: '40px 1fr 72px 72px 72px',
@@ -421,7 +422,7 @@ export function PlayerAnalyticsScreen() {
 
                         {/* Date + optional note */}
                         <div style={{ minWidth: 0 }}>
-                          <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
+                          <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {fmtDate(log.date)}
                           </div>
                           {log.notes && (
