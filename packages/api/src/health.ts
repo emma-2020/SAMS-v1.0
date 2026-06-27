@@ -28,6 +28,8 @@ function mapRow(d: Record<string, any>): HealthEntry {
     overall_score:   d.overall_score ?? Math.round((ePct + sPct + rPct) / 3),
     notes:           d.notes ?? null,
     submitted_at:    d.logged_at ?? d.submitted_at,
+    is_flagged:      d.is_flagged ?? false,
+    users:           d.users ?? null,
   };
 }
 

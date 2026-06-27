@@ -110,8 +110,10 @@ export interface HealthEntry {
   muscle_soreness: number;
   stress: number;
   overall_score: number;
-  notes?: string;
+  notes?: string | null;
   submitted_at: string;
+  is_flagged?: boolean;
+  users?: { id?: string; first_name: string; last_name: string } | null;
 }
 
 export interface WorkoutPlan {
