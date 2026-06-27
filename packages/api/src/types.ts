@@ -142,7 +142,7 @@ export interface ScheduleEvent {
   description?: string;
   start_time: string;
   end_time: string;
-  type: 'Practice' | 'Game';
+  type: 'Practice' | 'Game' | 'Training' | 'Match' | 'Friendly' | 'Recovery' | 'Meeting';
   location?: string;
 }
 

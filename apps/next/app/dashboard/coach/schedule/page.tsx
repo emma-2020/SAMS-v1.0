@@ -123,7 +123,7 @@ function CreateSessionModal({ teams, onClose, onCreated }: {
     try {
       const ev = await scheduleApi.createEvent({
         title:       form.title.trim(),
-        type:        form.type.toLowerCase() as ScheduleEvent['type'],
+        type:        form.type as ScheduleEvent['type'],
         location:    form.location.trim() || undefined,
         description: form.description.trim() || undefined,
         start_time:  new Date(`${form.date}T${form.start_time}`).toISOString(),
