@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { healthApi } from '@sams/api';
 import type { HealthEntry } from '@sams/api';
+import { useAuthStore } from '@sams/store';
 
 // ── CSS ────────────────────────────────────────────────────────────────────────
 const CSS = `
@@ -259,7 +260,7 @@ function InjuryArcGauge({ risk, m }: {
   const rA = risk === 'High' ? 150 : risk === 'Medium' ? 90 : 30;
   const toXY = (a: number) => ({
     x: 140 + 110 * Math.cos(Math.PI * (180 - a) / 180),
-    y: 130 - 110 * Math.sin(Math.PI * (180 - a) / 180),
+    y: 145 - 110 * Math.sin(Math.PI * (180 - a) / 180),
   });
   const seg = (a1: number, a2: number) => {
     const p1 = toXY(a1), p2 = toXY(a2);
@@ -281,23 +282,25 @@ function InjuryArcGauge({ risk, m }: {
         <span style={{ padding:'2px 9px', borderRadius:99, fontSize:'0.6rem', fontWeight:800, background:'rgba(109,40,217,.1)', color:'#7C3AED', border:'1px solid rgba(109,40,217,.2)', letterSpacing:'0.08em' }}>AI</span>
       </div>
       <div style={{ display:'flex', alignItems:'center', flexWrap:'wrap', padding:'0 22px 22px' }}>
-        <svg width={280} height={155} viewBox="0 0 280 155" style={{ flex:'0 0 auto', display:'block' }}>
+        <svg width={280} height={170} viewBox="0 0 280 170" style={{ flex:'0 0 auto', display:'block' }}>
           <path d={seg(0,180)} fill="none" stroke="var(--bg-elevated)" strokeWidth={16} strokeLinecap="round"/>
           <path d={seg(0,60)}  fill="none" stroke="#059669" strokeWidth={13} strokeLinecap="round" opacity={0.85}/>
           <path d={seg(60,120)} fill="none" stroke="#D97706" strokeWidth={13} strokeLinecap="round" opacity={0.85}/>
           <path d={seg(120,180)} fill="none" stroke="#DC2626" strokeWidth={13} strokeLinecap="round" opacity={0.85}/>
           {risk !== 'Unknown' && (
             <>
-              <line x1={140} y1={130} x2={np.x.toFixed(1)} y2={np.y.toFixed(1)} stroke={rC} strokeWidth={2.5} strokeLinecap="round" opacity={0.75}/>
+              <line x1={140} y1={145} x2={np.x.toFixed(1)} y2={np.y.toFixed(1)} stroke={rC} strokeWidth={2.5} strokeLinecap="round" opacity={0.75}/>
               <circle cx={np.x} cy={np.y} r={9} fill={rC} stroke="var(--bg-surface)" strokeWidth={3}/>
-              <circle cx={140} cy={130} r={5} fill={rC} stroke="var(--bg-surface)" strokeWidth={2}/>
+              <circle cx={140} cy={145} r={5} fill={rC} stroke="var(--bg-surface)" strokeWidth={2}/>
             </>
           )}
-          <text x={140} y={104} textAnchor="middle" fontSize={26} fontWeight={900} fill={rC} fontFamily="system-ui,sans-serif">{risk === 'Unknown' ? '—' : risk.toUpperCase()}</text>
-          <text x={140} y={120} textAnchor="middle" fontSize={9.5} fill="var(--text-muted)" fontFamily="system-ui,sans-serif" letterSpacing={1.5} fontWeight={700}>RISK LEVEL</text>
-          <text x={22}  y={150} textAnchor="middle" fontSize={9} fill="#059669" fontFamily="system-ui" fontWeight={700}>LOW</text>
-          <text x={140} y={18}  textAnchor="middle" fontSize={9} fill="#D97706" fontFamily="system-ui" fontWeight={700}>MED</text>
-          <text x={258} y={150} textAnchor="middle" fontSize={9} fill="#DC2626" fontFamily="system-ui" fontWeight={700}>HIGH</text>
+          <text x={140} y={119} textAnchor="middle" fontSize={26} fontWeight={900} fill={rC} fontFamily="system-ui,sans-serif">{risk === 'Unknown' ? '—' : risk.toUpperCase()}</text>
+          <text x={140} y={135} textAnchor="middle" fontSize={9.5} fill="var(--text-muted)" fontFamily="system-ui,sans-serif" letterSpacing={1.5} fontWeight={700}>RISK LEVEL</text>
+          <text x={22}  y={163} textAnchor="middle" fontSize={9} fill="#059669" fontFamily="system-ui" fontWeight={700}>LOW</text>
+          <text x={258} y={163} textAnchor="middle" fontSize={9} fill="#DC2626" fontFamily="system-ui" fontWeight={700}>HIGH</text>
+          {/* MED label placed inside the arc below the peak — contrasts against the surface, not the orange stroke */}
+          <rect x={122} y={37} width={36} height={14} rx={4} fill="var(--bg-surface)" opacity={0.9}/>
+          <text x={140} y={48} textAnchor="middle" fontSize={9} fill="#D97706" fontFamily="system-ui" fontWeight={800}>MED</text>
         </svg>
         <div style={{ flex:1, minWidth:160, paddingLeft:20, paddingTop:22 }}>
           <div style={{ fontSize:'0.68rem', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--text-muted)', marginBottom:12 }}>Contributing Factors</div>
@@ -400,7 +403,7 @@ function MiniCal({ dates }: { dates: string[] }) {
 }
 
 // ── Log Modal ──────────────────────────────────────────────────────────────────
-function LogModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
+function LogModal({ onClose, onDone, previewMode }: { onClose: () => void; onDone: () => void; previewMode: boolean }) {
   const [form, setForm] = useState({ energy: 3, sleep: 3, muscle_soreness: 3, stress: 3, notes: '' });
   const [busy, setBusy] = useState(false);
   const [err,  setErr]  = useState('');
@@ -426,6 +429,16 @@ function LogModal({ onClose, onDone }: { onClose: () => void; onDone: () => void
           </div>
           <button onClick={onClose} style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:10, width:34, height:34, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--text-muted)', fontSize:'1.1rem', fontWeight:700 }}>×</button>
         </div>
+        {previewMode ? (
+          <div style={{ padding:'28px 24px', display:'flex', flexDirection:'column', alignItems:'center', gap:14, textAlign:'center' }}>
+            <div style={{ width:52, height:52, borderRadius:14, background:'rgba(109,40,217,.1)', border:'1px solid rgba(109,40,217,.2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1.5rem' }}>👁️</div>
+            <div style={{ fontWeight:700, fontSize:'0.95rem', color:'var(--text-primary)' }}>Preview Mode</div>
+            <div style={{ fontSize:'0.82rem', color:'var(--text-muted)', maxWidth:280, lineHeight:1.6 }}>
+              You are viewing this page as an Admin. Wellness data can only be submitted by the player themselves.
+            </div>
+            <button onClick={onClose} style={{ marginTop:8, padding:'10px 24px', borderRadius:12, border:'1px solid var(--border-default)', background:'var(--bg-elevated)', color:'var(--text-secondary)', fontWeight:700, fontSize:'0.875rem', cursor:'pointer' }}>Close</button>
+          </div>
+        ) : (
         <form onSubmit={submit} style={{ padding:'20px 24px', display:'flex', flexDirection:'column', gap:20 }}>
           {FIELDS.map(({ key, label, desc, icon, color }) => (
             <div key={key}>
@@ -456,6 +469,7 @@ function LogModal({ onClose, onDone }: { onClose: () => void; onDone: () => void
             {busy ? 'Submitting…' : 'Submit Check-in'}
           </button>
         </form>
+        )}
       </div>
     </div>
   );
@@ -488,6 +502,9 @@ export default function PlayerHealthPage() {
   const [history,  setHistory]  = useState<HealthEntry[]>([]);
   const [tab,      setTab]      = useState<Tab>('Overview');
   const [showLog,  setShowLog]  = useState(false);
+
+  const userRole   = useAuthStore(s => s.user?.role);
+  const previewMode = !!userRole && userRole !== 'Player';
 
   const load = () => healthApi.getMyHealth().then(setHistory).catch(() => {});
   useEffect(() => { load(); }, []);
@@ -543,7 +560,7 @@ export default function PlayerHealthPage() {
   return (
     <div style={{ animation:'slideUp .3s ease' }}>
       <style dangerouslySetInnerHTML={{ __html: CSS }}/>
-      {showLog && <LogModal onClose={() => setShowLog(false)} onDone={load}/>}
+      {showLog && <LogModal onClose={() => setShowLog(false)} onDone={load} previewMode={previewMode}/>}
 
       {/* ── Header ─────────────────────────────────────────────── */}
       <div className="page-header-row" style={{ marginBottom:24 }}>
