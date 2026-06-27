@@ -74,6 +74,11 @@ const CSS = `
     .hk  { padding:14px 12px; }
     .htab{ padding:9px 10px; font-size:.76rem; }
   }
+  @media(max-width:400px){
+    .hg4  { grid-template-columns:1fr; }
+    .hg2  { grid-template-columns:1fr; }
+    .hg21 { grid-template-columns:1fr; }
+  }
 
   /* Log modal */
   .log-modal-overlay {

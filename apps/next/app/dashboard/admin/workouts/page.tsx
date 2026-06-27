@@ -275,7 +275,7 @@ export default function AdminWorkoutsPage() {
 
       {/* ── Loading skeletons ────────────────────────────────────────────────── */}
       {loading && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20, alignItems: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(320px, 100%), 1fr))', gap: 20, alignItems: 'start' }}>
           {[1, 2, 3].map(i => <div key={i} className="skeleton" style={{ height: 220, borderRadius: 20 }} />)}
         </div>
       )}
@@ -302,7 +302,7 @@ export default function AdminWorkoutsPage() {
 
       {/* ── Workout grid ─────────────────────────────────────────────────────── */}
       {!loading && filtered.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20, alignItems: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(320px, 100%), 1fr))', gap: 20, alignItems: 'start' }}>
           {filtered.map(w => (
             <WorkoutCard
               key={w.id}

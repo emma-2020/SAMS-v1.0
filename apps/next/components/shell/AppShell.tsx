@@ -529,7 +529,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             onClick={() => setSidebarOpen(true)}
             onTouchStart={() => setSidebarOpen(true)}
             className="topbar-mobile"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: 6, borderRadius: 8, touchAction: 'manipulation' }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: 10, borderRadius: 8, touchAction: 'manipulation' }}
           >
             <Menu size={20} />
           </button>

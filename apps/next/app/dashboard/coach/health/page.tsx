@@ -49,6 +49,10 @@ const CSS = `
     .hg5 { grid-template-columns:1fr 1fr; gap:8px; }
     .hk  { padding:14px 12px; }
   }
+  @media(max-width:400px) {
+    .hg5 { grid-template-columns:1fr; }
+    .hg2 { grid-template-columns:1fr; }
+  }
 
   /* Table */
   .h-table { width:100%; border-collapse:collapse; }

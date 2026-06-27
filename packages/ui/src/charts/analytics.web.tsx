@@ -670,4 +670,7 @@ export const ANALYTICS_CSS = `
   @media (max-width: 480px) {
     .analytics-kpi-grid { grid-template-columns: 1fr 1fr; }
   }
+  @media (max-width: 400px) {
+    .analytics-kpi-grid { grid-template-columns: 1fr; gap: 10px; }
+  }
 `;
