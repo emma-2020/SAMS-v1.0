@@ -266,7 +266,14 @@ function InjuryArcGauge({ risk, m }: {
     const p1 = toXY(a1), p2 = toXY(a2);
     return `M ${p1.x.toFixed(1)},${p1.y.toFixed(1)} A 110,110 0 0,1 ${p2.x.toFixed(1)},${p2.y.toFixed(1)}`;
   };
-  const np = toXY(rA);
+  // Animate needle: start at far-left (-90°) and sweep to target on mount
+  const [animated, setAnimated] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setAnimated(true), 80);
+    return () => clearTimeout(t);
+  }, []);
+  // Arc angle α (0=left, 90=top, 180=right) → CSS rotation from 12-o'clock
+  const needleDeg = animated ? rA - 90 : -90;
   const factors = [
     { label:'Soreness', pct:m.recovery, bad: m.recovery < 50 },
     { label:'Stress',   pct:m.stress,   bad: m.stress   < 50 },
@@ -289,8 +296,11 @@ function InjuryArcGauge({ risk, m }: {
           <path d={seg(120,180)} fill="none" stroke="#DC2626" strokeWidth={13} strokeLinecap="round" opacity={0.85}/>
           {risk !== 'Unknown' && (
             <>
-              <line x1={140} y1={145} x2={np.x.toFixed(1)} y2={np.y.toFixed(1)} stroke={rC} strokeWidth={2.5} strokeLinecap="round" opacity={0.75}/>
-              <circle cx={np.x} cy={np.y} r={9} fill={rC} stroke="var(--bg-surface)" strokeWidth={3}/>
+              {/* Needle rotates from far-left to target on each tab visit */}
+              <g style={{ transform:`rotate(${needleDeg}deg)`, transformOrigin:'140px 145px', transition: animated ? 'transform 1.3s cubic-bezier(.34,1.56,.64,1)' : 'none' }}>
+                <line x1={140} y1={145} x2={140} y2={35} stroke={rC} strokeWidth={2.5} strokeLinecap="round" opacity={0.8}/>
+                <circle cx={140} cy={35} r={9} fill={rC} stroke="var(--bg-surface)" strokeWidth={3}/>
+              </g>
               <circle cx={140} cy={145} r={5} fill={rC} stroke="var(--bg-surface)" strokeWidth={2}/>
             </>
           )}
