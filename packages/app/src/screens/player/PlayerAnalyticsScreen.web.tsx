@@ -24,23 +24,6 @@ function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-function metricBar(label: string, raw: number, color: string, invert = true) {
-  const pct = invert
-    ? Math.round(((5 - raw) / 4) * 100)
-    : Math.round(((raw - 1) / 4) * 100);
-  return (
-    <div style={{ marginBottom: 8 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary,#475569)', fontWeight: 500 }}>{label}</span>
-        <span style={{ fontSize: '0.75rem', fontWeight: 700, color }}>{pct}%</span>
-      </div>
-      <div style={{ height: 6, borderRadius: 99, background: 'var(--bg-elevated,#F1F5F9)', overflow: 'hidden' }}>
-        <div style={{ width: `${pct}%`, height: '100%', borderRadius: 99, background: color, transition: 'width 0.9s cubic-bezier(0.34,1.56,0.64,1)' }} />
-      </div>
-    </div>
-  );
-}
-
 // ── Performance tab ────────────────────────────────────────────────────────────
 
 function PerformanceTab({
@@ -389,30 +372,91 @@ export function PlayerAnalyticsScreen() {
               </SectionCard>
             </div>
 
-            {/* ── Recent check-ins ── */}
+            {/* ── Recent check-ins (compact table) ── */}
             {data.recentLogs.length > 0 && (
               <SectionCard
                 title="Recent Check-ins"
                 subtitle="Your last 5 wellness submissions"
                 accent={`linear-gradient(90deg,${BRAND},${WARNING})`}
               >
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {/* Column headers */}
+                <div style={{ display: 'grid', gridTemplateColumns: '40px 1fr 72px 72px 72px', gap: 12, padding: '0 4px 10px', borderBottom: '1px solid var(--border-subtle,#F1F5F9)', marginBottom: 4 }}>
+                  <span />
+                  <span style={{ fontSize: '0.62rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Date</span>
+                  {[['Energy', SUCCESS], ['Recovery', WARNING], ['Sleep', INFO]].map(([lbl, col]) => (
+                    <span key={lbl} style={{ fontSize: '0.62rem', fontWeight: 700, color: col as string, textTransform: 'uppercase', letterSpacing: '0.06em', textAlign: 'center' }}>{lbl}</span>
+                  ))}
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
                   {data.recentLogs.map((log, i) => {
-                    const c = log.score >= 70 ? SUCCESS : log.score >= 45 ? WARNING : DANGER;
+                    const c        = log.score >= 70 ? SUCCESS : log.score >= 45 ? WARNING : DANGER;
+                    const label    = log.score >= 70 ? 'Fit' : log.score >= 45 ? 'Mod' : 'Low';
+                    const energy   = Math.round(((5 - log.fatigue)      / 4) * 100);
+                    const recovery = Math.round(((5 - log.soreness)     / 4) * 100);
+                    const sleep    = Math.round(((log.sleep - 1)        / 4) * 100);
+                    const isLast   = i === data.recentLogs.length - 1;
+
                     return (
-                      <div key={i} style={{ padding: '14px 16px', borderRadius: 12, background: 'var(--bg-elevated,#F8FAFC)', border: '1px solid var(--border-subtle,#F1F5F9)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                          <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{fmtDate(log.date)}</span>
-                          <span style={{ fontSize: '1rem', fontWeight: 900, color: c }}>{log.score}<span style={{ fontSize: '0.65rem', fontWeight: 600, color: 'var(--text-muted)' }}>/100</span></span>
+                      <div
+                        key={i}
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: '40px 1fr 72px 72px 72px',
+                          gap: 12,
+                          padding: '10px 4px',
+                          borderBottom: isLast ? 'none' : '1px solid var(--border-subtle,#F1F5F9)',
+                          alignItems: 'center',
+                        }}
+                      >
+                        {/* Score bubble */}
+                        <div style={{
+                          width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
+                          background: `${c}12`, border: `2px solid ${c}40`,
+                          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                          <span style={{ fontSize: '0.7rem', fontWeight: 900, color: c, lineHeight: 1 }}>{log.score}</span>
+                          <span style={{ fontSize: '0.48rem', fontWeight: 700, color: c, opacity: 0.7, lineHeight: 1, marginTop: 1 }}>{label}</span>
                         </div>
-                        {metricBar('Energy',   log.fatigue,  SUCCESS, true)}
-                        {metricBar('Recovery', log.soreness, WARNING, true)}
-                        {metricBar('Sleep',    log.sleep,    INFO,    false)}
-                        {log.notes && (
-                          <div style={{ marginTop: 8, fontSize: '0.72rem', color: 'var(--text-muted)', fontStyle: 'italic', borderTop: '1px solid var(--border-subtle,#F1F5F9)', paddingTop: 8 }}>
-                            "{log.notes}"
+
+                        {/* Date + optional note */}
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
+                            {fmtDate(log.date)}
                           </div>
-                        )}
+                          {log.notes && (
+                            <div style={{
+                              fontSize: '0.65rem', color: 'var(--text-muted)', fontStyle: 'italic',
+                              marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                            }}>
+                              "{log.notes}"
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Energy chip */}
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: '0.78rem', fontWeight: 800, color: SUCCESS, marginBottom: 3 }}>{energy}%</div>
+                          <div style={{ height: 4, borderRadius: 99, background: 'var(--bg-elevated,#F1F5F9)', overflow: 'hidden' }}>
+                            <div style={{ width: `${energy}%`, height: '100%', borderRadius: 99, background: SUCCESS, transition: 'width 0.8s ease' }} />
+                          </div>
+                        </div>
+
+                        {/* Recovery chip */}
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: '0.78rem', fontWeight: 800, color: WARNING, marginBottom: 3 }}>{recovery}%</div>
+                          <div style={{ height: 4, borderRadius: 99, background: 'var(--bg-elevated,#F1F5F9)', overflow: 'hidden' }}>
+                            <div style={{ width: `${recovery}%`, height: '100%', borderRadius: 99, background: WARNING, transition: 'width 0.8s ease' }} />
+                          </div>
+                        </div>
+
+                        {/* Sleep chip */}
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: '0.78rem', fontWeight: 800, color: INFO, marginBottom: 3 }}>{sleep}%</div>
+                          <div style={{ height: 4, borderRadius: 99, background: 'var(--bg-elevated,#F1F5F9)', overflow: 'hidden' }}>
+                            <div style={{ width: `${sleep}%`, height: '100%', borderRadius: 99, background: INFO, transition: 'width 0.8s ease' }} />
+                          </div>
+                        </div>
                       </div>
                     );
                   })}
