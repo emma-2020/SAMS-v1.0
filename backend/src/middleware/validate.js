@@ -50,8 +50,8 @@ const validateScheduleQuery = runChecks([
     }
   },
   ({ query }) => {
-    if (query.type && !['Practice', 'Game'].includes(query.type)) {
-      return 'Query param "type" must be "Practice" or "Game".';
+    if (query.type && !['Practice', 'Game', 'Training', 'Match', 'Friendly', 'Recovery', 'Meeting'].includes(query.type)) {
+      return 'Query param "type" must be one of: Practice, Game, Training, Match, Friendly, Recovery, Meeting.';
     }
   },
 ]);
@@ -227,8 +227,8 @@ const validateCreateEventBody = runChecks([
     }
   },
   ({ body }) => {
-    if (!['Practice', 'Game'].includes(body.type)) {
-      return '"type" must be "Practice" or "Game".';
+    if (!['Practice', 'Game', 'Training', 'Match', 'Friendly', 'Recovery', 'Meeting'].includes(body.type)) {
+      return '"type" must be one of: Practice, Game, Training, Match, Friendly, Recovery, Meeting.';
     }
   },
   ({ body }) => {
@@ -261,8 +261,8 @@ const validateUpdateEventBody = runChecks([
     }
   },
   ({ body }) => {
-    if (body.type !== undefined && !['Practice', 'Game'].includes(body.type)) {
-      return '"type" must be "Practice" or "Game".';
+    if (body.type !== undefined && !['Practice', 'Game', 'Training', 'Match', 'Friendly', 'Recovery', 'Meeting'].includes(body.type)) {
+      return '"type" must be one of: Practice, Game, Training, Match, Friendly, Recovery, Meeting.';
     }
   },
   ({ body }) => {
