@@ -11,6 +11,9 @@ export { CoachAnalyticsScreen } from './screens/coach/CoachAnalyticsScreen';
 export { PlayerAnalyticsScreen } from './screens/player/PlayerAnalyticsScreen';
 export { ParentAnalyticsScreen } from './screens/parent/ParentAnalyticsScreen';
 
+// Components
+export { AnnouncementsBanner } from './components/AnnouncementsBanner';
+
 // Navigation
 export { NAV_CONFIG, ROLE_DASHBOARD } from './navigation/config';
 export type { NavItem } from './navigation/config';
