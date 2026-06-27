@@ -54,6 +54,13 @@ const CSS = `
     .hg2 { grid-template-columns:1fr; }
   }
 
+  /* Alert card — collapse to 2 rows on mobile */
+  @media(max-width:640px){
+    .alert-card       { flex-wrap:wrap; gap:10px; }
+    .alert-card-chips { width:100%; flex:none; justify-content:flex-start; padding-left:66px; }
+    .alert-card-date  { display:none; }
+  }
+
   /* Table */
   .h-table { width:100%; border-collapse:collapse; }
   .h-table thead tr { background:var(--bg-elevated); }
@@ -367,6 +374,7 @@ function AlertCard({ alert }: { alert: HealthEntry }) {
     <div
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
+      className="alert-card"
       style={{ display:'flex', alignItems:'center', gap:14, padding:'14px 16px', borderRadius:14,
         background:hov ? 'rgba(220,38,38,.06)' : 'rgba(220,38,38,.03)',
         border:'1px solid rgba(220,38,38,.14)', borderLeft:'4px solid #DC2626', transition:'all .2s' }}>
@@ -393,7 +401,7 @@ function AlertCard({ alert }: { alert: HealthEntry }) {
       </div>
 
       {/* Metric chips */}
-      <div style={{ flex:1, display:'flex', gap:6, flexWrap:'wrap', justifyContent:'center' }}>
+      <div className="alert-card-chips" style={{ flex:1, display:'flex', gap:6, flexWrap:'wrap', justifyContent:'center' }}>
         {metrics.map(s => {
           const pct = s.low ? (1 - ((s.v as number) - 1) / 4) * 100 : (((s.v as number) - 1) / 4) * 100;
           const mc  = pct >= 65 ? '#059669' : pct >= 35 ? '#D97706' : '#DC2626';
@@ -411,7 +419,7 @@ function AlertCard({ alert }: { alert: HealthEntry }) {
       </div>
 
       {/* Date */}
-      <div style={{ textAlign:'right', flexShrink:0 }}>
+      <div className="alert-card-date" style={{ textAlign:'right', flexShrink:0 }}>
         <div style={{ fontSize:'0.7rem', fontWeight:700, color:'#92400E' }}>{fmtDate(alert.submitted_at)}</div>
         {alert.notes && (
           <div style={{ fontSize:'0.65rem', color:'#A16207', marginTop:4, fontStyle:'italic', maxWidth:130,

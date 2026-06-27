@@ -80,6 +80,11 @@ const CSS = `
     .hg21 { grid-template-columns:1fr; }
   }
 
+  /* AI Health Assessment 2×2 grid — inline style, needs !important override */
+  @media(max-width:640px){
+    .ai-assess-grid { grid-template-columns:1fr !important; }
+  }
+
   /* Log modal */
   .log-modal-overlay {
     position:fixed; inset:0; z-index:300;
@@ -794,7 +799,7 @@ export default function PlayerHealthPage() {
                 Log your wellness to receive AI-powered medical insights.
               </div>
             ) : (
-              <div style={{ padding:'20px 22px', display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
+              <div className="ai-assess-grid" style={{ padding:'20px 22px', display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
                 <AssessmentCard label="Energy Level"      pct={m.energy}   raw={latest.energy}           color="#059669" icon="⚡" desc="Vitality & stamina"/>
                 <AssessmentCard label="Sleep Quality"     pct={m.sleep}    raw={latest.sleep}             color="#6D28D9" icon="😴" desc="Recovery sleep"/>
                 <AssessmentCard label="Recovery Status"   pct={m.recovery} raw={latest.muscle_soreness}  color="#0891B2" icon="💪" desc="Muscle readiness"/>
