@@ -57,7 +57,7 @@ export interface MyWellnessAnalytics {
     totalLogs:   number;
     sparkline:   { v: number }[];
   };
-  trend:      { date: string; score: number }[];
+  trend:      { date: string; score: number; energy: number; sleep: number; recovery: number }[];
   recentLogs: {
     date:     string;
     score:    number;
@@ -67,6 +67,19 @@ export interface MyWellnessAnalytics {
     notes:    string | null;
   }[];
   heatmap: Record<string, number>;
+}
+
+export interface MyAttendanceAnalytics {
+  kpis: {
+    rate:         number;
+    present:      number;
+    absent:       number;
+    late:         number;
+    total:        number;
+    gfaEligible: boolean | null;
+  };
+  monthlyTrend: { month: string; present: number; absent: number; late: number; rate: number }[];
+  breakdown:    { name: string; value: number; color: string }[];
 }
 
 export interface ParentAnalytics {
@@ -139,6 +152,11 @@ export async function getWellnessAnalytics(days = 30): Promise<WellnessAnalytics
 
 export async function getMyWellnessAnalytics(days = 60): Promise<MyWellnessAnalytics> {
   const res = (await apiClient.get(`/analytics/wellness/me?days=${days}`)) as { success: boolean; data: MyWellnessAnalytics };
+  return res.data;
+}
+
+export async function getMyAttendanceAnalytics(): Promise<MyAttendanceAnalytics> {
+  const res = (await apiClient.get('/analytics/attendance/me')) as { success: boolean; data: MyAttendanceAnalytics };
   return res.data;
 }
 

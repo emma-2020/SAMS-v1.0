@@ -65,6 +65,16 @@ async function getPlayerDetail(req, res, next) {
   } catch (err) { next(err); }
 }
 
+async function getMyAttendanceAnalytics(req, res, next) {
+  try {
+    const data = await analytics.getMyAttendanceAnalytics({
+      academyId: req.academyId,
+      userId:    req.user.id,
+    });
+    res.json({ success: true, data });
+  } catch (err) { next(err); }
+}
+
 async function getAnalyticsSummary(req, res, next) {
   try {
     const data = await analytics.getAnalyticsSummary({ academyId: req.academyId });
@@ -74,5 +84,6 @@ async function getAnalyticsSummary(req, res, next) {
 
 module.exports = {
   getFeeAnalytics, getAttendanceAnalytics, getWellnessAnalytics, getMyWellnessAnalytics,
-  getParentAnalytics, getWorkoutAnalytics, getTeamComparison, getPlayerDetail, getAnalyticsSummary,
+  getMyAttendanceAnalytics, getParentAnalytics, getWorkoutAnalytics, getTeamComparison,
+  getPlayerDetail, getAnalyticsSummary,
 };

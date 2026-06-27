@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { healthApi } from '@sams/api';
 import type { HealthEntry } from '@sams/api';
+import { useAuthStore } from '@sams/store';
 
 // ── CSS ────────────────────────────────────────────────────────────────────────
 const CSS = `
@@ -17,6 +18,10 @@ const CSS = `
   @keyframes slideUp {
     from{ opacity:0; transform:translateY(14px); }
     to  { opacity:1; transform:translateY(0); }
+  }
+  @keyframes critPulse {
+    0%,100%{ opacity:1; }
+    50%{ opacity:.5; }
   }
 
   /* Card system */
@@ -246,6 +251,129 @@ function AIRec({ type, color, icon, text }: { type: string; color: string; icon:
   );
 }
 
+// ── Injury Arc Gauge (AI Medical Insights tab) ────────────────────────────────
+function InjuryArcGauge({ risk, m }: {
+  risk: 'High' | 'Medium' | 'Low' | 'Unknown';
+  m: { energy:number; sleep:number; recovery:number; stress:number };
+}) {
+  const rC = risk === 'High' ? '#DC2626' : risk === 'Medium' ? '#D97706' : risk === 'Low' ? '#059669' : '#94A3B8';
+  const rA = risk === 'High' ? 150 : risk === 'Medium' ? 90 : 30;
+  const toXY = (a: number) => ({
+    x: 140 + 110 * Math.cos(Math.PI * (180 - a) / 180),
+    y: 145 - 110 * Math.sin(Math.PI * (180 - a) / 180),
+  });
+  const seg = (a1: number, a2: number) => {
+    const p1 = toXY(a1), p2 = toXY(a2);
+    return `M ${p1.x.toFixed(1)},${p1.y.toFixed(1)} A 110,110 0 0,1 ${p2.x.toFixed(1)},${p2.y.toFixed(1)}`;
+  };
+  // Animate needle: start at far-left (-90°) and sweep to target on mount
+  const [animated, setAnimated] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setAnimated(true), 80);
+    return () => clearTimeout(t);
+  }, []);
+  // Arc angle α (0=left, 90=top, 180=right) → CSS rotation from 12-o'clock
+  const needleDeg = animated ? rA - 90 : -90;
+  const factors = [
+    { label:'Soreness', pct:m.recovery, bad: m.recovery < 50 },
+    { label:'Stress',   pct:m.stress,   bad: m.stress   < 50 },
+    { label:'Energy',   pct:m.energy,   bad: m.energy   < 50 },
+  ];
+  return (
+    <div className="hc">
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 22px', borderBottom:'1px solid var(--border-subtle)' }}>
+        <div>
+          <div style={{ fontWeight:700, fontSize:'0.92rem', color:'var(--text-primary)' }}>Injury Risk Assessment</div>
+          <div style={{ fontSize:'0.72rem', color:'var(--text-muted)', marginTop:2 }}>AI prediction from your wellness data</div>
+        </div>
+        <span style={{ padding:'2px 9px', borderRadius:99, fontSize:'0.6rem', fontWeight:800, background:'rgba(109,40,217,.1)', color:'#7C3AED', border:'1px solid rgba(109,40,217,.2)', letterSpacing:'0.08em' }}>AI</span>
+      </div>
+      <div style={{ display:'flex', alignItems:'center', flexWrap:'wrap', padding:'0 22px 22px' }}>
+        <svg width={280} height={170} viewBox="0 0 280 170" style={{ flex:'0 0 auto', display:'block' }}>
+          <path d={seg(0,180)} fill="none" stroke="var(--bg-elevated)" strokeWidth={16} strokeLinecap="round"/>
+          <path d={seg(0,60)}  fill="none" stroke="#059669" strokeWidth={13} strokeLinecap="round" opacity={0.85}/>
+          <path d={seg(60,120)} fill="none" stroke="#D97706" strokeWidth={13} strokeLinecap="round" opacity={0.85}/>
+          <path d={seg(120,180)} fill="none" stroke="#DC2626" strokeWidth={13} strokeLinecap="round" opacity={0.85}/>
+          {risk !== 'Unknown' && (
+            <>
+              {/* Needle rotates from far-left to target on each tab visit */}
+              <g style={{ transform:`rotate(${needleDeg}deg)`, transformOrigin:'140px 145px', transition: animated ? 'transform 1.3s cubic-bezier(.34,1.56,.64,1)' : 'none' }}>
+                <line x1={140} y1={145} x2={140} y2={35} stroke={rC} strokeWidth={2.5} strokeLinecap="round" opacity={0.8}/>
+                <circle cx={140} cy={35} r={9} fill={rC} stroke="var(--bg-surface)" strokeWidth={3}/>
+              </g>
+              <circle cx={140} cy={145} r={5} fill={rC} stroke="var(--bg-surface)" strokeWidth={2}/>
+            </>
+          )}
+          <text x={140} y={119} textAnchor="middle" fontSize={26} fontWeight={900} fill={rC} fontFamily="system-ui,sans-serif">{risk === 'Unknown' ? '—' : risk.toUpperCase()}</text>
+          <text x={140} y={135} textAnchor="middle" fontSize={9.5} fill="var(--text-muted)" fontFamily="system-ui,sans-serif" letterSpacing={1.5} fontWeight={700}>RISK LEVEL</text>
+          <text x={22}  y={163} textAnchor="middle" fontSize={9} fill="#059669" fontFamily="system-ui" fontWeight={700}>LOW</text>
+          <text x={258} y={163} textAnchor="middle" fontSize={9} fill="#DC2626" fontFamily="system-ui" fontWeight={700}>HIGH</text>
+          {/* MED label placed inside the arc below the peak — contrasts against the surface, not the orange stroke */}
+          <rect x={122} y={37} width={36} height={14} rx={4} fill="var(--bg-surface)" opacity={0.9}/>
+          <text x={140} y={48} textAnchor="middle" fontSize={9} fill="#D97706" fontFamily="system-ui" fontWeight={800}>MED</text>
+        </svg>
+        <div style={{ flex:1, minWidth:160, paddingLeft:20, paddingTop:22 }}>
+          <div style={{ fontSize:'0.68rem', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--text-muted)', marginBottom:12 }}>Contributing Factors</div>
+          {factors.map(({ label, pct, bad }) => (
+            <div key={label} style={{ marginBottom:11 }}>
+              <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
+                <span style={{ fontSize:'0.77rem', fontWeight:600, color:'var(--text-secondary)' }}>{label}</span>
+                <span style={{ fontSize:'0.72rem', fontWeight:800, color: bad ? '#DC2626' : '#059669' }}>{pct}%</span>
+              </div>
+              <div style={{ height:5, borderRadius:99, background:'var(--bg-elevated)', overflow:'hidden' }}>
+                <div style={{ height:'100%', borderRadius:99, width:`${Math.max(pct, pct===0 ? 0 : 3)}%`, background: bad ? 'linear-gradient(90deg,#DC262660,#DC2626)' : 'linear-gradient(90deg,#05966960,#059669)', transition:'width 1.2s ease' }}/>
+              </div>
+            </div>
+          ))}
+          <div style={{ marginTop:16, padding:'10px 14px', borderRadius:12, background:`${rC}08`, border:`1px solid ${rC}18` }}>
+            <p style={{ margin:0, fontSize:'0.72rem', color:'var(--text-secondary)', lineHeight:1.6 }}>
+              {risk === 'Low'    ? '✓ Low risk indicators. Maintain current training load.' :
+               risk === 'Medium' ? '⚡ Moderate risk. Consider reducing intensity for 24–48h.' :
+               risk === 'High'   ? '⚠️ Multiple risk factors. Rest recommended before next session.' :
+               'Log your wellness to generate an injury risk prediction.'}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Assessment Card (for AI Medical Insights 2×2 grid) ────────────────────────
+function AssessmentCard({ label, pct, raw, color, icon, desc }: {
+  label:string; pct:number; raw:number; color:string; icon:string; desc:string;
+}) {
+  const critical = pct < 20;
+  const low      = pct < 40;
+  const dc       = critical ? '#DC2626' : low ? '#D97706' : color;
+  const status   = pct >= 70 ? 'Optimal' : pct >= 40 ? 'Fair' : pct >= 20 ? 'Low' : 'Critical';
+  return (
+    <div style={{ padding:'16px', borderRadius:16, background: critical ? 'rgba(220,38,38,.03)' : `${color}03`, border:`1px solid ${critical ? 'rgba(220,38,38,.18)' : color+'16'}` }}>
+      <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:11 }}>
+        <div style={{ width:36, height:36, borderRadius:10, background:`${dc}12`, border:`1px solid ${dc}20`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1rem', flexShrink:0 }}>{icon}</div>
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ fontSize:'0.77rem', fontWeight:700, color:'var(--text-primary)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{label}</div>
+          <div style={{ fontSize:'0.63rem', color:'var(--text-muted)' }}>{desc}</div>
+        </div>
+        {critical && <span style={{ flexShrink:0, padding:'2px 7px', borderRadius:99, fontSize:'0.57rem', fontWeight:800, background:'rgba(220,38,38,.1)', color:'#DC2626', border:'1px solid rgba(220,38,38,.2)', textTransform:'uppercase', letterSpacing:'0.06em', animation:'critPulse 2s infinite' }}>Critical</span>}
+      </div>
+      <div style={{ display:'flex', alignItems:'baseline', gap:6, marginBottom:8 }}>
+        <span style={{ fontSize:'1.9rem', fontWeight:900, letterSpacing:'-0.04em', color:dc, lineHeight:1 }}>{pct}%</span>
+        <span style={{ fontSize:'0.7rem', color:'var(--text-muted)' }}>{raw}/5</span>
+      </div>
+      <div style={{ height:6, borderRadius:99, background: pct===0 ? 'rgba(220,38,38,.07)' : 'var(--bg-elevated)', overflow:'hidden', position:'relative' }}>
+        {pct === 0
+          ? <div style={{ position:'absolute', inset:0, background:'repeating-linear-gradient(45deg,rgba(220,38,38,.18) 0,rgba(220,38,38,.18) 4px,transparent 4px,transparent 8px)' }}/>
+          : <div style={{ height:'100%', borderRadius:99, width:`${Math.max(pct,3)}%`, background:`linear-gradient(90deg,${dc}70,${dc})`, boxShadow:`0 0 6px ${dc}44`, transition:'width 1.2s cubic-bezier(.4,0,.2,1)' }}/>
+        }
+      </div>
+      <div style={{ marginTop:7, display:'flex', justifyContent:'flex-end' }}>
+        <span style={{ padding:'2px 8px', borderRadius:99, fontSize:'0.62rem', fontWeight:700, background:`${dc}10`, color:dc, border:`1px solid ${dc}18` }}>{status}</span>
+      </div>
+    </div>
+  );
+}
+
 // ── Mini Calendar ──────────────────────────────────────────────────────────────
 function MiniCal({ dates }: { dates: string[] }) {
   const now = new Date(), y = now.getFullYear(), m = now.getMonth();
@@ -285,7 +413,7 @@ function MiniCal({ dates }: { dates: string[] }) {
 }
 
 // ── Log Modal ──────────────────────────────────────────────────────────────────
-function LogModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
+function LogModal({ onClose, onDone, previewMode }: { onClose: () => void; onDone: () => void; previewMode: boolean }) {
   const [form, setForm] = useState({ energy: 3, sleep: 3, muscle_soreness: 3, stress: 3, notes: '' });
   const [busy, setBusy] = useState(false);
   const [err,  setErr]  = useState('');
@@ -311,6 +439,16 @@ function LogModal({ onClose, onDone }: { onClose: () => void; onDone: () => void
           </div>
           <button onClick={onClose} style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:10, width:34, height:34, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--text-muted)', fontSize:'1.1rem', fontWeight:700 }}>×</button>
         </div>
+        {previewMode ? (
+          <div style={{ padding:'28px 24px', display:'flex', flexDirection:'column', alignItems:'center', gap:14, textAlign:'center' }}>
+            <div style={{ width:52, height:52, borderRadius:14, background:'rgba(109,40,217,.1)', border:'1px solid rgba(109,40,217,.2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1.5rem' }}>👁️</div>
+            <div style={{ fontWeight:700, fontSize:'0.95rem', color:'var(--text-primary)' }}>Preview Mode</div>
+            <div style={{ fontSize:'0.82rem', color:'var(--text-muted)', maxWidth:280, lineHeight:1.6 }}>
+              You are viewing this page as an Admin. Wellness data can only be submitted by the player themselves.
+            </div>
+            <button onClick={onClose} style={{ marginTop:8, padding:'10px 24px', borderRadius:12, border:'1px solid var(--border-default)', background:'var(--bg-elevated)', color:'var(--text-secondary)', fontWeight:700, fontSize:'0.875rem', cursor:'pointer' }}>Close</button>
+          </div>
+        ) : (
         <form onSubmit={submit} style={{ padding:'20px 24px', display:'flex', flexDirection:'column', gap:20 }}>
           {FIELDS.map(({ key, label, desc, icon, color }) => (
             <div key={key}>
@@ -341,6 +479,7 @@ function LogModal({ onClose, onDone }: { onClose: () => void; onDone: () => void
             {busy ? 'Submitting…' : 'Submit Check-in'}
           </button>
         </form>
+        )}
       </div>
     </div>
   );
@@ -374,6 +513,9 @@ export default function PlayerHealthPage() {
   const [tab,      setTab]      = useState<Tab>('Overview');
   const [showLog,  setShowLog]  = useState(false);
 
+  const userRole   = useAuthStore(s => s.user?.role);
+  const previewMode = !!userRole && userRole !== 'Player';
+
   const load = () => healthApi.getMyHealth().then(setHistory).catch(() => {});
   useEffect(() => { load(); }, []);
 
@@ -394,6 +536,18 @@ export default function PlayerHealthPage() {
 
   const recs  = useMemo(() => buildRecs(latest), [latest]);
   const trend = useMemo(() => [...history].reverse().slice(-6), [history]);
+  const protocols = useMemo(() => {
+    const base = [
+      { icon:'💤', title:'Sleep Target',  duration:'8–9 hours',  color:'#6D28D9', note:'Deep sleep accelerates repair',       score: m.sleep    },
+      { icon:'🧊', title:'Ice Bath',       duration:'12–15 min',  color:'#0891B2', note:'Reduces post-session inflammation',   score: m.recovery },
+      { icon:'💧', title:'Hydration',      duration:'3.5 L/day',  color:'#059669', note:'Electrolytes after sprint drills',    score: m.energy   },
+      { icon:'🧘', title:'Mental Reset',   duration:'20 min',     color:'#D97706', note:'Reduce cortisol and improve focus',   score: m.stress   },
+    ];
+    if (!latest) return base.map(p => ({ ...p, status:'Recommended' }));
+    return base
+      .map(p => ({ ...p, status: p.score < 40 ? 'Priority' : p.score < 70 ? 'Recommended' : 'On Track' }))
+      .sort((a, b) => a.score - b.score);
+  }, [m, latest]);
   const todayLogged = !!latest && new Date(latest.submitted_at).toDateString() === new Date().toDateString();
   const dates       = history.map(e => e.submitted_at);
   const avgScore    = history.length ? Math.round(history.reduce((a, e) => a + (e.overall_score ?? 0), 0) / history.length) : 0;
@@ -416,7 +570,7 @@ export default function PlayerHealthPage() {
   return (
     <div style={{ animation:'slideUp .3s ease' }}>
       <style dangerouslySetInnerHTML={{ __html: CSS }}/>
-      {showLog && <LogModal onClose={() => setShowLog(false)} onDone={load}/>}
+      {showLog && <LogModal onClose={() => setShowLog(false)} onDone={load} previewMode={previewMode}/>}
 
       {/* ── Header ─────────────────────────────────────────────── */}
       <div className="page-header-row" style={{ marginBottom:24 }}>
@@ -624,33 +778,24 @@ export default function PlayerHealthPage() {
       {tab === 'AI Medical Insights' && (
         <div style={{ animation:'slideUp .25s ease', display:'flex', flexDirection:'column', gap:20 }}>
 
-          <div className="hg2">
-            <InjuryRisk risk={latest ? m.risk : 'Unknown'}/>
-            <div className="hc">
-              <Hdr title="AI Health Assessment" sub="Comprehensive wellness analysis" badge={AiBadge}/>
-              <div style={{ padding:'16px 22px' }}>
-                {!latest ? (
-                  <div style={{ textAlign:'center', padding:'20px 0', color:'var(--text-muted)', fontSize:'0.85rem' }}>Log your wellness to receive AI-powered medical insights.</div>
-                ) : (
-                  [
-                    { label:'Energy Level',      pct:m.energy,   color:sc(m.energy)   },
-                    { label:'Sleep Quality',     pct:m.sleep,    color:sc(m.sleep)    },
-                    { label:'Recovery Status',   pct:m.recovery, color:sc(m.recovery) },
-                    { label:'Stress Management', pct:m.stress,   color:sc(m.stress)   },
-                  ].map(({ label, pct, color }) => (
-                    <div key={label} style={{ marginBottom:14 }}>
-                      <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
-                        <span style={{ fontSize:'0.8rem', fontWeight:600, color:'var(--text-secondary)' }}>{label}</span>
-                        <span style={{ fontSize:'0.8rem', fontWeight:800, color }}>{pct}%</span>
-                      </div>
-                      <div style={{ height:6, borderRadius:99, background:'var(--bg-elevated)', overflow:'hidden' }}>
-                        <div style={{ height:'100%', width:`${pct}%`, background:`linear-gradient(90deg,${color}70,${color})`, borderRadius:99, boxShadow:`0 0 6px ${color}44`, transition:'width 1.2s ease' }}/>
-                      </div>
-                    </div>
-                  ))
-                )}
+          {/* Injury Risk Arc Gauge – full width */}
+          <InjuryArcGauge risk={latest ? m.risk : 'Unknown'} m={m}/>
+
+          {/* AI Health Assessment – 2×2 metric cards */}
+          <div className="hc">
+            <Hdr title="AI Health Assessment" sub="Comprehensive wellness analysis" badge={AiBadge}/>
+            {!latest ? (
+              <div style={{ textAlign:'center', padding:'32px', color:'var(--text-muted)', fontSize:'0.85rem' }}>
+                Log your wellness to receive AI-powered medical insights.
               </div>
-            </div>
+            ) : (
+              <div style={{ padding:'20px 22px', display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
+                <AssessmentCard label="Energy Level"      pct={m.energy}   raw={latest.energy}           color="#059669" icon="⚡" desc="Vitality & stamina"/>
+                <AssessmentCard label="Sleep Quality"     pct={m.sleep}    raw={latest.sleep}             color="#6D28D9" icon="😴" desc="Recovery sleep"/>
+                <AssessmentCard label="Recovery Status"   pct={m.recovery} raw={latest.muscle_soreness}  color="#0891B2" icon="💪" desc="Muscle readiness"/>
+                <AssessmentCard label="Stress Management" pct={m.stress}   raw={latest.stress}            color="#D97706" icon="🧠" desc="Mental load"/>
+              </div>
+            )}
           </div>
 
           {/* Diagnostic alerts */}
@@ -661,22 +806,24 @@ export default function PlayerHealthPage() {
             </div>
           </div>
 
-          {/* Recovery protocols */}
+          {/* Recovery protocols – sorted by urgency */}
           <div className="hc">
-            <Hdr title="Recovery Protocols" sub="Recommended based on your current load"/>
+            <Hdr title="Recovery Protocols" sub="Prioritised based on your current metrics"/>
             <div style={{ padding:'18px 22px', display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(175px,1fr))', gap:14 }}>
-              {[
-                { icon:'🧊', title:'Ice Bath',     duration:'12–15 min', status:'Recommended', color:'#7C3AED', note:'Post high-intensity day' },
-                { icon:'💤', title:'Sleep Target', duration:'8–9 hours', status:'Priority',     color:'#6D28D9', note:'Deep sleep > REM ratio'   },
-                { icon:'💧', title:'Hydration',    duration:'3.5 L/day', status:'On Track',     color:'#059669', note:'Electrolytes after sprint' },
-                { icon:'🧘', title:'Stretching',   duration:'20 min',    status:'Daily',        color:'#D97706', note:'Focus on hip flexors'      },
-              ].map(({ icon, title, duration, status, color, note }) => (
-                <div key={title} style={{ padding:'16px', borderRadius:14, background:`${color}06`, border:`1px solid ${color}18` }}>
-                  <div style={{ fontSize:'1.6rem', marginBottom:10 }}>{icon}</div>
+              {protocols.map(({ icon, title, duration, color, note, status }) => (
+                <div key={title} style={{ padding:'16px', borderRadius:14,
+                  background: status === 'Priority' ? 'rgba(220,38,38,.03)' : `${color}06`,
+                  border:`1px solid ${status === 'Priority' ? 'rgba(220,38,38,.2)' : color+'18'}` }}>
+                  <div style={{ fontSize:'1.5rem', marginBottom:10 }}>{icon}</div>
                   <div style={{ fontWeight:700, fontSize:'0.85rem', color:'var(--text-primary)', marginBottom:2 }}>{title}</div>
                   <div style={{ fontSize:'1.05rem', fontWeight:900, letterSpacing:'-0.02em', color, marginBottom:4 }}>{duration}</div>
                   <div style={{ fontSize:'0.68rem', color:'var(--text-muted)', marginBottom:8 }}>{note}</div>
-                  <span style={{ display:'inline-block', padding:'2px 9px', borderRadius:99, fontSize:'0.62rem', fontWeight:700, background:`${color}14`, color, border:`1px solid ${color}20` }}>{status}</span>
+                  <span style={{ display:'inline-block', padding:'2px 9px', borderRadius:99, fontSize:'0.62rem', fontWeight:700,
+                    background: status==='Priority' ? 'rgba(220,38,38,.1)' : status==='On Track' ? 'rgba(5,150,105,.1)' : `${color}14`,
+                    color:      status==='Priority' ? '#DC2626'           : status==='On Track' ? '#059669'              : color,
+                    border:`1px solid ${status==='Priority'?'rgba(220,38,38,.2)':status==='On Track'?'rgba(5,150,105,.2)':color+'20'}` }}>
+                    {status}
+                  </span>
                 </div>
               ))}
             </div>
@@ -684,18 +831,33 @@ export default function PlayerHealthPage() {
 
           {/* Medical flags */}
           {latest && (latest.muscle_soreness >= 4 || latest.stress >= 4 || latest.sleep < 2) && (
-            <div style={{ borderRadius:16, padding:'18px 22px', background:'rgba(220,38,38,.05)', border:'1px solid rgba(220,38,38,.15)' }}>
-              <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12 }}>
-                <div style={{ width:36, height:36, borderRadius:9, background:'rgba(220,38,38,.1)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1.1rem', flexShrink:0 }}>🚨</div>
+            <div style={{ borderRadius:16, padding:'18px 22px', background:'rgba(220,38,38,.05)', border:'1px solid rgba(220,38,38,.18)' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:14 }}>
+                <div style={{ width:40, height:40, borderRadius:10, background:'rgba(220,38,38,.12)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1.2rem', flexShrink:0, animation:'injuryPulse 2s infinite' }}>🚨</div>
                 <div>
-                  <div style={{ fontWeight:800, fontSize:'0.9rem', color:'#DC2626' }}>Medical Attention Flags</div>
-                  <div style={{ fontSize:'0.72rem', color:'var(--text-muted)', marginTop:1 }}>One or more wellness metrics require attention</div>
+                  <div style={{ fontWeight:800, fontSize:'0.92rem', color:'#DC2626' }}>Medical Attention Flags</div>
+                  <div style={{ fontSize:'0.72rem', color:'var(--text-muted)', marginTop:1 }}>One or more wellness metrics require immediate attention</div>
                 </div>
               </div>
-              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                {latest.muscle_soreness >= 4 && <div style={{ fontSize:'0.82rem', color:'var(--text-secondary)', display:'flex', gap:8 }}><span style={{ color:'#DC2626', flexShrink:0 }}>•</span>High soreness ({latest.muscle_soreness}/5) — consider active rest or physiotherapy</div>}
-                {latest.stress >= 4            && <div style={{ fontSize:'0.82rem', color:'var(--text-secondary)', display:'flex', gap:8 }}><span style={{ color:'#DC2626', flexShrink:0 }}>•</span>Elevated stress ({latest.stress}/5) — mental performance coaching recommended</div>}
-                {latest.sleep < 2              && <div style={{ fontSize:'0.82rem', color:'var(--text-secondary)', display:'flex', gap:8 }}><span style={{ color:'#DC2626', flexShrink:0 }}>•</span>Critical sleep score ({latest.sleep}/5) — notify medical staff if persistent</div>}
+              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                {latest.muscle_soreness >= 4 && (
+                  <div style={{ display:'flex', alignItems:'flex-start', gap:10, padding:'10px 14px', borderRadius:10, background:'rgba(220,38,38,.04)', border:'1px solid rgba(220,38,38,.1)' }}>
+                    <span style={{ color:'#DC2626', flexShrink:0, fontWeight:800, marginTop:1 }}>•</span>
+                    <span style={{ fontSize:'0.82rem', color:'var(--text-secondary)', lineHeight:1.55 }}>High soreness ({latest.muscle_soreness}/5) — consider active rest or physiotherapy before next session.</span>
+                  </div>
+                )}
+                {latest.stress >= 4 && (
+                  <div style={{ display:'flex', alignItems:'flex-start', gap:10, padding:'10px 14px', borderRadius:10, background:'rgba(220,38,38,.04)', border:'1px solid rgba(220,38,38,.1)' }}>
+                    <span style={{ color:'#DC2626', flexShrink:0, fontWeight:800, marginTop:1 }}>•</span>
+                    <span style={{ fontSize:'0.82rem', color:'var(--text-secondary)', lineHeight:1.55 }}>Elevated stress ({latest.stress}/5) — mental performance coaching recommended.</span>
+                  </div>
+                )}
+                {latest.sleep < 2 && (
+                  <div style={{ display:'flex', alignItems:'flex-start', gap:10, padding:'10px 14px', borderRadius:10, background:'rgba(220,38,38,.04)', border:'1px solid rgba(220,38,38,.1)' }}>
+                    <span style={{ color:'#DC2626', flexShrink:0, fontWeight:800, marginTop:1 }}>•</span>
+                    <span style={{ fontSize:'0.82rem', color:'var(--text-secondary)', lineHeight:1.55 }}>Critical sleep score ({latest.sleep}/5) — notify medical staff if persistent.</span>
+                  </div>
+                )}
               </div>
             </div>
           )}
