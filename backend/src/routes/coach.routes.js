@@ -78,7 +78,7 @@ router.get('/players', async (req, res, next) => {
     if (playerIds.length > 0) {
       const { data: healthLogs } = await supabaseAdmin
         .from('health_logs')
-        .select('player_id, fatigue, soreness, sleep_quality, is_flagged, logged_at')
+        .select('player_id, overall_score, fatigue, soreness, sleep_quality, is_flagged, logged_at')
         .eq('academy_id', academyId)
         .in('player_id', playerIds)
         .order('logged_at', { ascending: false });
@@ -89,6 +89,7 @@ router.get('/players', async (req, res, next) => {
         seen.add(log.player_id);
         if (playerMap[log.player_id]) {
           playerMap[log.player_id].latest_health = {
+            overall_score: log.overall_score,
             fatigue:       log.fatigue,
             soreness:      log.soreness,
             sleep_quality: log.sleep_quality,
