@@ -337,3 +337,70 @@ export interface InvitationRecord {
   expires_at: string;
   accepted_at?: string | null;
 }
+
+export interface PlayerRegistration {
+  id: string;
+  academy_id: string;
+  player_id: string;
+  status: 'draft' | 'submitted' | 'approved' | 'rejected';
+
+  // Section 1 — Personal
+  date_of_birth: string;
+  phone: string;
+  address: string;
+  nationality?: string | null;
+
+  // Section 2 — Sport
+  position: string;
+  preferred_foot?: 'Left' | 'Right' | 'Both' | null;
+  previous_club?: string | null;
+  years_of_experience?: number | null;
+
+  // Section 3 — Emergency contact
+  emergency_contact_name: string;
+  emergency_contact_phone: string;
+  emergency_contact_relationship: string;
+
+  // Section 4 — Parent/guardian (optional)
+  parent_guardian_name?: string | null;
+  parent_guardian_phone?: string | null;
+  parent_guardian_relationship?: string | null;
+
+  // Section 5 — Medical (optional)
+  medical_conditions?: string | null;
+  allergies?: string | null;
+  blood_group?: string | null;
+
+  // Section 6 — Document paths (storage paths, not URLs)
+  birth_certificate_path?: string | null;
+  passport_photo_path?: string | null;
+  national_id_path?: string | null;
+  parent_consent_path?: string | null;
+
+  // Resolved signed URLs (populated by backend on detail view)
+  birth_certificate_url?: string | null;
+  passport_photo_url?: string | null;
+  national_id_url?: string | null;
+  parent_consent_url?: string | null;
+
+  // Review
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
+  rejection_reason?: string | null;
+  reviewer?: { first_name: string; last_name: string } | null;
+
+  // Player info (joined)
+  users?: { first_name: string; last_name: string; email: string; avatar_url?: string | null } | null;
+
+  submitted_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type RegistrationFormFields = Omit<
+  PlayerRegistration,
+  | 'id' | 'academy_id' | 'player_id' | 'status'
+  | 'reviewed_by' | 'reviewed_at' | 'rejection_reason' | 'reviewer' | 'users'
+  | 'submitted_at' | 'created_at' | 'updated_at'
+  | 'birth_certificate_url' | 'passport_photo_url' | 'national_id_url' | 'parent_consent_url'
+>;

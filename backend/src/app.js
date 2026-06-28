@@ -24,6 +24,7 @@ const feeRoutes               = require('./routes/fee.routes');
 const documentsRoutes         = require('./routes/documents.routes');
 const announcementsRoutes     = require('./routes/announcements.routes');
 const analyticsRoutes         = require('./routes/analytics.routes');
+const registrationRoutes      = require('./routes/registration.routes');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
 
 const app = express();
@@ -143,7 +144,8 @@ app.use('/api/public',                     publicRoutes);  // has its own per-ro
 app.use('/api/fees',          apiLimiter,  feeRoutes);
 app.use('/api/documents',     apiLimiter,  documentsRoutes);
 app.use('/api/announcements', apiLimiter,  announcementsRoutes);
-app.use('/api/analytics',    apiLimiter,  analyticsRoutes);
+app.use('/api/analytics',     apiLimiter,  analyticsRoutes);
+app.use('/api/registration',  apiLimiter,  registrationRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
