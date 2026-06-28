@@ -403,9 +403,6 @@ function ActivityTimeline({ items }: { items: { emoji: string; label: string; su
 function RegistrationBio({ reg }: { reg: NonNullable<MemberDetail['registration']> }) {
   const dob = reg.date_of_birth ? new Date(reg.date_of_birth) : null;
   const age = dob ? Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 3600 * 1000)) : null;
-  const statusColor = reg.status === 'approved' ? C.green : reg.status === 'submitted' ? C.blue : C.amber;
-  const statusBg    = reg.status === 'approved' ? C.greenBg : reg.status === 'submitted' ? '#EFF6FF' : C.amberBg;
-  const statusBdr   = reg.status === 'approved' ? C.greenBdr : reg.status === 'submitted' ? '#BFDBFE' : C.amberBdr;
   const rows: { label: string; value: string }[] = [];
   if (dob && age !== null) rows.push({ label: 'Date of Birth', value: `${dob.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} · Age ${age}` });
   if (reg.sport)       rows.push({ label: 'Sport',       value: reg.sport });
@@ -418,10 +415,6 @@ function RegistrationBio({ reg }: { reg: NonNullable<MemberDetail['registration'
     <>
       <SectionLabel>Registration Bio</SectionLabel>
       <div style={{ background: '#FFF', border: `1px solid ${C.slate100}`, borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 4px rgba(15,23,42,0.04)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', background: statusBg, borderBottom: `1px solid ${statusBdr}` }}>
-          <span style={{ width: 6, height: 6, borderRadius: '50%', background: statusColor, flexShrink: 0 }} />
-          <span style={{ fontSize: '0.7rem', fontWeight: 700, color: statusColor, textTransform: 'capitalize' }}>Registration {reg.status}</span>
-        </div>
         {rows.map((r, i) => (
           <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderBottom: i < rows.length - 1 ? `1px solid ${C.slate100}` : 'none' }}>
             <span style={{ fontSize: '0.72rem', fontWeight: 700, color: C.slate400, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{r.label}</span>
