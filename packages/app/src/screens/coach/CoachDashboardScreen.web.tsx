@@ -354,7 +354,7 @@ export function CoachDashboardScreen() {
     ? sortedAlerts.slice(-8).map(a => a.overall_score)
     : [55, 62, 58, 70, 65, 72, 68, Math.max(avgHealth, 50)];
 
-  const playersSpark  = Array.from({ length: 8 }, (_, i) => Math.max(0, playerCount - Math.floor(Math.random() * 2)));
+  const playersSpark  = [playerCount, playerCount, playerCount + 1, playerCount, playerCount, playerCount + 1, playerCount, playerCount];
   const sessionsSpark = [2, 3, 1, 4, 2, upcomingCount, 3, upcomingCount];
   const alertsSpark   = [1, alertCount + 2, alertCount, alertCount + 1, alertCount, alertCount + 1, alertCount, alertCount];
 
@@ -647,7 +647,7 @@ export function CoachDashboardScreen() {
                     <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', borderRadius: 12, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderLeft: `3px solid ${col}` }}>
                       <div style={{ width: 36, height: 36, borderRadius: '50%', background: `${col}15`, border: `1px solid ${col}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 900, color: col, flexShrink: 0 }}>{score}</div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>Player #{a.player_id.slice(0, 6)}</div>
+                        <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>Player #{(a.player_id ?? a.id ?? '------').slice(0, 6)}</div>
                         <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: 1 }}>{new Date(a.submitted_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</div>
                       </div>
                       <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '3px 8px', borderRadius: 99, background: `${col}15`, color: col, flexShrink: 0 }}>{lbl}</span>

@@ -577,35 +577,35 @@ export function AdminDashboardScreen() {
         <div className="kpi-grid-4" style={{ gap: 16, marginBottom: 16 }}>
           <AdminProgressCard
             icon="💰" label="Outstanding Fees"
-            value={`GHS ${summary.outstandingFees.toLocaleString('en-GH', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
-            desc={`${summary.collectionRate}% collected`}
-            pct={Math.max(100 - summary.collectionRate, 3)} color={summary.outstandingFees > 0 ? '#EF4444' : '#10B981'}
+            value={`GHS ${(summary.outstandingFees ?? 0).toLocaleString('en-GH', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
+            desc={`${summary.collectionRate ?? 0}% collected`}
+            pct={Math.max(100 - (summary.collectionRate ?? 0), 3)} color={(summary.outstandingFees ?? 0) > 0 ? '#EF4444' : '#10B981'}
             onClick={() => router.push('/dashboard/admin/analytics')}
             delay={80}
           />
           <AdminProgressCard
-            icon={summary.wellnessFlags > 0 ? '⚠️' : '✅'} label="Wellness Flags"
-            value={String(summary.wellnessFlags)}
-            desc={`${summary.flaggedPlayers} player${summary.flaggedPlayers !== 1 ? 's' : ''} · last 30 days`}
-            pct={Math.max(Math.min(Math.round((summary.wellnessFlags / Math.max(summary.totalPlayers, 1)) * 100), 100), 3)}
+            icon={(summary.wellnessFlags ?? 0) > 0 ? '⚠️' : '✅'} label="Wellness Flags"
+            value={String(summary.wellnessFlags ?? 0)}
+            desc={`${summary.flaggedPlayers ?? 0} player${(summary.flaggedPlayers ?? 0) !== 1 ? 's' : ''} · last 30 days`}
+            pct={Math.max(Math.min(Math.round(((summary.wellnessFlags ?? 0) / Math.max(summary.totalPlayers ?? 1, 1)) * 100), 100), 3)}
             color={summary.wellnessFlags > 0 ? '#F59E0B' : '#10B981'}
             onClick={() => router.push('/dashboard/coach/analytics')}
             delay={160}
           />
           <AdminProgressCard
             icon="⚽" label="Active Players"
-            value={String(summary.totalPlayers)}
+            value={String(summary.totalPlayers ?? 0)}
             desc="Registered players"
-            pct={Math.max(Math.min(Math.round((summary.totalPlayers / Math.max(memberCount, 1)) * 100), 100), 10)}
+            pct={Math.max(Math.min(Math.round(((summary.totalPlayers ?? 0) / Math.max(memberCount, 1)) * 100), 100), 10)}
             color="#7C3AED"
             onClick={() => router.push('/dashboard/admin/roster')}
             delay={240}
           />
           <AdminProgressCard
             icon="📅" label="Events (30d)"
-            value={String(summary.recentEvents)}
+            value={String(summary.recentEvents ?? 0)}
             desc="Sessions in last 30 days"
-            pct={Math.max(Math.min(Math.round((summary.recentEvents / 20) * 100), 100), 5)}
+            pct={Math.max(Math.min(Math.round(((summary.recentEvents ?? 0) / 20) * 100), 100), 5)}
             color="#0EA5E9"
             onClick={() => router.push('/dashboard/admin/schedule')}
             delay={320}
