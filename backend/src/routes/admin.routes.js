@@ -20,6 +20,7 @@
 const { Router }       = require('express');
 const multer           = require('multer');
 const controller       = require('../controllers/admin.controller');
+const regController    = require('../controllers/registration.controller');
 const { authenticate, extractTenant, requireRole } = require('../middleware/auth.middleware');
 const { validateInviteBody, validateMemberStatusBody, validateUpdateMemberBody, validateAvailabilityBody } = require('../middleware/validate');
 
@@ -52,5 +53,11 @@ router.patch(  '/roster/:id/availability', validateAvailabilityBody,  controller
 router.get(    '/settings',                                             controller.getSettings);
 router.patch(  '/settings',                                             controller.updateSettings);
 router.post(   '/settings/logo', logoUpload.single('logo'),             controller.uploadLogo);
+
+// Registration review routes
+router.get(   '/registrations',              regController.listRegistrations);
+router.get(   '/registrations/:id',          regController.getRegistration);
+router.patch( '/registrations/:id/approve',  regController.approveRegistration);
+router.patch( '/registrations/:id/reject',   regController.rejectRegistration);
 
 module.exports = router;

@@ -874,6 +874,188 @@ async function sendAnnouncementEmail({ to, firstName, academyName, title, body, 
   });
 }
 
+// ─── Email: Registration Submitted (to player) ────────────────────────────────
+
+async function sendRegistrationSubmittedEmail({ to, firstName, academyName, dashboardUrl }) {
+  const html = emailShell(`
+    <tr>
+      <td style="padding:40px 44px 8px;">
+        ${badge('Registration Submitted', '#2563EB')}
+        ${h1(`Thanks, ${firstName}!`)}
+        ${para(`Your registration with <strong style="color:#0F172A;">${academyName}</strong>
+          has been submitted successfully and is now under review.`)}
+        ${infoBox(
+          '#EFF6FF', '#BFDBFE', '#1E40AF', '#1D4ED8',
+          'What happens next?',
+          [
+            'The academy admin will review your registration details',
+            'You will receive an email once a decision has been made',
+            'If approved, you will have full access to the platform',
+            'If any information needs to be corrected, you will be notified',
+          ]
+        )}
+        ${para(`<span style="font-size:0.83rem;color:#94A3B8;">
+          Keep an eye on your inbox. If you don't hear back within a few days,
+          please contact your academy admin directly.
+        </span>`)}
+        ${ctaButton('View Registration Status →', dashboardUrl, '#2563EB')}
+      </td>
+    </tr>
+  `);
+
+  const text =
+    `Hi ${firstName},\n\n` +
+    `Your registration with ${academyName} has been submitted and is under review.\n\n` +
+    `What happens next:\n` +
+    `  1. The admin reviews your registration details\n` +
+    `  2. You receive an approval or update email\n` +
+    `  3. If approved, you get full platform access\n\n` +
+    `View your status: ${dashboardUrl}\n\n` +
+    `— SAMS Platform`;
+
+  return dispatch({
+    to,
+    subject: `Registration submitted — ${academyName} is reviewing your details`,
+    html,
+    text,
+  });
+}
+
+// ─── Email: Registration Alert (to admin) ─────────────────────────────────────
+
+async function sendRegistrationAlertEmail({ to, adminName, playerName, playerEmail, academyName, reviewUrl }) {
+  const html = emailShell(`
+    <tr>
+      <td style="padding:40px 44px 8px;">
+        ${badge('New Registration', '#7C3AED')}
+        ${h1(`Hi ${adminName},`)}
+        ${para(`A new player registration has been submitted and is waiting for your review.`)}
+
+        <div style="background:#F8FAFC;border:1.5px solid #E2E8F0;border-radius:14px;
+                    padding:24px 28px;margin-bottom:28px;">
+          <table cellpadding="0" cellspacing="0" width="100%">
+            <tr>
+              <td style="padding:7px 0;font-size:0.78rem;font-weight:700;color:#94A3B8;
+                          text-transform:uppercase;letter-spacing:0.08em;width:38%;">Player</td>
+              <td style="padding:7px 0;font-size:0.93rem;font-weight:600;color:#0F172A;">${playerName}</td>
+            </tr>
+            <tr><td colspan="2" style="height:1px;background:#E2E8F0;"></td></tr>
+            <tr>
+              <td style="padding:7px 0;font-size:0.78rem;font-weight:700;color:#94A3B8;
+                          text-transform:uppercase;letter-spacing:0.08em;">Email</td>
+              <td style="padding:7px 0;font-size:0.93rem;color:#0F172A;">${playerEmail}</td>
+            </tr>
+            <tr><td colspan="2" style="height:1px;background:#E2E8F0;"></td></tr>
+            <tr>
+              <td style="padding:7px 0;font-size:0.78rem;font-weight:700;color:#94A3B8;
+                          text-transform:uppercase;letter-spacing:0.08em;">Academy</td>
+              <td style="padding:7px 0;font-size:0.93rem;color:#0F172A;">${academyName}</td>
+            </tr>
+          </table>
+        </div>
+
+        ${ctaButton('Review Registration →', reviewUrl, '#7C3AED')}
+        ${para(`<span style="font-size:0.83rem;color:#94A3B8;">
+          Log in to the SAMS admin dashboard to view the full registration details
+          and approve or reject the submission.
+        </span>`)}
+      </td>
+    </tr>
+  `);
+
+  const text =
+    `Hi ${adminName},\n\n` +
+    `A new player registration has been submitted for your review.\n\n` +
+    `Player:  ${playerName}\n` +
+    `Email:   ${playerEmail}\n` +
+    `Academy: ${academyName}\n\n` +
+    `Review now: ${reviewUrl}\n\n` +
+    `— SAMS Platform`;
+
+  return dispatch({
+    to,
+    subject: `New registration submitted: ${playerName} — ${academyName}`,
+    html,
+    text,
+  });
+}
+
+// ─── Email: Registration Approved (to player) ─────────────────────────────────
+
+async function sendRegistrationApprovedEmail({ to, firstName, academyName, dashboardUrl }) {
+  const html = emailShell(`
+    <tr>
+      <td style="padding:40px 44px 8px;">
+        ${badge('Registration Approved ✓', '#059669')}
+        ${h1(`Congratulations, ${firstName}!`)}
+        ${para(`Your registration with <strong style="color:#0F172A;">${academyName}</strong>
+          has been <strong style="color:#059669;">approved</strong>.
+          You now have full access to the SAMS platform.`)}
+        ${infoBox(
+          '#F0FDF4', '#86EFAC', '#166534', '#15803D',
+          "You now have access to:",
+          [
+            'Your personalised player dashboard',
+            'Training schedule and upcoming sessions',
+            'Workout plans assigned by your coach',
+            'Daily wellness check-in and health tracking',
+            'Team chat and announcements',
+          ]
+        )}
+        ${ctaButton('Go to My Dashboard →', dashboardUrl, '#059669')}
+      </td>
+    </tr>
+  `);
+
+  const text =
+    `Hi ${firstName},\n\n` +
+    `Your registration with ${academyName} has been approved!\n\n` +
+    `You now have full access to the SAMS platform.\n` +
+    `Log in at: ${dashboardUrl}\n\n` +
+    `— SAMS Platform`;
+
+  return dispatch({
+    to,
+    subject: `Registration approved — Welcome to ${academyName}!`,
+    html,
+    text,
+  });
+}
+
+// ─── Email: Registration Rejected (to player) ─────────────────────────────────
+
+async function sendRegistrationRejectedEmail({ to, firstName, academyName, reason, dashboardUrl }) {
+  const html = emailShell(`
+    <tr>
+      <td style="padding:40px 44px 8px;">
+        ${badge('Registration Update', '#64748B')}
+        ${h1(`Hi ${firstName},`)}
+        ${para(`Thank you for submitting your registration with
+          <strong style="color:#0F172A;">${academyName}</strong>.
+          After reviewing your details, we were unable to approve it at this time.`)}
+        ${reason ? reasonBox(reason) : ''}
+        ${para(`Please review the feedback above, update your registration details,
+          and resubmit. If you have any questions, contact your academy admin directly.`)}
+        ${ctaButton('Update My Registration →', dashboardUrl, '#6366F1')}
+      </td>
+    </tr>
+  `);
+
+  const text =
+    `Hi ${firstName},\n\n` +
+    `Your registration with ${academyName} could not be approved at this time.\n\n` +
+    (reason ? `Reason: ${reason}\n\n` : '') +
+    `Please update your registration and resubmit: ${dashboardUrl}\n\n` +
+    `— SAMS Platform`;
+
+  return dispatch({
+    to,
+    subject: `Registration update — ${academyName}`,
+    html,
+    text,
+  });
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 module.exports = {
@@ -887,4 +1069,8 @@ module.exports = {
   sendFeeReceiptEmail,
   sendFeeReminderEmail,
   sendAnnouncementEmail,
+  sendRegistrationSubmittedEmail,
+  sendRegistrationAlertEmail,
+  sendRegistrationApprovedEmail,
+  sendRegistrationRejectedEmail,
 };
