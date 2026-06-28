@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useAuthStore } from '@sams/store';
-import { authApi, notificationsApi } from '@sams/api';
+import { authApi, notificationsApi, registrationApi } from '@sams/api';
 import { useTheme } from '@/lib/theme/provider';
 import { NAV_CONFIG } from '@sams/app';
 import type { NavItem } from '@sams/app';
@@ -268,9 +268,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showRolePicker,  setShowRolePicker]  = useState(false);
   const [viewAsRole,      setViewAsRole]      = useState<string | null>(null);
-  const [showNotifPanel,  setShowNotifPanel]  = useState(false);
-  const [notifications,   setNotifications]   = useState<Notification[]>([]);
-  const [unreadCount,     setUnreadCount]     = useState(0);
+  const [showNotifPanel,   setShowNotifPanel]   = useState(false);
+  const [notifications,    setNotifications]    = useState<Notification[]>([]);
+  const [unreadCount,      setUnreadCount]      = useState(0);
+  const [playerRegStatus,  setPlayerRegStatus]  = useState<string | null>(null);
 
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const rolePickerRef  = useRef<HTMLDivElement>(null);
@@ -308,6 +309,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     }, 5 * 60_000);
     return () => { clearInterval(id); clearInterval(backoffId); };
   }, [user, fetchNotifications]);
+
+  useEffect(() => {
+    if (user?.role !== 'Player') return;
+    registrationApi.getMyRegistration()
+      .then(reg => setPlayerRegStatus(reg?.status ?? 'none'))
+      .catch(() => setPlayerRegStatus('none'));
+  }, [user]);
 
   const handleMarkRead = async (id: string) => {
     try {
@@ -355,7 +363,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const config        = NAV_CONFIG[effectiveRole as UserProfile['role']] ?? { main: [], other: [] };
   const roleColor     = ROLE_COLOR[effectiveRole]       ?? '#7C3AED';
   const trueRoleColor = ROLE_COLOR[user?.role ?? '']    ?? '#7C3AED';
-  const allItems      = [...config.main, ...config.other];
+  // Hide the Registration tab for players once their registration is approved
+  const filterReg     = (items: typeof config.main) =>
+    effectiveRole === 'Player' && playerRegStatus === 'approved'
+      ? items.filter(i => i.path !== '/dashboard/player/registration')
+      : items;
+  const allItems      = [...filterReg(config.main), ...config.other];
   const active        = allItems.find(i => pathname === i.path || pathname.startsWith(i.path + '/'));
   const pageTitle     = active?.label ?? 'Dashboard';
 
@@ -430,7 +443,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <div style={{ padding: '6px 10px 0', flex: 1 }}>
             <div style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-muted)', padding: '8px 4px 6px' }}>Menu</div>
             <nav style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {config.main.map(item => (
+              {filterReg(config.main).map(item => (
                 <SidebarNavItem key={item.path} item={item} onClick={() => setSidebarOpen(false)} />
               ))}
             </nav>
