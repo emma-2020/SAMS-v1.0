@@ -144,3 +144,11 @@ export async function uploadAcademyLogo(file: File): Promise<{ logo_url: string 
   };
   return res.data;
 }
+
+export async function deleteMember(id: string): Promise<{ deleted: boolean }> {
+  const res = (await apiClient.delete(`/admin/roster/${id}`)) as {
+    success: boolean;
+    data: { deleted: boolean };
+  };
+  return res.data;
+}

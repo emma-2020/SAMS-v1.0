@@ -3,8 +3,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { UploadCloud } from 'lucide-react';
 import { useAuthStore } from '@sams/store';
-import { apiClient, authApi, chatApi, adminApi } from '@sams/api';
-import type { AcademyAdminSettings, UserPreferences } from '@sams/api';
+import { apiClient, authApi, chatApi, adminApi, registrationApi } from '@sams/api';
+import type { AcademyAdminSettings, UserPreferences, PlayerRegistration } from '@sams/api';
 import { useTheme } from '@/lib/theme/provider';
 
 type Density = 'comfortable' | 'compact' | 'spacious';
@@ -362,6 +362,20 @@ export default function SettingsPage() {
     setCopied(true); setTimeout(() => setCopied(false), 2000);
   }
 
+  // ── Player registration bio ────────────────────────────────────────────────
+  const [regInfo, setRegInfo] = useState<(PlayerRegistration & { sport?: string }) | null>(null);
+  const [regLoading, setRegLoading] = useState(false);
+
+  useEffect(() => {
+    if (role === 'Player') {
+      setRegLoading(true);
+      registrationApi.getMyRegistration()
+        .then(r => setRegInfo(r as (PlayerRegistration & { sport?: string }) | null))
+        .catch(() => {})
+        .finally(() => setRegLoading(false));
+    }
+  }, [role]);
+
   // ── Blocked users (Privacy tab) ────────────────────────────────────────────
   const [blockedUsers, setBlockedUsers] = useState<{ id: string; first_name: string; last_name: string; role: string; blocked_at: string }[]>([]);
   const [blockLoading, setBlockLoading] = useState(false);
@@ -701,6 +715,56 @@ export default function SettingsPage() {
               </div>
             </form>
           </SettingsCard>
+
+          {/* Registration bio — Player only */}
+          {role === 'Player' && (
+            <SettingsCard
+              icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"><path d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>}
+              title="Registration Bio"
+              subtitle="Information from your player registration — contact admin to update"
+            >
+              {regLoading ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {[1,2,3,4].map(i => <div key={i} className="skeleton" style={{ height: 52, borderRadius: 12 }} />)}
+                </div>
+              ) : !regInfo || regInfo.status === 'draft' ? (
+                <div style={{ textAlign: 'center', padding: '28px 16px', color: 'var(--text-muted)' }}>
+                  <div style={{ fontSize: '2rem', marginBottom: 8 }}>📋</div>
+                  <div style={{ fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>No registration data yet</div>
+                  <div style={{ fontSize: '0.8rem' }}>Complete your player registration to see your bio here.</div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {/* Status badge */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderRadius: 10, marginBottom: 4, background: regInfo.status === 'approved' ? '#F0FDF4' : regInfo.status === 'submitted' ? '#EFF6FF' : '#FEF2F2', border: `1px solid ${regInfo.status === 'approved' ? '#BBF7D0' : regInfo.status === 'submitted' ? '#BFDBFE' : '#FECACA'}` }}>
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', flexShrink: 0, background: regInfo.status === 'approved' ? '#16A34A' : regInfo.status === 'submitted' ? '#2563EB' : '#DC2626' }} />
+                    <span style={{ fontSize: '0.78rem', fontWeight: 700, color: regInfo.status === 'approved' ? '#15803D' : regInfo.status === 'submitted' ? '#1D4ED8' : '#DC2626', textTransform: 'capitalize' }}>
+                      Registration {regInfo.status}
+                    </span>
+                  </div>
+                  {/* DOB + Age (read-only) */}
+                  {regInfo.date_of_birth && (() => {
+                    const dob = new Date(regInfo.date_of_birth);
+                    const age = Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 3600 * 1000));
+                    return (
+                      <InfoRow
+                        label="Date of Birth"
+                        value={`${dob.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} — Age ${age}`}
+                      />
+                    );
+                  })()}
+                  {regInfo.sport && <InfoRow label="Sport" value={regInfo.sport} />}
+                  {regInfo.position && <InfoRow label="Position" value={regInfo.position} />}
+                  {regInfo.nationality && <InfoRow label="Nationality" value={regInfo.nationality} />}
+                  {regInfo.phone && <InfoRow label="Phone Number" value={regInfo.phone} />}
+                  {regInfo.blood_group && <InfoRow label="Blood Group" value={regInfo.blood_group} />}
+                  <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: '4px 0 0', lineHeight: 1.5 }}>
+                    These details are set during registration. Contact your academy admin to make changes.
+                  </p>
+                </div>
+              )}
+            </SettingsCard>
+          )}
         </div>
       )}
 

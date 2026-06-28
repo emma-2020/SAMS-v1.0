@@ -399,8 +399,42 @@ function ActivityTimeline({ items }: { items: { emoji: string; label: string; su
   );
 }
 
+// ─── Registration Bio section ─────────────────────────────────────────
+function RegistrationBio({ reg }: { reg: NonNullable<MemberDetail['registration']> }) {
+  const dob = reg.date_of_birth ? new Date(reg.date_of_birth) : null;
+  const age = dob ? Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 3600 * 1000)) : null;
+  const statusColor = reg.status === 'approved' ? C.green : reg.status === 'submitted' ? C.blue : C.amber;
+  const statusBg    = reg.status === 'approved' ? C.greenBg : reg.status === 'submitted' ? '#EFF6FF' : C.amberBg;
+  const statusBdr   = reg.status === 'approved' ? C.greenBdr : reg.status === 'submitted' ? '#BFDBFE' : C.amberBdr;
+  const rows: { label: string; value: string }[] = [];
+  if (dob && age !== null) rows.push({ label: 'Date of Birth', value: `${dob.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} · Age ${age}` });
+  if (reg.sport)       rows.push({ label: 'Sport',       value: reg.sport });
+  if (reg.position)    rows.push({ label: 'Position',    value: reg.position });
+  if (reg.nationality) rows.push({ label: 'Nationality', value: reg.nationality });
+  if (reg.phone)       rows.push({ label: 'Phone',       value: reg.phone });
+  if (reg.blood_group) rows.push({ label: 'Blood Group', value: reg.blood_group });
+  if (rows.length === 0) return null;
+  return (
+    <>
+      <SectionLabel>Registration Bio</SectionLabel>
+      <div style={{ background: '#FFF', border: `1px solid ${C.slate100}`, borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 4px rgba(15,23,42,0.04)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', background: statusBg, borderBottom: `1px solid ${statusBdr}` }}>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: statusColor, flexShrink: 0 }} />
+          <span style={{ fontSize: '0.7rem', fontWeight: 700, color: statusColor, textTransform: 'capitalize' }}>Registration {reg.status}</span>
+        </div>
+        {rows.map((r, i) => (
+          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderBottom: i < rows.length - 1 ? `1px solid ${C.slate100}` : 'none' }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: C.slate400, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{r.label}</span>
+            <span style={{ fontSize: '0.83rem', fontWeight: 600, color: C.slate900 }}>{r.value}</span>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
 // ─── Tab content components ───────────────────────────────────────────
-function OverviewTab({ detail }: { detail: MemberDetail }) {
+function OverviewTab({ detail, onEditReg }: { detail: MemberDetail; onEditReg: () => void }) {
   const teams    = detail.teams ?? [];
   const avg      = wellnessAvg(detail.health_logs ?? []);
   const sports   = Array.from(new Set(teams.map(t => t.sport).filter(Boolean)));
@@ -479,6 +513,11 @@ function OverviewTab({ detail }: { detail: MemberDetail }) {
             </div>
           </div>
         </>
+      )}
+
+      {/* Registration bio (players only) */}
+      {detail.role === 'Player' && detail.registration && (
+        <RegistrationBio reg={detail.registration} />
       )}
 
       {/* Activity timeline */}
@@ -715,6 +754,10 @@ function MemberDetailPanel({ memberId, onClose, onToggleStatus, onMemberUpdated,
   // Availability
   const [availLoad, setAvailLoad] = useState(false);
 
+  // Delete
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleteLoad,    setDeleteLoad]    = useState(false);
+
   function showToast(msg: string) {
     setToast(msg);
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -791,6 +834,18 @@ function MemberDetailPanel({ memberId, onClose, onToggleStatus, onMemberUpdated,
       onToggleStatus(updated);
     } catch { /* silent */ }
     finally { setActLoad(false); }
+  }
+
+  async function handleDelete() {
+    if (!detail) return;
+    setDeleteLoad(true);
+    try {
+      await adminApi.deleteMember(detail.id);
+      onMemberUpdated({ ...detail, id: detail.id } as typeof detail);
+      onClose();
+    } catch (e: unknown) {
+      showToast(e instanceof Error ? e.message : 'Failed to delete member.');
+    } finally { setDeleteLoad(false); setConfirmDelete(false); }
   }
 
   async function handleAvailability(status: 'Available' | 'Injured' | 'Suspended' | 'Resting') {
@@ -1058,7 +1113,7 @@ function MemberDetailPanel({ memberId, onClose, onToggleStatus, onMemberUpdated,
 
           {!loading && detail && (
             <>
-              {tab === 'overview'  && <OverviewTab  detail={detail} />}
+              {tab === 'overview'  && <OverviewTab  detail={detail} onEditReg={() => {}} />}
               {tab === 'teams'     && <TeamsTab     detail={detail} />}
               {tab === 'wellness'  && <WellnessTab  detail={detail} />}
               {tab === 'family'    && <FamilyTab    detail={detail} />}
@@ -1069,7 +1124,16 @@ function MemberDetailPanel({ memberId, onClose, onToggleStatus, onMemberUpdated,
         {/* ── Footer action ── */}
         {!loading && detail && !isSelf && (
           <div style={{ flexShrink: 0, padding: '14px 24px', borderTop: `1px solid ${C.slate100}`, background: '#FFF' }}>
-            {confirming ? (
+            {confirmDelete ? (
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => setConfirmDelete(false)} style={{ flex: 1, padding: '11px', borderRadius: 11, border: `1.5px solid ${C.slate200}`, background: 'none', color: C.slate500, fontWeight: 600, fontSize: '0.82rem', cursor: 'pointer' }}>
+                  Cancel
+                </button>
+                <button onClick={handleDelete} disabled={deleteLoad} style={{ flex: 2, padding: '11px', borderRadius: 11, border: 'none', background: '#7C2D12', color: 'white', fontWeight: 700, fontSize: '0.82rem', cursor: deleteLoad ? 'not-allowed' : 'pointer', opacity: deleteLoad ? 0.7 : 1 }}>
+                  {deleteLoad ? '…' : 'Yes, permanently delete'}
+                </button>
+              </div>
+            ) : confirming ? (
               <div style={{ display: 'flex', gap: 8 }}>
                 <button onClick={() => setConfirming(false)} style={{ flex: 1, padding: '11px', borderRadius: 11, border: `1.5px solid ${C.slate200}`, background: 'none', color: C.slate500, fontWeight: 600, fontSize: '0.82rem', cursor: 'pointer' }}>
                   Cancel
@@ -1079,9 +1143,14 @@ function MemberDetailPanel({ memberId, onClose, onToggleStatus, onMemberUpdated,
                 </button>
               </div>
             ) : (
-              <button onClick={() => setConfirming(true)} style={{ width: '100%', padding: '11px', borderRadius: 11, border: `1.5px solid ${isActive ? C.redBdr : C.greenBdr}`, background: isActive ? C.redBg : C.greenBg, color: isActive ? C.red : C.green, fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', transition: 'all 0.15s' }}>
-                {isActive ? 'Deactivate Member' : 'Reactivate Member'}
-              </button>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => setConfirming(true)} style={{ flex: 1, padding: '11px', borderRadius: 11, border: `1.5px solid ${isActive ? C.redBdr : C.greenBdr}`, background: isActive ? C.redBg : C.greenBg, color: isActive ? C.red : C.green, fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', transition: 'all 0.15s' }}>
+                  {isActive ? 'Deactivate' : 'Reactivate'}
+                </button>
+                <button onClick={() => setConfirmDelete(true)} style={{ flex: 1, padding: '11px', borderRadius: 11, border: '1.5px solid #FECACA', background: '#FEF2F2', color: '#DC2626', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', transition: 'all 0.15s' }}>
+                  Delete Member
+                </button>
+              </div>
             )}
           </div>
         )}
@@ -1306,7 +1375,10 @@ export default function RosterPage() {
           memberId={selectedId}
           onClose={() => setSelectedId(null)}
           onToggleStatus={u => setMembers(prev => prev.map(m => m.id === u.id ? u : m))}
-          onMemberUpdated={u => setMembers(prev => prev.map(m => m.id === u.id ? u : m))}
+          onMemberUpdated={u => {
+            // If the update was a deletion the panel closes itself; remove from list
+            setMembers(prev => prev.filter(m => m.id !== u.id));
+          }}
           currentUserId={currentUserId}
         />
       )}

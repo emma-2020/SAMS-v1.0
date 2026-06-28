@@ -50,6 +50,7 @@ router.patch(  '/roster/:id',         validateUpdateMemberBody, controller.updat
 router.patch(  '/roster/:id/status',  validateMemberStatusBody, controller.setMemberStatus);
 router.post(   '/roster/:id/reset-link',                              controller.getMemberResetLink);
 router.patch(  '/roster/:id/availability', validateAvailabilityBody,  controller.updateAvailability);
+router.delete( '/roster/:id',                                          controller.deleteMember);
 router.get(    '/settings',                                             controller.getSettings);
 router.patch(  '/settings',                                             controller.updateSettings);
 router.post(   '/settings/logo', logoUpload.single('logo'),             controller.uploadLogo);

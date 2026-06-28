@@ -128,6 +128,15 @@ async function getMemberDetail(req, res, next) {
 
       detail.health_logs = healthLogs || [];
 
+      // Fetch registration bio
+      const { data: regData } = await supabaseAdmin
+        .from('player_registrations')
+        .select('status, date_of_birth, phone, nationality, sport, position, blood_group')
+        .eq('player_id', memberId)
+        .eq('academy_id', academyId)
+        .maybeSingle();
+      detail.registration = regData || null;
+
     } else if (user.role === 'Coach') {
       const { data: teams } = await supabaseAdmin
         .from('teams')
@@ -342,4 +351,37 @@ async function uploadLogo(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { createInvitation, listInvitations, revokeInvitation, listRoster, getMemberDetail, setMemberStatus, updateMember, getMemberResetLink, updateAvailability, getSettings, updateSettings, uploadLogo };
+async function deleteMember(req, res, next) {
+  try {
+    const { supabaseAdmin } = require('../config/supabase');
+    const { NotFoundError, ForbiddenError, InternalError } = require('../utils/errors');
+    const memberId  = req.params.id;
+    const academyId = req.academyId;
+
+    if (memberId === req.user.id) throw new ForbiddenError('You cannot delete your own account.');
+
+    const { data: user, error: userErr } = await supabaseAdmin
+      .from('users')
+      .select('id, role')
+      .eq('id', memberId)
+      .eq('academy_id', academyId)
+      .single();
+
+    if (userErr || !user) throw new NotFoundError('Member not found.');
+    if (user.role === 'Admin') throw new ForbiddenError('Admin accounts cannot be deleted from the roster.');
+
+    // Delete from public users table first (cascades related data)
+    await supabaseAdmin.from('users').delete().eq('id', memberId);
+
+    // Delete from Supabase Auth
+    const { error: authErr } = await supabaseAdmin.auth.admin.deleteUser(memberId);
+    if (authErr) {
+      console.error('[deleteMember] auth delete error:', authErr.message);
+      throw new InternalError('Failed to remove user auth record: ' + authErr.message);
+    }
+
+    return res.status(200).json({ success: true, data: { deleted: true } });
+  } catch (err) { next(err); }
+}
+
+module.exports = { createInvitation, listInvitations, revokeInvitation, listRoster, getMemberDetail, setMemberStatus, updateMember, getMemberResetLink, updateAvailability, getSettings, updateSettings, uploadLogo, deleteMember };
