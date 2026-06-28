@@ -735,13 +735,6 @@ export default function SettingsPage() {
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {/* Status badge */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderRadius: 10, marginBottom: 4, background: regInfo.status === 'approved' ? '#F0FDF4' : regInfo.status === 'submitted' ? '#EFF6FF' : '#FEF2F2', border: `1px solid ${regInfo.status === 'approved' ? '#BBF7D0' : regInfo.status === 'submitted' ? '#BFDBFE' : '#FECACA'}` }}>
-                    <span style={{ width: 7, height: 7, borderRadius: '50%', flexShrink: 0, background: regInfo.status === 'approved' ? '#16A34A' : regInfo.status === 'submitted' ? '#2563EB' : '#DC2626' }} />
-                    <span style={{ fontSize: '0.78rem', fontWeight: 700, color: regInfo.status === 'approved' ? '#15803D' : regInfo.status === 'submitted' ? '#1D4ED8' : '#DC2626', textTransform: 'capitalize' }}>
-                      Registration {regInfo.status}
-                    </span>
-                  </div>
                   {/* DOB + Age (read-only) */}
                   {regInfo.date_of_birth && (() => {
                     const dob = new Date(regInfo.date_of_birth);
