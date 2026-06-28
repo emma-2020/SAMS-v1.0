@@ -324,6 +324,15 @@ export interface MemberDetail extends UserProfile {
     player: { id: string; first_name: string; last_name: string; email: string; is_active: boolean; avatar_url?: string | null };
     teams: Array<{ id: string; name: string; sport?: string | null; division?: string | null }>;
   }>;
+  registration?: {
+    status: string;
+    date_of_birth?: string | null;
+    phone?: string | null;
+    nationality?: string | null;
+    sport?: string | null;
+    position?: string | null;
+    blood_group?: string | null;
+  } | null;
 }
 
 export interface InvitationRecord {
@@ -351,6 +360,7 @@ export interface PlayerRegistration {
   nationality?: string | null;
 
   // Section 2 — Sport
+  sport?: string | null;
   position: string;
   preferred_foot?: 'Left' | 'Right' | 'Both' | null;
   previous_club?: string | null;

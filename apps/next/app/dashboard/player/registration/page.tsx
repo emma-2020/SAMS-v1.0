@@ -21,6 +21,7 @@ interface FormState {
   nationality: string;
   blood_group: string;
   // Section 2 — Sport
+  sport: string;
   position: string;
   preferred_foot: string;
   previous_club: string;
@@ -44,8 +45,8 @@ interface FormState {
 }
 
 const EMPTY: FormState = {
-  date_of_birth: '', phone: '', address: '', nationality: '', blood_group: '',
-  position: '', preferred_foot: '', previous_club: '', years_of_experience: '',
+  date_of_birth: '', phone: '+233 ', address: '', nationality: '', blood_group: '',
+  sport: '', position: '', preferred_foot: '', previous_club: '', years_of_experience: '',
   emergency_contact_name: '', emergency_contact_phone: '', emergency_contact_relationship: '',
   parent_guardian_name: '', parent_guardian_phone: '', parent_guardian_relationship: '',
   medical_conditions: '', allergies: '',
@@ -60,13 +61,112 @@ const STEPS = [
   { step: 5 as Step, label: 'Documents',   icon: Shield, color: '#2563EB' },
 ];
 
-const POSITIONS = [
-  'Goalkeeper', 'Right Back', 'Centre Back', 'Left Back',
-  'Defensive Midfielder', 'Central Midfielder', 'Attacking Midfielder',
-  'Right Winger', 'Left Winger', 'Striker', 'Centre Forward', 'Other',
+const SPORTS = [
+  'Football', 'Basketball', 'Athletics', 'Swimming', 'Tennis',
+  'Rugby', 'Cricket', 'Volleyball', 'Handball', 'Boxing',
+  'Cycling', 'Golf', 'Gymnastics', 'Hockey', 'Martial Arts',
+  'Netball', 'Rowing', 'Shooting', 'Squash', 'Table Tennis',
+  'Weightlifting', 'Wrestling', 'Other',
 ];
 
+const POSITIONS_BY_SPORT: Record<string, string[]> = {
+  Football:     ['Goalkeeper', 'Right Back', 'Centre Back', 'Left Back', 'Defensive Midfielder', 'Central Midfielder', 'Attacking Midfielder', 'Right Winger', 'Left Winger', 'Striker', 'Centre Forward', 'Other'],
+  Basketball:   ['Point Guard', 'Shooting Guard', 'Small Forward', 'Power Forward', 'Center', 'Other'],
+  Athletics:    ['Sprinter (100m–400m)', 'Middle Distance (800m–1500m)', 'Long Distance (3000m+)', 'Hurdles', 'Steeplechase', 'Long Jump', 'High Jump', 'Triple Jump', 'Pole Vault', 'Shot Put', 'Discus', 'Hammer', 'Javelin', 'Decathlon / Heptathlon', 'Other'],
+  Swimming:     ['Freestyle', 'Backstroke', 'Breaststroke', 'Butterfly', 'Individual Medley', 'Other'],
+  Tennis:       ['Singles Player', 'Doubles Specialist', 'All-Round Player', 'Other'],
+  Rugby:        ['Hooker', 'Tighthead Prop', 'Loosehead Prop', 'Lock', 'Flanker', 'Number 8', 'Scrum-Half', 'Fly-Half', 'Inside Centre', 'Outside Centre', 'Wing', 'Full-Back', 'Other'],
+  Cricket:      ['Opening Batsman', 'Middle-Order Batsman', 'Fast Bowler', 'Spin Bowler', 'All-Rounder', 'Wicket-Keeper', 'Other'],
+  Volleyball:   ['Setter', 'Outside Hitter', 'Opposite Hitter', 'Middle Blocker', 'Libero', 'Other'],
+  Handball:     ['Goalkeeper', 'Left Back', 'Right Back', 'Left Wing', 'Right Wing', 'Centre Back', 'Pivot', 'Other'],
+  Boxing:       ['Light Flyweight', 'Flyweight', 'Bantamweight', 'Featherweight', 'Lightweight', 'Welterweight', 'Middleweight', 'Heavyweight', 'Super Heavyweight', 'Other'],
+  Cycling:      ['Road Racer', 'Track Cyclist', 'Mountain Biker', 'BMX Rider', 'Other'],
+  Golf:         ['Professional', 'Amateur', 'Other'],
+  Gymnastics:   ['Artistic', 'Rhythmic', 'Trampoline', 'Acrobatic', 'Other'],
+  Hockey:       ['Goalkeeper', 'Defender', 'Midfielder', 'Forward', 'Other'],
+  'Martial Arts': ['Karate', 'Judo', 'Taekwondo', 'Wrestling', 'Jiu-Jitsu', 'Muay Thai', 'Kickboxing', 'Other'],
+  Netball:      ['Goal Shooter', 'Goal Attack', 'Wing Attack', 'Centre', 'Wing Defence', 'Goal Defence', 'Goal Keeper', 'Other'],
+  Rowing:       ['Single Scull', 'Double Scull', 'Quad Scull', 'Pair', 'Four', 'Eight', 'Coxswain', 'Other'],
+  Shooting:     ['Rifle', 'Pistol', 'Shotgun', 'Other'],
+  Squash:       ['Singles Player', 'Doubles Player', 'Other'],
+  'Table Tennis': ['Singles Player', 'Doubles Player', 'Other'],
+  Weightlifting: ['Snatch Specialist', 'Clean & Jerk Specialist', 'All-Round', 'Other'],
+  Wrestling:    ['Freestyle', 'Greco-Roman', 'Other'],
+  Other:        ['Other'],
+};
+
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+
+// ISO 3166-1 country list with emoji flags derived from 2-letter codes
+const FLAG = (c: string) => c.toUpperCase().replace(/./g, x => String.fromCodePoint(x.charCodeAt(0) + 0x1F1A5));
+
+const COUNTRIES: { code: string; name: string }[] = [
+  { code: 'GH', name: 'Ghana' },
+  { code: 'AF', name: 'Afghanistan' }, { code: 'AL', name: 'Albania' }, { code: 'DZ', name: 'Algeria' },
+  { code: 'AD', name: 'Andorra' }, { code: 'AO', name: 'Angola' }, { code: 'AG', name: 'Antigua and Barbuda' },
+  { code: 'AR', name: 'Argentina' }, { code: 'AM', name: 'Armenia' }, { code: 'AU', name: 'Australia' },
+  { code: 'AT', name: 'Austria' }, { code: 'AZ', name: 'Azerbaijan' }, { code: 'BS', name: 'Bahamas' },
+  { code: 'BH', name: 'Bahrain' }, { code: 'BD', name: 'Bangladesh' }, { code: 'BB', name: 'Barbados' },
+  { code: 'BY', name: 'Belarus' }, { code: 'BE', name: 'Belgium' }, { code: 'BZ', name: 'Belize' },
+  { code: 'BJ', name: 'Benin' }, { code: 'BT', name: 'Bhutan' }, { code: 'BO', name: 'Bolivia' },
+  { code: 'BA', name: 'Bosnia and Herzegovina' }, { code: 'BW', name: 'Botswana' }, { code: 'BR', name: 'Brazil' },
+  { code: 'BN', name: 'Brunei' }, { code: 'BG', name: 'Bulgaria' }, { code: 'BF', name: 'Burkina Faso' },
+  { code: 'BI', name: 'Burundi' }, { code: 'CV', name: 'Cabo Verde' }, { code: 'KH', name: 'Cambodia' },
+  { code: 'CM', name: 'Cameroon' }, { code: 'CA', name: 'Canada' }, { code: 'CF', name: 'Central African Republic' },
+  { code: 'TD', name: 'Chad' }, { code: 'CL', name: 'Chile' }, { code: 'CN', name: 'China' },
+  { code: 'CO', name: 'Colombia' }, { code: 'KM', name: 'Comoros' }, { code: 'CD', name: 'Congo (DRC)' },
+  { code: 'CG', name: 'Congo (Republic)' }, { code: 'CR', name: 'Costa Rica' }, { code: 'HR', name: 'Croatia' },
+  { code: 'CU', name: 'Cuba' }, { code: 'CY', name: 'Cyprus' }, { code: 'CZ', name: 'Czech Republic' },
+  { code: 'DK', name: 'Denmark' }, { code: 'DJ', name: 'Djibouti' }, { code: 'DM', name: 'Dominica' },
+  { code: 'DO', name: 'Dominican Republic' }, { code: 'EC', name: 'Ecuador' }, { code: 'EG', name: 'Egypt' },
+  { code: 'SV', name: 'El Salvador' }, { code: 'GQ', name: 'Equatorial Guinea' }, { code: 'ER', name: 'Eritrea' },
+  { code: 'EE', name: 'Estonia' }, { code: 'SZ', name: 'Eswatini' }, { code: 'ET', name: 'Ethiopia' },
+  { code: 'FJ', name: 'Fiji' }, { code: 'FI', name: 'Finland' }, { code: 'FR', name: 'France' },
+  { code: 'GA', name: 'Gabon' }, { code: 'GM', name: 'Gambia' }, { code: 'GE', name: 'Georgia' },
+  { code: 'DE', name: 'Germany' }, { code: 'GR', name: 'Greece' }, { code: 'GD', name: 'Grenada' },
+  { code: 'GT', name: 'Guatemala' }, { code: 'GN', name: 'Guinea' }, { code: 'GW', name: 'Guinea-Bissau' },
+  { code: 'GY', name: 'Guyana' }, { code: 'HT', name: 'Haiti' }, { code: 'HN', name: 'Honduras' },
+  { code: 'HU', name: 'Hungary' }, { code: 'IS', name: 'Iceland' }, { code: 'IN', name: 'India' },
+  { code: 'ID', name: 'Indonesia' }, { code: 'IR', name: 'Iran' }, { code: 'IQ', name: 'Iraq' },
+  { code: 'IE', name: 'Ireland' }, { code: 'IL', name: 'Israel' }, { code: 'IT', name: 'Italy' },
+  { code: 'JM', name: 'Jamaica' }, { code: 'JP', name: 'Japan' }, { code: 'JO', name: 'Jordan' },
+  { code: 'KZ', name: 'Kazakhstan' }, { code: 'KE', name: 'Kenya' }, { code: 'KI', name: 'Kiribati' },
+  { code: 'KW', name: 'Kuwait' }, { code: 'KG', name: 'Kyrgyzstan' }, { code: 'LA', name: 'Laos' },
+  { code: 'LV', name: 'Latvia' }, { code: 'LB', name: 'Lebanon' }, { code: 'LS', name: 'Lesotho' },
+  { code: 'LR', name: 'Liberia' }, { code: 'LY', name: 'Libya' }, { code: 'LI', name: 'Liechtenstein' },
+  { code: 'LT', name: 'Lithuania' }, { code: 'LU', name: 'Luxembourg' }, { code: 'MG', name: 'Madagascar' },
+  { code: 'MW', name: 'Malawi' }, { code: 'MY', name: 'Malaysia' }, { code: 'MV', name: 'Maldives' },
+  { code: 'ML', name: 'Mali' }, { code: 'MT', name: 'Malta' }, { code: 'MH', name: 'Marshall Islands' },
+  { code: 'MR', name: 'Mauritania' }, { code: 'MU', name: 'Mauritius' }, { code: 'MX', name: 'Mexico' },
+  { code: 'FM', name: 'Micronesia' }, { code: 'MD', name: 'Moldova' }, { code: 'MC', name: 'Monaco' },
+  { code: 'MN', name: 'Mongolia' }, { code: 'ME', name: 'Montenegro' }, { code: 'MA', name: 'Morocco' },
+  { code: 'MZ', name: 'Mozambique' }, { code: 'MM', name: 'Myanmar' }, { code: 'NA', name: 'Namibia' },
+  { code: 'NR', name: 'Nauru' }, { code: 'NP', name: 'Nepal' }, { code: 'NL', name: 'Netherlands' },
+  { code: 'NZ', name: 'New Zealand' }, { code: 'NI', name: 'Nicaragua' }, { code: 'NE', name: 'Niger' },
+  { code: 'NG', name: 'Nigeria' }, { code: 'KP', name: 'North Korea' }, { code: 'MK', name: 'North Macedonia' },
+  { code: 'NO', name: 'Norway' }, { code: 'OM', name: 'Oman' }, { code: 'PK', name: 'Pakistan' },
+  { code: 'PW', name: 'Palau' }, { code: 'PA', name: 'Panama' }, { code: 'PG', name: 'Papua New Guinea' },
+  { code: 'PY', name: 'Paraguay' }, { code: 'PE', name: 'Peru' }, { code: 'PH', name: 'Philippines' },
+  { code: 'PL', name: 'Poland' }, { code: 'PT', name: 'Portugal' }, { code: 'QA', name: 'Qatar' },
+  { code: 'RO', name: 'Romania' }, { code: 'RU', name: 'Russia' }, { code: 'RW', name: 'Rwanda' },
+  { code: 'KN', name: 'Saint Kitts and Nevis' }, { code: 'LC', name: 'Saint Lucia' }, { code: 'VC', name: 'Saint Vincent and the Grenadines' },
+  { code: 'WS', name: 'Samoa' }, { code: 'SM', name: 'San Marino' }, { code: 'ST', name: 'São Tomé and Príncipe' },
+  { code: 'SA', name: 'Saudi Arabia' }, { code: 'SN', name: 'Senegal' }, { code: 'RS', name: 'Serbia' },
+  { code: 'SC', name: 'Seychelles' }, { code: 'SL', name: 'Sierra Leone' }, { code: 'SG', name: 'Singapore' },
+  { code: 'SK', name: 'Slovakia' }, { code: 'SI', name: 'Slovenia' }, { code: 'SB', name: 'Solomon Islands' },
+  { code: 'SO', name: 'Somalia' }, { code: 'ZA', name: 'South Africa' }, { code: 'KR', name: 'South Korea' },
+  { code: 'SS', name: 'South Sudan' }, { code: 'ES', name: 'Spain' }, { code: 'LK', name: 'Sri Lanka' },
+  { code: 'SD', name: 'Sudan' }, { code: 'SR', name: 'Suriname' }, { code: 'SE', name: 'Sweden' },
+  { code: 'CH', name: 'Switzerland' }, { code: 'SY', name: 'Syria' }, { code: 'TW', name: 'Taiwan' },
+  { code: 'TJ', name: 'Tajikistan' }, { code: 'TZ', name: 'Tanzania' }, { code: 'TH', name: 'Thailand' },
+  { code: 'TL', name: 'Timor-Leste' }, { code: 'TG', name: 'Togo' }, { code: 'TO', name: 'Tonga' },
+  { code: 'TT', name: 'Trinidad and Tobago' }, { code: 'TN', name: 'Tunisia' }, { code: 'TR', name: 'Turkey' },
+  { code: 'TM', name: 'Turkmenistan' }, { code: 'TV', name: 'Tuvalu' }, { code: 'UG', name: 'Uganda' },
+  { code: 'UA', name: 'Ukraine' }, { code: 'AE', name: 'United Arab Emirates' }, { code: 'GB', name: 'United Kingdom' },
+  { code: 'US', name: 'United States' }, { code: 'UY', name: 'Uruguay' }, { code: 'UZ', name: 'Uzbekistan' },
+  { code: 'VU', name: 'Vanuatu' }, { code: 'VE', name: 'Venezuela' }, { code: 'VN', name: 'Vietnam' },
+  { code: 'YE', name: 'Yemen' }, { code: 'ZM', name: 'Zambia' }, { code: 'ZW', name: 'Zimbabwe' },
+];
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -348,10 +448,11 @@ export default function PlayerRegistrationPage() {
           // Pre-fill form from existing draft/rejected record
           setForm({
             date_of_birth: reg.date_of_birth ?? '',
-            phone: reg.phone ?? '',
+            phone: reg.phone ?? '+233 ',
             address: reg.address ?? '',
             nationality: reg.nationality ?? '',
             blood_group: reg.blood_group ?? '',
+            sport: (reg as PlayerRegistration & { sport?: string }).sport ?? '',
             position: reg.position ?? '',
             preferred_foot: reg.preferred_foot ?? '',
             previous_club: reg.previous_club ?? '',
@@ -394,6 +495,7 @@ export default function PlayerRegistrationPage() {
       if (!form.address.trim()) e.address = 'Address is required.';
     }
     if (s === 2) {
+      if (!form.sport) e.sport = 'Sport is required.';
       if (!form.position) e.position = 'Position is required.';
     }
     if (s === 3) {
@@ -429,6 +531,7 @@ export default function PlayerRegistrationPage() {
     try {
       const payload = {
         ...form,
+        sport: form.sport || undefined,
         years_of_experience: form.years_of_experience ? parseInt(form.years_of_experience, 10) : undefined,
         preferred_foot: (form.preferred_foot as 'Left' | 'Right' | 'Both') || undefined,
       };
@@ -550,8 +653,12 @@ export default function PlayerRegistrationPage() {
                       onChange={e => setField('phone', e.target.value)} />
                   </Field>
                   <Field label="Nationality">
-                    <Input value={form.nationality} placeholder="e.g. Ghanaian"
-                      onChange={e => setField('nationality', e.target.value)} />
+                    <Select value={form.nationality} onChange={e => setField('nationality', e.target.value)}>
+                      <option value="">Select nationality</option>
+                      {COUNTRIES.map(c => (
+                        <option key={c.code} value={c.name}>{FLAG(c.code)} {c.name}</option>
+                      ))}
+                    </Select>
                   </Field>
                   <Field label="Blood Group">
                     <Select value={form.blood_group} onChange={e => setField('blood_group', e.target.value)}>
@@ -574,24 +681,34 @@ export default function PlayerRegistrationPage() {
               <div>
                 <div style={{ marginBottom: 20 }}>
                   <div style={{ fontWeight: 700, fontSize: '1rem', color: '#0F172A', marginBottom: 4 }}>Sport Details</div>
-                  <div style={{ fontSize: '0.78rem', color: '#94A3B8' }}>Your playing position and football background</div>
+                  <div style={{ fontSize: '0.78rem', color: '#94A3B8' }}>Your sport, playing position, and background</div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
-                  <Field label="Playing Position" required error={errors.position}>
-                    <Select value={form.position} error={errors.position} onChange={e => setField('position', e.target.value)}>
-                      <option value="">Select position</option>
-                      {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
+                  <Field label="Sport" required error={errors.sport}>
+                    <Select value={form.sport} error={errors.sport}
+                      onChange={e => { setField('sport', e.target.value); setField('position', ''); }}>
+                      <option value="">Select sport</option>
+                      {SPORTS.map(s => <option key={s} value={s}>{s}</option>)}
                     </Select>
                   </Field>
-                  <Field label="Preferred Foot">
+                  <Field label="Playing Position" required error={errors.position}>
+                    <Select value={form.position} error={errors.position}
+                      onChange={e => setField('position', e.target.value)}
+                      disabled={!form.sport}
+                      style={{ opacity: !form.sport ? 0.55 : 1 }}>
+                      <option value="">{form.sport ? 'Select position' : 'Select a sport first'}</option>
+                      {(POSITIONS_BY_SPORT[form.sport] ?? []).map(p => <option key={p} value={p}>{p}</option>)}
+                    </Select>
+                  </Field>
+                  <Field label="Preferred Foot / Hand">
                     <Select value={form.preferred_foot} onChange={e => setField('preferred_foot', e.target.value)}>
-                      <option value="">Select foot</option>
+                      <option value="">Select dominant side</option>
                       <option value="Right">Right</option>
                       <option value="Left">Left</option>
                       <option value="Both">Both (Ambidextrous)</option>
                     </Select>
                   </Field>
-                  <Field label="Previous Club">
+                  <Field label="Previous Club / Team">
                     <Input value={form.previous_club} placeholder="e.g. Accra Lions FC"
                       onChange={e => setField('previous_club', e.target.value)} />
                   </Field>
