@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Users, Mail, CalendarDays, Shield, ArrowRight,
-  CheckCircle2, Clock, UserPlus, TrendingUp,
+  CheckCircle2, Clock, UserPlus,
   ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import {
@@ -45,6 +45,128 @@ const ROLE_COLORS_MAP: Record<string, string> = {
   Admin: '#7C3AED', Coach: '#2563EB', Player: '#059669', Parent: '#D97706',
 };
 
+// ─── Cliniva card components ──────────────────────────────────────────────────
+
+function InlineSpark({ data, color, height = 48 }: {
+  data: number[]; color: string; height?: number;
+}) {
+  if (data.length < 2) return <div style={{ height }} />;
+  const W = 200, H = height, pad = 6;
+  const min = Math.min(...data), max = Math.max(...data);
+  const range = max - min || 1;
+  const pts = data.map((v, i) => ({
+    x: pad + (i / (data.length - 1)) * (W - pad * 2),
+    y: H - pad - ((v - min) / range) * (H - pad * 2),
+  }));
+  const line = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+  const area = `${line} L${W - pad},${H} L${pad},${H} Z`;
+  const uid  = color.replace(/[^a-z0-9]/gi, '');
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height, display: 'block' }} preserveAspectRatio="none">
+      <defs>
+        <linearGradient id={`adsg-${uid}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stopColor={color} stopOpacity="0.35" />
+          <stop offset="100%" stopColor={color} stopOpacity="0"    />
+        </linearGradient>
+      </defs>
+      <path d={area} fill={`url(#adsg-${uid})`} />
+      <path d={line} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function AdminSolidCard({ gradient, shadowColor, icon, value, label, sub, onClick, delay = 0 }: {
+  gradient: string; shadowColor: string; icon: React.ReactNode;
+  value: string | number; label: string; sub?: string;
+  onClick?: () => void; delay?: number;
+}) {
+  const [hov, setHov] = useState(false);
+  return (
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        background: gradient, borderRadius: 20, padding: '24px 22px 20px',
+        position: 'relative', overflow: 'hidden',
+        cursor: onClick ? 'pointer' : 'default',
+        boxShadow: hov ? `0 22px 44px ${shadowColor}55` : `0 8px 28px ${shadowColor}30`,
+        transform: hov ? 'translateY(-5px)' : 'none',
+        transition: 'all 0.28s cubic-bezier(0.34,1.56,0.64,1)',
+        animation: `fadeIn 0.5s ease ${delay}ms both`,
+      }}
+    >
+      <div style={{ position: 'absolute', right: -20, top: -20, width: 130, height: 130, borderRadius: '50%', background: 'rgba(255,255,255,0.12)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', right: 55, bottom: -45, width: 95, height: 95, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', pointerEvents: 'none' }} />
+      <div style={{ width: 50, height: 50, borderRadius: 14, background: 'rgba(255,255,255,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', marginBottom: 18, color: '#fff' }}>
+        {icon}
+      </div>
+      <div style={{ fontSize: '2.6rem', fontWeight: 900, color: '#fff', letterSpacing: '-0.04em', lineHeight: 1, marginBottom: 6 }}>{value}</div>
+      <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'rgba(255,255,255,0.88)' }}>{label}</div>
+      {sub && (
+        <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.22)', fontSize: '0.72rem', color: 'rgba(255,255,255,0.65)', display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span style={{ fontWeight: 700 }}>↑</span> {sub}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AdminProgressCard({ icon, label, value, desc, pct, color, onClick, delay = 0 }: {
+  icon: string; label: string; value: string; desc: string;
+  pct: number; color: string; onClick?: () => void; delay?: number;
+}) {
+  const [animated, setAnimated] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setAnimated(true), delay + 350);
+    return () => clearTimeout(t);
+  }, [delay]);
+  return (
+    <div
+      onClick={onClick}
+      style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 18, padding: '20px', cursor: onClick ? 'pointer' : 'default', boxShadow: 'var(--shadow-sm)', animation: `fadeIn 0.5s ease ${delay}ms both`, transition: 'box-shadow 0.2s, transform 0.2s' }}
+      onMouseEnter={e => { if (onClick) { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLElement).style.boxShadow = `0 8px 24px ${color}22`; } }}
+      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'none'; (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-sm)'; }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+        <div style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.09em' }}>{label}</div>
+        <span style={{ fontSize: '1.3rem' }}>{icon}</span>
+      </div>
+      <div style={{ fontSize: '1.9rem', fontWeight: 900, color, letterSpacing: '-0.03em', lineHeight: 1, marginBottom: 4 }}>{value}</div>
+      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: 14 }}>{desc}</div>
+      <div style={{ height: 7, borderRadius: 99, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
+        <div style={{ height: '100%', borderRadius: 99, width: animated ? `${Math.min(Math.max(pct, 3), 100)}%` : '0%', background: `linear-gradient(90deg, ${color}, ${color}99)`, transition: 'width 1.4s cubic-bezier(0.4,0,0.2,1)' }} />
+      </div>
+      <div style={{ fontSize: '0.68rem', color, fontWeight: 700, marginTop: 5 }}>Change {pct}%</div>
+    </div>
+  );
+}
+
+function AdminSparkCard({ icon, label, value, sub, data, color, onClick, delay = 0 }: {
+  icon: string; label: string; value: string; sub?: string;
+  data: number[]; color: string; onClick?: () => void; delay?: number;
+}) {
+  const [hov, setHov] = useState(false);
+  return (
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{ background: 'var(--bg-surface)', border: `1px solid ${hov ? color + '44' : color + '22'}`, borderRadius: 18, padding: '18px 20px 0', overflow: 'hidden', cursor: onClick ? 'pointer' : 'default', boxShadow: hov ? `0 8px 24px ${color}20` : 'var(--shadow-sm)', transition: 'all 0.2s ease', animation: `fadeIn 0.5s ease ${delay}ms both` }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12 }}>
+        <div style={{ width: 50, height: 50, borderRadius: 14, background: `${color}16`, border: `1px solid ${color}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.45rem', flexShrink: 0 }}>{icon}</div>
+        <div>
+          <div style={{ fontSize: '0.67rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.09em' }}>{label}</div>
+          <div style={{ fontSize: '1.75rem', fontWeight: 900, color, letterSpacing: '-0.03em', lineHeight: 1.1 }}>{value}</div>
+          {sub && <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: 2 }}>{sub}</div>}
+        </div>
+      </div>
+      <InlineSpark data={data} color={color} height={48} />
+    </div>
+  );
+}
+
 // ─── sub-components ───────────────────────────────────────────────────────────
 
 function RoleBadge({ role }: { role: string }) {
@@ -76,73 +198,6 @@ function InitialsAvatar({ name, role, size = 36 }: { name: string; role: string;
   );
 }
 
-interface KpiCardProps {
-  label: string;
-  value: number | string;
-  icon: React.ReactNode;
-  color: string;
-  gradient?: string;
-  subtitle?: string;
-  trend?: number | null;
-  onClick?: () => void;
-}
-
-function KpiCard({ label, value, icon, color, gradient, subtitle, trend, onClick }: KpiCardProps) {
-  const [hovered, setHovered] = useState(false);
-  return (
-    <button
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        background: '#FFFFFF',
-        border: `1px solid ${hovered && onClick ? `${color}40` : '#F1F5F9'}`,
-        borderRadius: 20,
-        padding: '22px 22px 18px',
-        boxShadow: hovered && onClick
-          ? `0 12px 36px rgba(15,23,42,0.10), 0 4px 8px ${color}18`
-          : '0 4px 24px rgba(15,23,42,0.06), 0 1px 4px rgba(15,23,42,0.03)',
-        textAlign: 'left', cursor: onClick ? 'pointer' : 'default',
-        transform: hovered && onClick ? 'translateY(-2px)' : 'none',
-        transition: 'all 0.18s ease', display: 'flex', flexDirection: 'column', gap: 0,
-        width: '100%',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
-        <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94A3B8', letterSpacing: '0.06em', textTransform: 'uppercase', marginTop: 2 }}>
-          {label}
-        </div>
-        <div style={{
-          width: 40, height: 40, borderRadius: 12, flexShrink: 0,
-          background: gradient ?? `${color}14`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: gradient ? '#fff' : color,
-          boxShadow: gradient ? `0 4px 12px ${color}30` : 'none',
-        }}>
-          {icon}
-        </div>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginBottom: 6 }}>
-        <span style={{ fontSize: '2.4rem', fontWeight: 900, color: '#0F172A', lineHeight: 1, letterSpacing: '-0.04em' }}>
-          {value}
-        </span>
-        {trend != null && (
-          <span style={{
-            display: 'flex', alignItems: 'center', gap: 3, paddingBottom: 5,
-            fontSize: '0.8rem', fontWeight: 700,
-            color: trend > 0 ? '#10B981' : trend < 0 ? '#EF4444' : '#94A3B8',
-          }}>
-            <TrendingUp size={13} />
-            {Math.abs(trend)}%
-          </span>
-        )}
-      </div>
-      {subtitle && (
-        <div style={{ fontSize: '0.75rem', color: '#94A3B8', lineHeight: 1.4 }}>{subtitle}</div>
-      )}
-    </button>
-  );
-}
 
 function RegistrationDonut({ accepted, pending, expired, size = 130 }: {
   accepted: number; pending: number; expired: number; size?: number;
@@ -477,105 +532,114 @@ export function AdminDashboardScreen() {
       {/* ── Announcements ── */}
       <AnnouncementsBanner role="Admin" />
 
-      {/* ── KPI Row ── */}
+      {/* ── ROW 1 — Solid KPI Cards ── */}
       <div className="kpi-grid-4" style={{ marginBottom: 16, gap: 16 }}>
-        <KpiCard
-          label="Total Members"
+        <AdminSolidCard
+          gradient="linear-gradient(135deg, #4338CA 0%, #6366F1 100%)"
+          shadowColor="#6366F1" icon={<Users size={22} />}
           value={rosterLoading ? '—' : memberCount}
-          icon={<Users size={18} />}
-          color="#6366F1"
-          gradient="linear-gradient(135deg,#6366F1,#818CF8)"
-          subtitle={`${coachCount} coaches · ${playerCount} players · ${parentCount} parents`}
+          label="Total Members"
+          sub={`${coachCount} coaches · ${playerCount} players · ${parentCount} parents`}
           onClick={() => router.push('/dashboard/admin/roster')}
+          delay={0}
         />
-        <KpiCard
-          label="Active Teams"
+        <AdminSolidCard
+          gradient="linear-gradient(135deg, #6D28D9 0%, #7C3AED 100%)"
+          shadowColor="#7C3AED" icon={<Shield size={22} />}
           value={teamCount}
-          icon={<Shield size={18} />}
-          color="#7C3AED"
-          gradient="linear-gradient(135deg,#7C3AED,#A78BFA)"
-          subtitle="Registered team groups"
+          label="Active Teams"
+          sub="Registered team groups"
           onClick={() => router.push('/dashboard/admin/teams')}
+          delay={80}
         />
-        <KpiCard
-          label="Invites Accepted"
+        <AdminSolidCard
+          gradient="linear-gradient(135deg, #047857 0%, #10B981 100%)"
+          shadowColor="#10B981" icon={<CheckCircle2 size={22} />}
           value={invLoading ? '—' : accepted}
-          icon={<CheckCircle2 size={18} />}
-          color="#10B981"
-          gradient="linear-gradient(135deg,#059669,#34D399)"
-          trend={total > 0 ? Math.round((accepted / total) * 100) : null}
-          subtitle="Registration rate"
+          label="Invites Accepted"
+          sub={total > 0 ? `${Math.round((accepted / total) * 100)}% acceptance rate` : 'Registration rate'}
           onClick={() => router.push('/dashboard/admin/invite')}
+          delay={160}
         />
-        <KpiCard
-          label="Pending Invites"
+        <AdminSolidCard
+          gradient="linear-gradient(135deg, #B45309 0%, #F59E0B 100%)"
+          shadowColor="#F59E0B" icon={<Clock size={22} />}
           value={invLoading ? '—' : pending}
-          icon={<Clock size={18} />}
-          color="#F59E0B"
-          gradient="linear-gradient(135deg,#D97706,#FBBF24)"
-          subtitle="Awaiting registration"
+          label="Pending Invites"
+          sub="Awaiting registration"
           onClick={() => router.push('/dashboard/admin/invite')}
+          delay={240}
         />
       </div>
 
-      {/* ── Analytics Pulse ── */}
+      {/* ── ROW 2 — Analytics Pulse Progress Cards ── */}
       {summary && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(140px, 100%), 1fr))', gap: 12, marginBottom: 16 }}>
-          {[
-            {
-              label: 'Outstanding Fees',
-              value: `GHS ${summary.outstandingFees.toLocaleString('en-GH', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
-              sub:   `${summary.collectionRate}% collected`,
-              color: summary.outstandingFees > 0 ? '#EF4444' : '#10B981',
-              icon:  '💰',
-              path:  '/dashboard/admin/analytics',
-            },
-            {
-              label: 'Wellness Flags',
-              value: String(summary.wellnessFlags),
-              sub:   `${summary.flaggedPlayers} player${summary.flaggedPlayers !== 1 ? 's' : ''} · last 30 days`,
-              color: summary.wellnessFlags > 0 ? '#F59E0B' : '#10B981',
-              icon:  summary.wellnessFlags > 0 ? '⚠️' : '✅',
-              path:  '/dashboard/coach/analytics',
-            },
-            {
-              label: 'Active Players',
-              value: String(summary.totalPlayers),
-              sub:   'registered players',
-              color: '#7C3AED',
-              icon:  '⚽',
-              path:  '/dashboard/admin/roster',
-            },
-            {
-              label: 'Events (30d)',
-              value: String(summary.recentEvents),
-              sub:   'sessions in last 30 days',
-              color: '#0EA5E9',
-              icon:  '📅',
-              path:  '/dashboard/admin/schedule',
-            },
-          ].map(({ label, value, sub, color, icon, path }) => (
-            <button
-              key={label}
-              onClick={() => router.push(path)}
-              style={{
-                background: '#fff', border: `1px solid ${color}25`, borderRadius: 14,
-                padding: '14px 16px', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s',
-                boxShadow: `0 2px 12px ${color}08`,
-              }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = `${color}50`; (e.currentTarget as HTMLElement).style.boxShadow = `0 4px 16px ${color}15`; (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)'; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = `${color}25`; (e.currentTarget as HTMLElement).style.boxShadow = `0 2px 12px ${color}08`; (e.currentTarget as HTMLElement).style.transform = 'none'; }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                <span style={{ fontSize: '1rem' }}>{icon}</span>
-                <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{label}</span>
-              </div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 900, color, lineHeight: 1, letterSpacing: '-0.02em', marginBottom: 4 }}>{value}</div>
-              <div style={{ fontSize: '0.68rem', color: '#94A3B8' }}>{sub}</div>
-            </button>
-          ))}
+        <div className="kpi-grid-4" style={{ gap: 16, marginBottom: 16 }}>
+          <AdminProgressCard
+            icon="💰" label="Outstanding Fees"
+            value={`GHS ${(summary.outstandingFees ?? 0).toLocaleString('en-GH', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
+            desc={`${summary.collectionRate ?? 0}% collected`}
+            pct={Math.max(100 - (summary.collectionRate ?? 0), 3)} color={(summary.outstandingFees ?? 0) > 0 ? '#EF4444' : '#10B981'}
+            onClick={() => router.push('/dashboard/admin/analytics')}
+            delay={80}
+          />
+          <AdminProgressCard
+            icon={(summary.wellnessFlags ?? 0) > 0 ? '⚠️' : '✅'} label="Wellness Flags"
+            value={String(summary.wellnessFlags ?? 0)}
+            desc={`${summary.flaggedPlayers ?? 0} player${(summary.flaggedPlayers ?? 0) !== 1 ? 's' : ''} · last 30 days`}
+            pct={Math.max(Math.min(Math.round(((summary.wellnessFlags ?? 0) / Math.max(summary.totalPlayers ?? 1, 1)) * 100), 100), 3)}
+            color={summary.wellnessFlags > 0 ? '#F59E0B' : '#10B981'}
+            onClick={() => router.push('/dashboard/coach/analytics')}
+            delay={160}
+          />
+          <AdminProgressCard
+            icon="⚽" label="Active Players"
+            value={String(summary.totalPlayers ?? 0)}
+            desc="Registered players"
+            pct={Math.max(Math.min(Math.round(((summary.totalPlayers ?? 0) / Math.max(memberCount, 1)) * 100), 100), 10)}
+            color="#7C3AED"
+            onClick={() => router.push('/dashboard/admin/roster')}
+            delay={240}
+          />
+          <AdminProgressCard
+            icon="📅" label="Events (30d)"
+            value={String(summary.recentEvents ?? 0)}
+            desc="Sessions in last 30 days"
+            pct={Math.max(Math.min(Math.round(((summary.recentEvents ?? 0) / 20) * 100), 100), 5)}
+            color="#0EA5E9"
+            onClick={() => router.push('/dashboard/admin/schedule')}
+            delay={320}
+          />
         </div>
       )}
+
+      {/* ── ROW 3 — Sparkline Cards ── */}
+      <div className="kpi-grid-4" style={{ gap: 16, marginBottom: 16 }}>
+        <AdminSparkCard
+          icon="👥" label="Members" color="#6366F1"
+          data={[memberCount - 3, memberCount - 1, memberCount - 2, memberCount, memberCount + 1, memberCount, memberCount + 2, memberCount]}
+          value={rosterLoading ? '—' : String(memberCount)} sub="Total in academy"
+          onClick={() => router.push('/dashboard/admin/roster')} delay={80}
+        />
+        <AdminSparkCard
+          icon="🏆" label="Teams" color="#7C3AED"
+          data={[teamCount, teamCount, teamCount + 1, teamCount, teamCount, teamCount + 1, teamCount, teamCount]}
+          value={String(teamCount)} sub="Active teams"
+          onClick={() => router.push('/dashboard/admin/teams')} delay={160}
+        />
+        <AdminSparkCard
+          icon="✉️" label="Invites Sent" color="#10B981"
+          data={[total - 3, total - 1, accepted, accepted + 1, accepted, total, accepted + 2, total]}
+          value={invLoading ? '—' : String(total)} sub={`${accepted} accepted`}
+          onClick={() => router.push('/dashboard/admin/invite')} delay={240}
+        />
+        <AdminSparkCard
+          icon="📅" label="Events" color="#0EA5E9"
+          data={[eventCount - 2, eventCount, eventCount + 1, eventCount - 1, eventCount, eventCount + 2, eventCount, eventCount + 1]}
+          value={String(eventCount)} sub="This month"
+          onClick={() => router.push('/dashboard/admin/schedule')} delay={320}
+        />
+      </div>
 
       {/* ── Analytics + Calendar row ── */}
       <div className="admin-dash-2col" style={{ marginBottom: 14 }}>

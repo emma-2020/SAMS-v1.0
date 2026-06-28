@@ -9,8 +9,11 @@ interface PlayerProfile {
 }
 
 export async function getPlayers(): Promise<Player[]> {
-  const res = (await apiClient.get('/coach/players')) as { success: boolean; data: Player[] };
-  return res.data;
+  const res = (await apiClient.get('/coach/players')) as {
+    success: boolean;
+    data: { players: Player[]; teams: unknown[] };
+  };
+  return res.data.players ?? [];
 }
 
 export async function getPlayerProfile(id: string): Promise<PlayerProfile> {
