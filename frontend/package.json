@@ -4,6 +4,7 @@
   "description": "SAMS v1.0 — React Frontend",
   "private": true,
   "dependencies": {
+    "@daily-co/daily-js": "^0.91.0",
     "axios": "^1.7.2",
     "framer-motion": "^12.40.0",
     "lucide-react": "^1.17.0",
