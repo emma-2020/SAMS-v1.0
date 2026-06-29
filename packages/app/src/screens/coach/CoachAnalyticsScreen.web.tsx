@@ -87,43 +87,43 @@ export function CoachAnalyticsScreen() {
 
       <PlayerDetailModal playerId={modalPlayerId} onClose={() => setModalPlayerId(null)} />
 
-      {/* ── Header ── */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.025em', margin: 0 }}>
-            Coach Analytics
-          </h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: 4 }}>
-            Player attendance rates, GFA compliance, and squad wellness
-          </p>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          {tab === 'attendance' && !attLoading && attendance && attendance.playerRates.length > 0 && (
-            <ExportButton onClick={exportAttendance} />
-          )}
-          {tab === 'wellness' && !wellLoading && wellness && wellness.playerRanking.length > 0 && (
-            <ExportButton onClick={exportWellness} />
-          )}
-          {tab === 'workouts' && !workLoading && workouts && workouts.playerRanking.length > 0 && (
-            <ExportButton onClick={exportWorkouts} />
-          )}
-          <div style={{ display: 'flex', gap: 2, background: 'var(--bg-elevated,#F8FAFC)', borderRadius: 10, padding: 4, border: '1px solid var(--border-subtle,#E2E8F0)' }}>
-            {([['attendance','Attendance'],['wellness','Wellness'],['workouts','Workouts']] as [Tab,string][]).map(([t, label]) => (
-              <button
-                key={t}
-                onClick={() => { setError(''); setTab(t); }}
-                style={{
-                  padding: '6px 16px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                  fontSize: '0.82rem', fontWeight: 600, transition: 'all 0.15s',
-                  background: tab === t ? BRAND : 'transparent',
-                  color:      tab === t ? '#fff' : 'var(--text-muted,#64748B)',
-                  boxShadow:  tab === t ? `0 2px 8px ${BRAND}40` : 'none',
-                }}
-              >
-                {label}
-              </button>
-            ))}
+      {/* ── Cliniva Hero ─────────────────────────────────────────────────────── */}
+      <div style={{ background: 'linear-gradient(135deg,#7C3AED,#EC4899)', borderRadius: 20, padding: '28px 32px', marginBottom: 28, position: 'relative', overflow: 'hidden', boxShadow: '0 8px 32px rgba(124,58,237,0.30)' }}>
+        <div style={{ position: 'absolute', right: -40, top: -40, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.07)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', right: 100, bottom: -60, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
+        <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+          <div>
+            <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>Coach</div>
+            <h1 style={{ fontSize: 'clamp(1.4rem,4vw,1.8rem)', fontWeight: 900, color: '#fff', margin: '0 0 6px', letterSpacing: '-0.03em', lineHeight: 1.1 }}>Analytics</h1>
+            <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', margin: 0 }}>Player attendance rates, GFA compliance, and squad wellness</p>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            {tab === 'attendance' && !attLoading && attendance && attendance.playerRates.length > 0 && (
+              <ExportButton onClick={exportAttendance} />
+            )}
+            {tab === 'wellness' && !wellLoading && wellness && wellness.playerRanking.length > 0 && (
+              <ExportButton onClick={exportWellness} />
+            )}
+            {tab === 'workouts' && !workLoading && workouts && workouts.playerRanking.length > 0 && (
+              <ExportButton onClick={exportWorkouts} />
+            )}
+            <div style={{ display: 'flex', gap: 2, background: 'rgba(255,255,255,0.12)', borderRadius: 10, padding: 4, border: '1px solid rgba(255,255,255,0.2)' }}>
+              {([['attendance','Attendance'],['wellness','Wellness'],['workouts','Workouts']] as [Tab,string][]).map(([t, label]) => (
+                <button
+                  key={t}
+                  onClick={() => { setError(''); setTab(t); }}
+                  style={{
+                    padding: '6px 16px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                    fontSize: '0.82rem', fontWeight: 700, transition: 'all 0.15s',
+                    background: tab === t ? 'rgba(255,255,255,0.9)' : 'transparent',
+                    color:      tab === t ? '#7C3AED' : 'rgba(255,255,255,0.75)',
+                    boxShadow:  tab === t ? '0 2px 8px rgba(0,0,0,0.15)' : 'none',
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>

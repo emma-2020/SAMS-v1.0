@@ -556,19 +556,22 @@ export default function CoachHealthPage() {
     <div style={{ animation:'fadeUp .3s ease' }}>
       <style dangerouslySetInnerHTML={{ __html: CSS }}/>
 
-      {/* ── Header ─────────────────────────────────────────────── */}
-      <div className="page-header-row" style={{ marginBottom:24 }}>
-        <div>
-          <h1 style={{ fontSize:'clamp(1.2rem,4vw,1.55rem)', fontWeight:800, color:'var(--text-primary)', letterSpacing:'-0.025em', lineHeight:1.2, margin:0 }}>Health Monitor</h1>
-          <p style={{ color:'var(--text-muted)', fontSize:'0.875rem', marginTop:5 }}>
-            Wellness intelligence across {players.length} player{players.length !== 1 ? 's' : ''}
-          </p>
+      {/* ── Cliniva Hero ─────────────────────────────────────────── */}
+      <div style={{ background:'linear-gradient(135deg,#7C3AED,#EC4899)', borderRadius:20, padding:'28px 32px', marginBottom:28, position:'relative', overflow:'hidden', boxShadow:'0 8px 32px rgba(124,58,237,0.30)' }}>
+        <div style={{ position:'absolute', right:-40, top:-40, width:200, height:200, borderRadius:'50%', background:'rgba(255,255,255,0.07)', pointerEvents:'none' }} />
+        <div style={{ position:'absolute', right:100, bottom:-60, width:160, height:160, borderRadius:'50%', background:'rgba(255,255,255,0.04)', pointerEvents:'none' }} />
+        <div style={{ position:'relative', zIndex:1, display:'flex', alignItems:'flex-start', justifyContent:'space-between', flexWrap:'wrap', gap:16 }}>
+          <div>
+            <div style={{ fontSize:'0.7rem', fontWeight:700, letterSpacing:'0.14em', textTransform:'uppercase', color:'rgba(255,255,255,0.5)', marginBottom:8 }}>Coach</div>
+            <h1 style={{ fontSize:'clamp(1.4rem,4vw,1.8rem)', fontWeight:900, color:'#fff', margin:'0 0 6px', letterSpacing:'-0.03em', lineHeight:1.1 }}>Health Monitor</h1>
+            <p style={{ fontSize:'0.85rem', color:'rgba(255,255,255,0.6)', margin:0 }}>Wellness intelligence across {players.length} player{players.length !== 1 ? 's' : ''}</p>
+          </div>
+          {flaggedCount > 0 && (
+            <span style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize:'0.75rem', fontWeight:800, padding:'7px 16px', borderRadius:99, background:'rgba(255,255,255,0.15)', color:'#fff', border:'1px solid rgba(255,255,255,0.3)', backdropFilter:'blur(4px)', animation:'scaleIn .3s ease', flexShrink:0 }}>
+              ⚠️ {flaggedCount} flagged
+            </span>
+          )}
         </div>
-        {flaggedCount > 0 && (
-          <span style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize:'0.72rem', fontWeight:700, padding:'5px 12px', borderRadius:99, background:'#FEF2F2', color:'#DC2626', border:'1px solid #FECACA', boxShadow:'0 2px 8px rgba(220,38,38,.15)', animation:'scaleIn .3s ease' }}>
-            ⚠️ {flaggedCount} flagged
-          </span>
-        )}
       </div>
 
       {/* ── KPI Cards (TOP) ────────────────────────────────────── */}

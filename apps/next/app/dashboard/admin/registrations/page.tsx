@@ -371,46 +371,52 @@ export default function AdminRegistrationsPage() {
   return (
     <div style={{ animation: 'fadeIn 0.3s ease' }}>
 
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28, gap: 16, flexWrap: 'wrap' }}>
-        <div>
-          <h1 style={{ fontSize: '1.55rem', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.025em', lineHeight: 1.2, margin: '0 0 6px' }}>
-            Player Registrations
-          </h1>
-          <p style={{ color: '#94A3B8', fontSize: '0.875rem', margin: 0 }}>
-            Review and approve player registration submissions
-          </p>
+      {/* ── Cliniva Hero ────────────────────────────────────────────────────── */}
+      <div style={{ background: 'linear-gradient(135deg,#4F46E5,#7C3AED)', borderRadius: 20, padding: '28px 32px', marginBottom: 28, position: 'relative', overflow: 'hidden', boxShadow: '0 8px 32px rgba(79,70,229,0.28)' }}>
+        <div style={{ position: 'absolute', right: -40, top: -40, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.07)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', right: 100, bottom: -60, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
+        <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+          <div>
+            <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>Admin</div>
+            <h1 style={{ fontSize: 'clamp(1.4rem,4vw,1.8rem)', fontWeight: 900, color: '#fff', margin: '0 0 6px', letterSpacing: '-0.03em', lineHeight: 1.1 }}>Player Registrations</h1>
+            <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', margin: 0 }}>Review and approve player registration submissions</p>
+          </div>
+          <button
+            onClick={load}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 18px', borderRadius: 10, background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', color: '#fff', fontWeight: 600, fontSize: '0.82rem', cursor: 'pointer', flexShrink: 0 }}
+          >
+            <RefreshCw size={13} /> Refresh
+          </button>
         </div>
-        <button
-          onClick={load}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 9, background: '#F8FAFC', border: '1px solid #E2E8F0', color: '#64748B', fontWeight: 600, fontSize: '0.82rem', cursor: 'pointer' }}
-        >
-          <RefreshCw size={13} /> Refresh
-        </button>
       </div>
 
       {/* ── Stats row ──────────────────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 14, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 14, marginBottom: 24 }}>
         {([
-          { key: 'submitted', label: 'Pending Review', color: '#D97706', bg: '#FFFBEB', border: '#FDE68A', icon: Clock },
-          { key: 'approved',  label: 'Approved',       color: '#059669', bg: '#ECFDF5', border: '#A7F3D0', icon: CheckCircle2 },
-          { key: 'rejected',  label: 'Rejected',       color: '#DC2626', bg: '#FEF2F2', border: '#FECACA', icon: XCircle },
-        ] as const).map(({ key, label, color, bg, border, icon: Icon }) => (
+          { key: 'submitted', label: 'Pending Review', grad: 'linear-gradient(135deg,#D97706,#EA580C)', shadow: 'rgba(217,119,6,0.32)', icon: Clock },
+          { key: 'approved',  label: 'Approved',       grad: 'linear-gradient(135deg,#059669,#10B981)', shadow: 'rgba(5,150,105,0.32)', icon: CheckCircle2 },
+          { key: 'rejected',  label: 'Rejected',       grad: 'linear-gradient(135deg,#DC2626,#EF4444)', shadow: 'rgba(220,38,38,0.32)', icon: XCircle },
+        ] as const).map(({ key, label, grad, shadow, icon: Icon }) => (
           <div
             key={key}
             onClick={() => setFilter(key)}
             style={{
-              background: filter === key ? bg : '#FFFFFF',
-              border: `1.5px solid ${filter === key ? border : '#E2E8F0'}`,
-              borderRadius: 14, padding: '16px 18px', cursor: 'pointer',
-              transition: 'all 0.15s', boxShadow: filter === key ? `0 0 0 3px ${color}15` : '0 1px 4px rgba(15,23,42,0.05)',
+              background: filter === key ? grad : '#FFFFFF',
+              border: `1.5px solid ${filter === key ? 'transparent' : '#E2E8F0'}`,
+              borderRadius: 16, padding: '22px 22px', cursor: 'pointer',
+              position: 'relative', overflow: 'hidden', transition: 'all 0.2s',
+              boxShadow: filter === key ? `0 8px 28px ${shadow}` : '0 1px 4px rgba(15,23,42,0.05)',
+              transform: filter === key ? 'translateY(-2px)' : 'none',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-              <Icon size={16} style={{ color }} />
-              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</span>
+            {filter === key && <div style={{ position: 'absolute', right: -18, top: -18, width: 90, height: 90, borderRadius: '50%', background: 'rgba(255,255,255,0.13)', pointerEvents: 'none' }} />}
+            <div style={{ position: 'relative', zIndex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 12 }}>
+                <Icon size={15} style={{ color: filter === key ? 'rgba(255,255,255,0.8)' : '#94A3B8' }} />
+                <span style={{ fontSize: '0.68rem', fontWeight: 700, color: filter === key ? 'rgba(255,255,255,0.65)' : '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.09em' }}>{label}</span>
+              </div>
+              <div style={{ fontSize: '2.2rem', fontWeight: 900, color: filter === key ? '#fff' : '#1E293B', lineHeight: 1, letterSpacing: '-0.04em' }}>{counts[key]}</div>
             </div>
-            <div style={{ fontSize: '1.8rem', fontWeight: 900, color, lineHeight: 1 }}>{counts[key]}</div>
           </div>
         ))}
       </div>

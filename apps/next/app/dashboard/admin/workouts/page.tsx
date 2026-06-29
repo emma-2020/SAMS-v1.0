@@ -220,34 +220,31 @@ export default function AdminWorkoutsPage() {
   return (
     <div style={{ animation: 'fadeIn 0.3s ease' }}>
 
-      {/* ── Hero header ─────────────────────────────────────────────────────── */}
-      <div style={{ background: 'linear-gradient(135deg, #4F46E5, #7C3AED)', borderRadius: 16, padding: '24px 28px', marginBottom: 24, position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', right: -30, top: -30, width: 160, height: 160, borderRadius: '50%', background: 'rgba(99,102,241,0.08)', pointerEvents: 'none' }} />
+      {/* ── Cliniva Hero ────────────────────────────────────────────────────── */}
+      <div style={{ background: 'linear-gradient(135deg,#4F46E5,#7C3AED)', borderRadius: 20, padding: '28px 32px', marginBottom: 28, position: 'relative', overflow: 'hidden', boxShadow: '0 8px 32px rgba(79,70,229,0.28)' }}>
+        <div style={{ position: 'absolute', right: -40, top: -40, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.07)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', right: 100, bottom: -60, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
         <div style={{ position: 'relative', zIndex: 1 }}>
-          <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>Admin</div>
-          <h2 style={{ fontWeight: 900, fontSize: '1.4rem', color: 'white', margin: '0 0 4px' }}>Training Overview</h2>
-          <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.5)', margin: 0 }}>
-            All workout plans assigned across the academy
-          </p>
+          <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>Admin</div>
+          <h1 style={{ fontSize: 'clamp(1.4rem,4vw,1.8rem)', fontWeight: 900, color: '#fff', margin: '0 0 6px', letterSpacing: '-0.03em', lineHeight: 1.1 }}>Training Overview</h1>
+          <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', margin: 0 }}>All workout plans assigned across the academy</p>
         </div>
       </div>
 
       {/* ── Stats row ────────────────────────────────────────────────────────── */}
       {!loading && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 14, marginBottom: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: 14, marginBottom: 24 }}>
           {([
-            { label: 'Total Plans',     value: workouts.length,  color: '#6366F1', Icon: ClipboardList },
-            { label: 'Teams w/ Plans',  value: teamsWithPlans,   color: '#2563EB', Icon: Users         },
-            { label: 'Total Exercises', value: totalExercises,   color: '#059669', Icon: Dumbbell      },
-            { label: 'Overdue',         value: overduePlans,     color: '#EF4444', Icon: AlertTriangle },
-          ]).map(({ label, value, color, Icon }) => (
-            <div key={label} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 14, padding: '16px 18px', boxShadow: 'var(--shadow-sm)', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ width: 40, height: 40, borderRadius: 10, flexShrink: 0, background: `${color}15`, border: `1px solid ${color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', color }}>
-                <Icon size={20} strokeWidth={1.75} />
-              </div>
-              <div>
-                <div style={{ fontSize: '1.4rem', fontWeight: 900, color, lineHeight: 1 }}>{value}</div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 2 }}>{label}</div>
+            { label: 'Total Plans',     value: workouts.length, grad: 'linear-gradient(135deg,#6366F1,#818CF8)', shadow: 'rgba(99,102,241,0.28)' },
+            { label: 'Teams w/ Plans',  value: teamsWithPlans,  grad: 'linear-gradient(135deg,#2563EB,#3B82F6)', shadow: 'rgba(37,99,235,0.28)'  },
+            { label: 'Total Exercises', value: totalExercises,  grad: 'linear-gradient(135deg,#059669,#10B981)', shadow: 'rgba(5,150,105,0.28)'  },
+            { label: 'Overdue',         value: overduePlans,    grad: 'linear-gradient(135deg,#DC2626,#EF4444)', shadow: 'rgba(220,38,38,0.28)'  },
+          ]).map(({ label, value, grad, shadow }) => (
+            <div key={label} style={{ background: grad, borderRadius: 16, padding: '20px 20px', position: 'relative', overflow: 'hidden', boxShadow: `0 6px 20px ${shadow}` }}>
+              <div style={{ position: 'absolute', right: -14, top: -14, width: 70, height: 70, borderRadius: '50%', background: 'rgba(255,255,255,0.12)', pointerEvents: 'none' }} />
+              <div style={{ position: 'relative', zIndex: 1 }}>
+                <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.65)', marginBottom: 10 }}>{label}</div>
+                <div style={{ fontSize: '2rem', fontWeight: 900, color: '#fff', lineHeight: 1, letterSpacing: '-0.04em' }}>{value}</div>
               </div>
             </div>
           ))}
