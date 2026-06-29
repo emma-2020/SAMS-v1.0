@@ -354,14 +354,15 @@ export default function ParentHealthPage() {
     <div style={{ animation:'fadeUp .3s ease' }}>
       <style dangerouslySetInnerHTML={{ __html: CSS }}/>
 
-      {/* ── Header ─────────────────────────────────────────────── */}
-      <div style={{ marginBottom:20 }}>
-        <h1 style={{ fontSize:'1.55rem', fontWeight:800, color:'var(--text-primary)', letterSpacing:'-0.025em', lineHeight:1.2, margin:0 }}>
-          Child&rsquo;s Wellness
-        </h1>
-        <p style={{ color:'var(--text-muted)', fontSize:'0.875rem', marginTop:5 }}>
-          Health check-in tracking and wellness insights
-        </p>
+      {/* ── Cliniva Hero ────────────────────────────────────────── */}
+      <div style={{ background:'linear-gradient(135deg,#4338CA,#DB2777)', borderRadius:20, padding:'28px 32px', marginBottom:28, position:'relative', overflow:'hidden', boxShadow:'0 8px 32px rgba(67,56,202,0.30)' }}>
+        <div style={{ position:'absolute', right:-40, top:-40, width:200, height:200, borderRadius:'50%', background:'rgba(255,255,255,0.07)', pointerEvents:'none' }} />
+        <div style={{ position:'absolute', right:100, bottom:-60, width:160, height:160, borderRadius:'50%', background:'rgba(255,255,255,0.04)', pointerEvents:'none' }} />
+        <div style={{ position:'relative', zIndex:1 }}>
+          <div style={{ fontSize:'0.7rem', fontWeight:700, letterSpacing:'0.14em', textTransform:'uppercase', color:'rgba(255,255,255,0.5)', marginBottom:8 }}>Parent</div>
+          <h1 style={{ fontSize:'clamp(1.4rem,4vw,1.8rem)', fontWeight:900, color:'#fff', margin:'0 0 6px', letterSpacing:'-0.03em', lineHeight:1.1 }}>Child&rsquo;s Wellness</h1>
+          <p style={{ fontSize:'0.85rem', color:'rgba(255,255,255,0.6)', margin:0 }}>Health check-in tracking and wellness insights</p>
+        </div>
       </div>
 
       {/* ── Tab bar ─────────────────────────────────────────────── */}

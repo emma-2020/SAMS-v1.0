@@ -5,8 +5,9 @@ import {
   LayoutDashboard, Users, CalendarDays, ClipboardList, Activity,
   Dumbbell, MessageSquare, Settings, LogOut, Menu, X, Bell,
   Search, ChevronUp, ChevronRight, Sun, Moon,
-  Shield, Trophy, Zap, UserCircle,
+  Shield, Trophy, Zap, UserCircle, Video,
 } from 'lucide-react';
+import IncomingCallModal from '../calls/IncomingCallModal';
 import useAuthStore from '../../store/authStore';
 import { logout as logoutApi } from '../../services/auth.api';
 import { useTheme } from '../../context/ThemeContext';
@@ -18,43 +19,47 @@ const SETTINGS_ITEM = { label: 'Settings', path: '/dashboard/settings', icon: Se
 const NAV_CONFIG = {
   Admin: {
     main: [
-      { label: 'Dashboard',   path: '/dashboard/admin',          icon: LayoutDashboard },
-      { label: 'Schedule',    path: '/dashboard/admin/schedule', icon: CalendarDays    },
-      { label: 'Invitations', path: '/dashboard/admin/invite',   icon: Zap             },
-      { label: 'Roster',      path: '/dashboard/admin/roster',   icon: Users           },
-      { label: 'Teams',       path: '/dashboard/admin/teams',    icon: Trophy          },
-      { label: 'Chat',        path: '/dashboard/admin/chat',     icon: MessageSquare   },
+      { label: 'Dashboard',   path: '/dashboard/admin',           icon: LayoutDashboard },
+      { label: 'Schedule',    path: '/dashboard/admin/schedule',  icon: CalendarDays    },
+      { label: 'Invitations', path: '/dashboard/admin/invite',    icon: Zap             },
+      { label: 'Roster',      path: '/dashboard/admin/roster',    icon: Users           },
+      { label: 'Teams',       path: '/dashboard/admin/teams',     icon: Trophy          },
+      { label: 'Chat',        path: '/dashboard/admin/chat',      icon: MessageSquare   },
+      { label: 'Meetings',    path: '/dashboard/admin/meetings',  icon: Video           },
     ],
     other: [SETTINGS_ITEM],
   },
   Coach: {
     main: [
-      { label: 'Dashboard',  path: '/dashboard/coach',             icon: LayoutDashboard },
-      { label: 'Players',    path: '/dashboard/coach/players',     icon: Users           },
-      { label: 'Schedule',   path: '/dashboard/coach/schedule',    icon: CalendarDays    },
-      { label: 'Attendance', path: '/dashboard/coach/attendance',  icon: ClipboardList   },
-      { label: 'Health',     path: '/dashboard/coach/health',      icon: Activity        },
-      { label: 'Workouts',   path: '/dashboard/coach/workouts',    icon: Dumbbell        },
-      { label: 'Chat',       path: '/dashboard/coach/chat',        icon: MessageSquare   },
+      { label: 'Dashboard',  path: '/dashboard/coach',              icon: LayoutDashboard },
+      { label: 'Players',    path: '/dashboard/coach/players',      icon: Users           },
+      { label: 'Schedule',   path: '/dashboard/coach/schedule',     icon: CalendarDays    },
+      { label: 'Attendance', path: '/dashboard/coach/attendance',   icon: ClipboardList   },
+      { label: 'Health',     path: '/dashboard/coach/health',       icon: Activity        },
+      { label: 'Workouts',   path: '/dashboard/coach/workouts',     icon: Dumbbell        },
+      { label: 'Chat',       path: '/dashboard/coach/chat',         icon: MessageSquare   },
+      { label: 'Meetings',   path: '/dashboard/coach/meetings',     icon: Video           },
     ],
     other: [SETTINGS_ITEM],
   },
   Player: {
     main: [
-      { label: 'Dashboard', path: '/dashboard/player',          icon: LayoutDashboard },
-      { label: 'Schedule',  path: '/dashboard/player/schedule', icon: CalendarDays    },
-      { label: 'Workouts',  path: '/dashboard/player/workouts', icon: Dumbbell        },
-      { label: 'Health',    path: '/dashboard/player/health',   icon: Activity        },
-      { label: 'Chat',      path: '/dashboard/player/chat',     icon: MessageSquare   },
+      { label: 'Dashboard', path: '/dashboard/player',           icon: LayoutDashboard },
+      { label: 'Schedule',  path: '/dashboard/player/schedule',  icon: CalendarDays    },
+      { label: 'Workouts',  path: '/dashboard/player/workouts',  icon: Dumbbell        },
+      { label: 'Health',    path: '/dashboard/player/health',    icon: Activity        },
+      { label: 'Chat',      path: '/dashboard/player/chat',      icon: MessageSquare   },
+      { label: 'Meetings',  path: '/dashboard/player/meetings',  icon: Video           },
     ],
     other: [SETTINGS_ITEM],
   },
   Parent: {
     main: [
-      { label: 'Dashboard', path: '/dashboard/parent',          icon: LayoutDashboard },
-      { label: 'Schedule',  path: '/dashboard/parent/schedule', icon: CalendarDays    },
-      { label: 'Health',    path: '/dashboard/parent/health',   icon: Activity        },
-      { label: 'Messages',  path: '/dashboard/parent/chat',     icon: MessageSquare   },
+      { label: 'Dashboard', path: '/dashboard/parent',           icon: LayoutDashboard },
+      { label: 'Schedule',  path: '/dashboard/parent/schedule',  icon: CalendarDays    },
+      { label: 'Health',    path: '/dashboard/parent/health',    icon: Activity        },
+      { label: 'Messages',  path: '/dashboard/parent/chat',      icon: MessageSquare   },
+      { label: 'Meetings',  path: '/dashboard/parent/meetings',  icon: Video           },
     ],
     other: [SETTINGS_ITEM],
   },
@@ -517,6 +522,8 @@ export default function AppShell() {
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-base)' }}>
+      {/* Global incoming-call listener — fires for any authenticated page */}
+      <IncomingCallModal />
 
       {/* Mobile overlay */}
       {sidebarOpen && (

@@ -81,7 +81,7 @@ getResend();
  * Sends an email via Resend or falls back to a terminal dump when unconfigured.
  * Callers wrap this in try/catch — this function throws on Resend API error.
  */
-async function dispatch({ to, subject, html, text }) {
+async function dispatch({ to, subject, html, text, attachments = [] }) {
   const client = getResend();
 
   if (!client) {
@@ -91,6 +91,7 @@ async function dispatch({ to, subject, html, text }) {
     console.info('[EMAIL — development sandbox fallback mode]');
     console.info(`  To:      ${to}`);
     console.info(`  Subject: ${subject}`);
+    if (attachments.length) console.info(`  Attachments: ${attachments.map(a => a.filename).join(', ')}`);
     console.info('  ── Plain text preview ──────────────────────────────────────');
     (text || '(no plain text)').split('\n').forEach(l => console.info(`  ${l}`));
     console.info('══════════════════════════════════════════════════════════════');
@@ -98,13 +99,10 @@ async function dispatch({ to, subject, html, text }) {
     return { sent: false, mode: 'sandbox' };
   }
 
-  const { data, error } = await client.emails.send({
-    from:    env.EMAIL_FROM,
-    to,
-    subject,
-    html,
-    text,
-  });
+  const payload = { from: env.EMAIL_FROM, to, subject, html, text };
+  if (attachments.length) payload.attachments = attachments;
+
+  const { data, error } = await client.emails.send(payload);
 
   if (error) {
     throw new Error(`Resend delivery failed: ${error.message || JSON.stringify(error)}`);
@@ -1056,6 +1054,103 @@ async function sendRegistrationRejectedEmail({ to, firstName, academyName, reaso
   });
 }
 
+// ─── Email: Meeting Invitation ────────────────────────────────────────────────
+
+/**
+ * sendMeetingInvitationEmail
+ * Sent to each attendee when a meeting is scheduled. Includes a .ics calendar
+ * attachment so the invite lands directly in Google Calendar / Outlook / Apple Calendar.
+ */
+async function sendMeetingInvitationEmail({
+  to, firstName, meetingTitle, agenda, scheduledAt, durationMinutes,
+  roomUrl, academyName, icsContent,
+  appUrl,
+}) {
+  const startDate = new Date(scheduledAt);
+  const endDate   = new Date(startDate.getTime() + durationMinutes * 60000);
+
+  const fmtDate = (d) => d.toLocaleDateString('en-GB', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+  });
+  const fmtTime = (d) => d.toLocaleTimeString('en-GB', {
+    hour: '2-digit', minute: '2-digit', timeZoneName: 'short',
+  });
+
+  const html = emailShell(`
+    <tr>
+      <td style="padding:40px 44px 8px;">
+        ${badge('Meeting Invitation 📅', '#6366F1')}
+        ${h1(meetingTitle)}
+        ${para(`Hi ${firstName}, you have been invited to a meeting by
+          <strong style="color:#0F172A;">${academyName}</strong>.`)}
+
+        <!-- Meeting details box -->
+        <div style="background:#F8FAFC;border:1.5px solid #E2E8F0;border-left:4px solid #6366F1;
+                    border-radius:12px;padding:20px 24px;margin-bottom:28px;">
+          <table cellpadding="0" cellspacing="0" width="100%">
+            <tr>
+              <td style="padding:7px 0;font-size:0.78rem;font-weight:700;color:#94A3B8;
+                          text-transform:uppercase;letter-spacing:0.08em;width:32%;">Date</td>
+              <td style="padding:7px 0;font-size:0.93rem;font-weight:600;color:#0F172A;">${fmtDate(startDate)}</td>
+            </tr>
+            <tr><td colspan="2" style="height:1px;background:#E2E8F0;"></td></tr>
+            <tr>
+              <td style="padding:7px 0;font-size:0.78rem;font-weight:700;color:#94A3B8;
+                          text-transform:uppercase;letter-spacing:0.08em;">Time</td>
+              <td style="padding:7px 0;font-size:0.93rem;color:#0F172A;">${fmtTime(startDate)} – ${fmtTime(endDate)}</td>
+            </tr>
+            <tr><td colspan="2" style="height:1px;background:#E2E8F0;"></td></tr>
+            <tr>
+              <td style="padding:7px 0;font-size:0.78rem;font-weight:700;color:#94A3B8;
+                          text-transform:uppercase;letter-spacing:0.08em;">Duration</td>
+              <td style="padding:7px 0;font-size:0.93rem;color:#0F172A;">${durationMinutes} minutes</td>
+            </tr>
+            ${agenda ? `
+            <tr><td colspan="2" style="height:1px;background:#E2E8F0;"></td></tr>
+            <tr>
+              <td style="padding:7px 0;font-size:0.78rem;font-weight:700;color:#94A3B8;
+                          text-transform:uppercase;letter-spacing:0.08em;vertical-align:top;">Agenda</td>
+              <td style="padding:7px 0;font-size:0.88rem;color:#475569;line-height:1.65;">${agenda.replace(/\n/g, '<br>')}</td>
+            </tr>` : ''}
+          </table>
+        </div>
+
+        ${ctaButton('Open SAMS to Join →', appUrl || (env.FRONTEND_URL + '/dashboard'), '#6366F1')}
+        <p style="margin:0 0 8px;font-size:0.78rem;color:#94A3B8;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;">
+          Or join directly (no login required):
+        </p>
+        ${linkBox(roomUrl)}
+
+        <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;
+                    padding:14px 18px;font-size:0.82rem;color:#1D4ED8;margin-bottom:28px;">
+          📎 A <strong>calendar invite (.ics)</strong> is attached to this email.
+          Open it to add this meeting directly to Google Calendar, Outlook, or Apple Calendar.
+        </div>
+      </td>
+    </tr>
+  `);
+
+  const text =
+    `Hi ${firstName},\n\n` +
+    `You have been invited to a meeting by ${academyName}.\n\n` +
+    `MEETING DETAILS\n` +
+    `  Title:    ${meetingTitle}\n` +
+    `  Date:     ${fmtDate(startDate)}\n` +
+    `  Time:     ${fmtTime(startDate)}\n` +
+    `  Duration: ${durationMinutes} minutes\n` +
+    (agenda ? `  Agenda:   ${agenda}\n` : '') +
+    `\nOpen the SAMS app to join:\n${appUrl || (env.FRONTEND_URL + '/dashboard')}\n\n` +
+    `Or join directly:\n${roomUrl}\n\n` +
+    `A calendar invite (.ics) is attached to add this to your calendar.\n\n` +
+    `— SAMS Platform`;
+
+  const attachments = icsContent
+    ? [{ filename: 'meeting-invite.ics', content: Buffer.from(icsContent).toString('base64') }]
+    : [];
+
+  return dispatch({ to, subject: `Meeting Invitation: ${meetingTitle} — ${academyName}`, html, text, attachments });
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 module.exports = {
@@ -1073,4 +1168,5 @@ module.exports = {
   sendRegistrationAlertEmail,
   sendRegistrationApprovedEmail,
   sendRegistrationRejectedEmail,
+  sendMeetingInvitationEmail,
 };

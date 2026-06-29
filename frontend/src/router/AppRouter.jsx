@@ -34,6 +34,7 @@ import ParentHealthPage   from '../pages/parent/HealthPage';
 
 // Shared pages (role-specific content handled inside)
 import ChatPage          from '../pages/chat/index';
+import MeetingsPage      from '../pages/meetings/index';
 
 // Admin sub-pages
 import AdminTeams        from '../pages/admin/TeamsPage';
@@ -67,40 +68,44 @@ export default function AppRouter() {
 
           {/* ── Admin ──────────────────────────────────────────── */}
           <Route element={<RoleRoute allowed={['Admin']} />}>
-            <Route path="/dashboard/admin"           element={<AdminDashboard />} />
-            <Route path="/dashboard/admin/schedule"  element={<AdminSchedule />} />
-            <Route path="/dashboard/admin/invite"    element={<AdminInvitations />} />
-            <Route path="/dashboard/admin/roster"    element={<AdminRoster />} />
-            <Route path="/dashboard/admin/teams"     element={<AdminTeams />} />
-            <Route path="/dashboard/admin/chat"      element={<ChatPage />} />
+            <Route path="/dashboard/admin"            element={<AdminDashboard />} />
+            <Route path="/dashboard/admin/schedule"   element={<AdminSchedule />} />
+            <Route path="/dashboard/admin/invite"     element={<AdminInvitations />} />
+            <Route path="/dashboard/admin/roster"     element={<AdminRoster />} />
+            <Route path="/dashboard/admin/teams"      element={<AdminTeams />} />
+            <Route path="/dashboard/admin/chat"       element={<ChatPage />} />
+            <Route path="/dashboard/admin/meetings"   element={<MeetingsPage />} />
           </Route>
 
           {/* ── Coach ──────────────────────────────────────────── */}
           <Route element={<RoleRoute allowed={['Coach', 'Admin']} />}>
-            <Route path="/dashboard/coach"            element={<CoachDashboard />} />
-            <Route path="/dashboard/coach/players"    element={<CoachPlayersPage />} />
-            <Route path="/dashboard/coach/schedule"   element={<CoachSchedulePage />} />
-            <Route path="/dashboard/coach/attendance" element={<CoachAttendance />} />
-            <Route path="/dashboard/coach/health"     element={<CoachHealthPage />} />
-            <Route path="/dashboard/coach/workouts"   element={<CoachWorkouts />} />
-            <Route path="/dashboard/coach/chat"       element={<ChatPage />} />
+            <Route path="/dashboard/coach"             element={<CoachDashboard />} />
+            <Route path="/dashboard/coach/players"     element={<CoachPlayersPage />} />
+            <Route path="/dashboard/coach/schedule"    element={<CoachSchedulePage />} />
+            <Route path="/dashboard/coach/attendance"  element={<CoachAttendance />} />
+            <Route path="/dashboard/coach/health"      element={<CoachHealthPage />} />
+            <Route path="/dashboard/coach/workouts"    element={<CoachWorkouts />} />
+            <Route path="/dashboard/coach/chat"        element={<ChatPage />} />
+            <Route path="/dashboard/coach/meetings"    element={<MeetingsPage />} />
           </Route>
 
           {/* ── Player ─────────────────────────────────────────── */}
           <Route element={<RoleRoute allowed={['Player', 'Admin']} />}>
-            <Route path="/dashboard/player"          element={<PlayerDashboard />} />
-            <Route path="/dashboard/player/schedule" element={<PlayerSchedule />} />
-            <Route path="/dashboard/player/workouts" element={<PlayerWorkouts />} />
-            <Route path="/dashboard/player/health"   element={<PlayerHealthPage />} />
-            <Route path="/dashboard/player/chat"     element={<ChatPage />} />
+            <Route path="/dashboard/player"            element={<PlayerDashboard />} />
+            <Route path="/dashboard/player/schedule"   element={<PlayerSchedule />} />
+            <Route path="/dashboard/player/workouts"   element={<PlayerWorkouts />} />
+            <Route path="/dashboard/player/health"     element={<PlayerHealthPage />} />
+            <Route path="/dashboard/player/chat"       element={<ChatPage />} />
+            <Route path="/dashboard/player/meetings"   element={<MeetingsPage />} />
           </Route>
 
           {/* ── Parent ─────────────────────────────────────────── */}
           <Route element={<RoleRoute allowed={['Parent', 'Admin']} />}>
-            <Route path="/dashboard/parent"          element={<ParentDashboard />} />
-            <Route path="/dashboard/parent/schedule" element={<ParentSchedulePage />} />
-            <Route path="/dashboard/parent/health"   element={<ParentHealthPage />} />
-            <Route path="/dashboard/parent/chat"     element={<ChatPage />} />
+            <Route path="/dashboard/parent"            element={<ParentDashboard />} />
+            <Route path="/dashboard/parent/schedule"   element={<ParentSchedulePage />} />
+            <Route path="/dashboard/parent/health"     element={<ParentHealthPage />} />
+            <Route path="/dashboard/parent/chat"       element={<ChatPage />} />
+            <Route path="/dashboard/parent/meetings"   element={<MeetingsPage />} />
           </Route>
 
           {/* ── Settings (all roles) ───────────────────────────── */}

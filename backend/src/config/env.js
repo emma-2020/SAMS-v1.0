@@ -30,4 +30,6 @@ module.exports = {
   // Email — Resend
   RESEND_API_KEY: process.env.RESEND_API_KEY || '',
   EMAIL_FROM:     process.env.EMAIL_FROM     || 'SAMS Platform <onboarding@resend.dev>',
+  // Video/Audio calls — Daily.co
+  DAILY_API_KEY:  process.env.DAILY_API_KEY  || '',
 };

@@ -25,6 +25,7 @@ const documentsRoutes         = require('./routes/documents.routes');
 const announcementsRoutes     = require('./routes/announcements.routes');
 const analyticsRoutes         = require('./routes/analytics.routes');
 const registrationRoutes      = require('./routes/registration.routes');
+const meetingsRoutes          = require('./routes/meetings.routes');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
 
 const app = express();
@@ -46,13 +47,14 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc:  ["'self'"],
-      scriptSrc:   ["'self'"],
+      scriptSrc:   ["'self'", 'https://*.daily.co'],
       styleSrc:    ["'self'", "'unsafe-inline'"],
-      imgSrc:      ["'self'", 'data:', 'https://*.supabase.co', 'https://*.supabase.in'],
-      connectSrc:  ["'self'"],
+      imgSrc:      ["'self'", 'data:', 'https://*.supabase.co', 'https://*.supabase.in', 'https://*.daily.co'],
+      connectSrc:  ["'self'", 'https://*.daily.co', 'wss://*.daily.co', 'https://api.daily.co'],
       fontSrc:     ["'self'"],
       objectSrc:   ["'none'"],
-      frameSrc:    ["'none'"],
+      frameSrc:    ["'self'", 'https://*.daily.co'],
+      mediaSrc:    ["'self'", 'https://*.daily.co', 'blob:'],
       upgradeInsecureRequests: [],
     },
   },
@@ -146,6 +148,7 @@ app.use('/api/documents',     apiLimiter,  documentsRoutes);
 app.use('/api/announcements', apiLimiter,  announcementsRoutes);
 app.use('/api/analytics',     apiLimiter,  analyticsRoutes);
 app.use('/api/registration',  apiLimiter,  registrationRoutes);
+app.use('/api/meetings',      apiLimiter,  meetingsRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

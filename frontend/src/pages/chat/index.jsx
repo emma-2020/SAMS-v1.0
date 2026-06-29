@@ -2,9 +2,11 @@
 import {
   useState, useEffect, useRef, useCallback, useReducer,
 } from 'react';
-import api          from '../../services/api';
-import { chatApi }  from '../../services/chat.api';
-import useAuthStore from '../../store/authStore';
+import api           from '../../services/api';
+import { chatApi }   from '../../services/chat.api';
+import { meetingsApi } from '../../services/meetings.api';
+import useAuthStore  from '../../store/authStore';
+import CallRoom      from '../../components/calls/CallRoom';
 
 // ─── Constants ───────────────────────────────────────────────────
 const POLL_MS   = 5000;
@@ -50,6 +52,11 @@ const IcoHash = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
     <line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/>
     <line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/>
+  </svg>
+);
+const IcoPhone = () => (
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.42 2 2 0 0 1 3.58 1.25h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.18 6.18l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
   </svg>
 );
 const IcoUsers = () => (
@@ -418,6 +425,9 @@ export default function ChatPage() {
   const [sendError,    setSendError]    = useState('');
   const [initError,    setInitError]    = useState('');
 
+  const [activeCall,   setActiveCall]   = useState(null);
+  const [callLoading,  setCallLoading]  = useState(false);
+
   const pollingRef = useRef(null);
   const latestRef  = useRef(null);
   const bottomRef  = useRef(null);
@@ -511,6 +521,20 @@ export default function ChatPage() {
     } finally { setSending(false); }
   }, [activeTeamId, user]);
 
+  // ── Start call ─────────────────────────────────────────────────
+  const handleStartCall = useCallback(async () => {
+    if (!activeTeamId || callLoading) return;
+    setCallLoading(true);
+    try {
+      const session = await meetingsApi.startCall({ teamId: activeTeamId });
+      setActiveCall({ roomUrl: session.daily_room_url, sessionId: session.id, title: activeTeam?.name });
+    } catch (err) {
+      alert(err?.response?.data?.error || 'Failed to start call');
+    } finally {
+      setCallLoading(false);
+    }
+  }, [activeTeamId, activeTeam, callLoading]);
+
   // ── Switch team ────────────────────────────────────────────────
   function switchTeam(team) {
     clearInterval(pollingRef.current);
@@ -523,6 +547,18 @@ export default function ChatPage() {
   const coachName = activeTeam?.users
     ? `${activeTeam.users.first_name} ${activeTeam.users.last_name}`
     : 'Unassigned';
+
+  // Active call takes over the whole screen
+  if (activeCall) {
+    return (
+      <CallRoom
+        roomUrl={activeCall.roomUrl}
+        sessionId={activeCall.sessionId}
+        title={activeCall.title ? `${activeCall.title} · Call` : 'Team Call'}
+        onLeave={() => setActiveCall(null)}
+      />
+    );
+  }
 
   if (loadingTeams) {
     return (
@@ -707,15 +743,39 @@ export default function ChatPage() {
               </div>
             </div>
           </div>
-          {/* Live indicator */}
-          <div style={{ display:'flex', alignItems:'center', gap:7 }}>
-            <span style={{
-              display:'inline-block', width:7, height:7, borderRadius:'50%',
-              background:'#10B981', boxShadow:'0 0 0 3px rgba(16,185,129,0.20)',
-            }} />
-            <span style={{ fontSize:'0.72rem', color:'#94A3B8', fontFamily:'var(--font-mono)', letterSpacing:'0.04em' }}>
-              Live · {POLL_MS / 1000}s sync
-            </span>
+          {/* Actions */}
+          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+            {/* Call button */}
+            <button
+              onClick={handleStartCall}
+              disabled={callLoading}
+              title="Start voice / video call"
+              style={{
+                display:'flex', alignItems:'center', gap:6,
+                padding:'6px 14px', borderRadius:99, border:'none',
+                background: callLoading ? '#F1F5F9' : 'linear-gradient(135deg,#6366F1,#8B5CF6)',
+                color: callLoading ? '#94A3B8' : '#fff',
+                fontSize:'0.75rem', fontWeight:700, cursor: callLoading ? 'not-allowed' : 'pointer',
+                boxShadow: callLoading ? 'none' : '0 2px 8px rgba(99,102,241,0.35)',
+                transition:'all 0.15s',
+              }}
+              onMouseEnter={e => { if (!callLoading) e.currentTarget.style.boxShadow='0 4px 14px rgba(99,102,241,0.5)'; }}
+              onMouseLeave={e => { if (!callLoading) e.currentTarget.style.boxShadow='0 2px 8px rgba(99,102,241,0.35)'; }}
+            >
+              {callLoading
+                ? <span className="spinner" style={{width:12,height:12}}/>
+                : <IcoPhone />
+              }
+              {callLoading ? 'Starting…' : 'Call'}
+            </button>
+
+            {/* Live indicator */}
+            <div style={{ display:'flex', alignItems:'center', gap:7 }}>
+              <span style={{ display:'inline-block', width:7, height:7, borderRadius:'50%', background:'#10B981', boxShadow:'0 0 0 3px rgba(16,185,129,0.20)' }} />
+              <span style={{ fontSize:'0.72rem', color:'#94A3B8', fontFamily:'var(--font-mono)', letterSpacing:'0.04em' }}>
+                Live · {POLL_MS / 1000}s
+              </span>
+            </div>
           </div>
         </div>
 

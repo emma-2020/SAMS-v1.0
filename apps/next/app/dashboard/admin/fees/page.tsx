@@ -266,30 +266,39 @@ export default function FeesPage() {
 
   return (
     <div style={{ animation: 'fadeIn 0.3s ease' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, gap: 16, flexWrap: 'wrap' }}>
-        <div>
-          <h1 style={{ fontSize: '1.55rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.025em', margin: 0 }}>Fee Management</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: 6 }}>Track and manage academy fees and payments</p>
+
+      {/* ── Cliniva Hero ─────────────────────────────────────────────────────── */}
+      <div style={{ background: 'linear-gradient(135deg,#4F46E5,#7C3AED)', borderRadius: 20, padding: '28px 32px', marginBottom: 28, position: 'relative', overflow: 'hidden', boxShadow: '0 8px 32px rgba(79,70,229,0.28)' }}>
+        <div style={{ position: 'absolute', right: -40, top: -40, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.07)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', right: 100, bottom: -60, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
+        <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+          <div>
+            <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>Admin</div>
+            <h1 style={{ fontSize: 'clamp(1.4rem,4vw,1.8rem)', fontWeight: 900, color: '#fff', margin: '0 0 6px', letterSpacing: '-0.03em', lineHeight: 1.1 }}>Fee Management</h1>
+            <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', margin: 0 }}>Track and manage academy fees and payments</p>
+          </div>
+          <button onClick={() => { setEditFee(null); setShowForm(true); }}
+            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 18px', borderRadius: 10, background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', color: '#fff', fontWeight: 700, fontSize: '0.875rem', cursor: 'pointer', flexShrink: 0 }}>
+            <Ico.Plus /> Add Fee
+          </button>
         </div>
-        <button onClick={() => { setEditFee(null); setShowForm(true); }}
-          style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 18px', borderRadius: 11, border: 'none', background: 'linear-gradient(135deg,#6366F1,#8B5CF6)', color: '#fff', fontWeight: 700, fontSize: '0.875rem', cursor: 'pointer', boxShadow: '0 4px 12px rgba(99,102,241,0.35)', flexShrink: 0 }}>
-          <Ico.Plus /> Add Fee
-        </button>
       </div>
 
-      {/* KPI row */}
-      <div className="kpi-grid-4" style={{ marginBottom: 24 }}>
+      {/* ── KPI Cards ────────────────────────────────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: 14, marginBottom: 24 }}>
         {[
-          { label: 'Total Owed',    value: fmt(totalOwed),        color: '#6366F1', sub: `${fees.length} records` },
-          { label: 'Collected',     value: fmt(totalCollected),   color: '#059669', sub: `${collectionRate}% rate` },
-          { label: 'Outstanding',   value: fmt(totalOutstanding), color: totalOutstanding > 0 ? '#DC2626' : '#059669', sub: 'balance due' },
-          { label: 'Players',       value: String(new Set(fees.map(f => f.player?.id)).size), color: '#7C3AED', sub: 'with records' },
+          { label: 'Total Owed',  value: fmt(totalOwed),        grad: 'linear-gradient(135deg,#6366F1,#818CF8)', shadow: 'rgba(99,102,241,0.28)',  sub: `${fees.length} records` },
+          { label: 'Collected',   value: fmt(totalCollected),   grad: 'linear-gradient(135deg,#059669,#10B981)', shadow: 'rgba(5,150,105,0.28)',   sub: `${collectionRate}% rate` },
+          { label: 'Outstanding', value: fmt(totalOutstanding), grad: totalOutstanding > 0 ? 'linear-gradient(135deg,#DC2626,#EF4444)' : 'linear-gradient(135deg,#059669,#10B981)', shadow: totalOutstanding > 0 ? 'rgba(220,38,38,0.28)' : 'rgba(5,150,105,0.28)', sub: 'balance due' },
+          { label: 'Players',     value: String(new Set(fees.map(f => f.player?.id)).size), grad: 'linear-gradient(135deg,#7C3AED,#A855F7)', shadow: 'rgba(124,58,237,0.28)', sub: 'with records' },
         ].map(k => (
-          <div key={k.label} style={{ background: '#fff', border: '1.5px solid #F1F5F9', borderRadius: 14, padding: '14px 16px', boxShadow: '0 1px 4px rgba(15,23,42,0.04)' }}>
-            <div style={{ fontSize: '0.6rem', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>{k.label}</div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 800, color: k.color, lineHeight: 1 }}>{k.value}</div>
-            <div style={{ fontSize: '0.63rem', color: '#94A3B8', marginTop: 4 }}>{k.sub}</div>
+          <div key={k.label} style={{ background: k.grad, borderRadius: 16, padding: '20px 20px', position: 'relative', overflow: 'hidden', boxShadow: `0 6px 20px ${k.shadow}` }}>
+            <div style={{ position: 'absolute', right: -14, top: -14, width: 70, height: 70, borderRadius: '50%', background: 'rgba(255,255,255,0.12)', pointerEvents: 'none' }} />
+            <div style={{ position: 'relative', zIndex: 1 }}>
+              <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.65)', marginBottom: 8 }}>{k.label}</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#fff', lineHeight: 1, letterSpacing: '-0.03em', marginBottom: 4 }}>{k.value}</div>
+              <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.55)' }}>{k.sub}</div>
+            </div>
           </div>
         ))}
       </div>
