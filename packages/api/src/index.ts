@@ -22,3 +22,5 @@ export * as analyticsApi from './analytics';
 export type { FeeAnalytics, AttendanceAnalytics, WellnessAnalytics, MyWellnessAnalytics, MyAttendanceAnalytics, ParentAnalytics, WorkoutAnalytics, TeamComparison, PlayerDetail, AnalyticsSummary, FeeAnalyticsParams } from './analytics';
 export type { FeeLedgerEntry, PlayerDocument, Announcement, UserPreferences, AcademyAdminSettings, NotificationPreferences, PlayerRegistration, RegistrationFormFields } from './types';
 export * as registrationApi from './registration';
+export * as meetingsApi from './meetings';
+export type { Meeting, CallSession, AcademyMember } from './meetings';
