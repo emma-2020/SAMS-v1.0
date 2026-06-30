@@ -209,6 +209,7 @@ function IncomingCallModal() {
 function ScheduleModal({ members, onClose, onCreated }: { members: AcademyMember[]; onClose: () => void; onCreated: () => void }) {
   const [form, setForm] = useState({ title: '', agenda: '', date: '', time: '14:00', duration: '60' });
   const [selected, setSelected] = useState<string[]>(members.map(m => m.id));
+  const [roleFilter, setRoleFilter] = useState<string>('All');
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
 
@@ -272,14 +273,44 @@ function ScheduleModal({ members, onClose, onCreated }: { members: AcademyMember
             </div>
           </div>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
               <label style={{ fontSize: '.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '.04em' }}>Attendees ({selected.length}/{members.length})</label>
               <button type="button" onClick={() => setSelected(selected.length === members.length ? [] : members.map(m => m.id))} style={{ fontSize: '.72rem', fontWeight: 700, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer' }}>
                 {selected.length === members.length ? 'Deselect all' : 'Select all'}
               </button>
             </div>
-            <div style={{ maxHeight: 200, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {members.map(m => (
+            {/* Role filter chips */}
+            <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
+              {(['All', 'Coach', 'Player', 'Parent'] as const).map(role => {
+                const COLORS: Record<string, { active: string; text: string; border: string }> = {
+                  All:    { active: '#6366F1', text: '#fff', border: '#6366F1' },
+                  Coach:  { active: '#7C3AED', text: '#fff', border: '#7C3AED' },
+                  Player: { active: '#059669', text: '#fff', border: '#059669' },
+                  Parent: { active: '#D97706', text: '#fff', border: '#D97706' },
+                };
+                const c = COLORS[role];
+                const isActive = roleFilter === role;
+                return (
+                  <button
+                    key={role}
+                    type="button"
+                    onClick={() => {
+                      setRoleFilter(role);
+                      if (role === 'All') {
+                        setSelected(members.map(m => m.id));
+                      } else {
+                        setSelected(members.filter(m => m.role === role).map(m => m.id));
+                      }
+                    }}
+                    style={{ padding: '4px 12px', borderRadius: 99, fontSize: '.72rem', fontWeight: 700, cursor: 'pointer', border: `1.5px solid ${isActive ? c.border : 'var(--border-default)'}`, background: isActive ? c.active : 'var(--bg-elevated)', color: isActive ? c.text : 'var(--text-secondary)', transition: 'all .12s' }}
+                  >
+                    {role === 'All' ? `All (${members.length})` : `${role}s (${members.filter(m => m.role === role).length})`}
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{ maxHeight: 180, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {members.filter(m => roleFilter === 'All' || m.role === roleFilter).map(m => (
                 <label key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, cursor: 'pointer', background: selected.includes(m.id) ? 'var(--accent-subtle)' : 'transparent', border: `1px solid ${selected.includes(m.id) ? 'var(--accent-light)' : 'transparent'}`, transition: 'all .12s' }}>
                   <input type="checkbox" checked={selected.includes(m.id)} onChange={() => toggleMember(m.id)} style={{ accentColor: 'var(--accent)' }} />
                   <Avatar name={`${m.first_name} ${m.last_name}`} size={26} />
@@ -400,15 +431,13 @@ export default function MeetingsPage() {
   const { user } = useAuthStore();
   const canSchedule = user?.role === 'Admin' || user?.role === 'Coach';
 
-  const [meetings,      setMeetings]      = useState<Meeting[]>([]);
-  const [members,       setMembers]       = useState<AcademyMember[]>([]);
-  const [loading,       setLoading]       = useState(true);
-  const [err,           setErr]           = useState('');
-  const [tab,           setTab]           = useState<'upcoming' | 'past'>('upcoming');
-  const [showSchedule,  setShowSchedule]  = useState(false);
-  const [showDirectCall, setShowDirectCall] = useState(false);
-  const [activeCall,    setActiveCall]    = useState<CallSession | null>(null);
-  const [startingGroup, setStartingGroup] = useState(false);
+  const [meetings,     setMeetings]    = useState<Meeting[]>([]);
+  const [members,      setMembers]     = useState<AcademyMember[]>([]);
+  const [loading,      setLoading]     = useState(true);
+  const [err,          setErr]         = useState('');
+  const [tab,          setTab]         = useState<'upcoming' | 'past'>('upcoming');
+  const [showSchedule, setShowSchedule] = useState(false);
+  const [activeCall,   setActiveCall]  = useState<CallSession | null>(null);
 
   async function loadData() {
     setLoading(true); setErr('');
@@ -422,16 +451,6 @@ export default function MeetingsPage() {
   }
 
   useEffect(() => { loadData(); }, []);
-
-  async function startGroupCall() {
-    setStartingGroup(true);
-    try {
-      const session = await meetingsApi.startCall({});
-      setActiveCall(session);
-    } catch (ex: unknown) {
-      console.error(ex);
-    } finally { setStartingGroup(false); }
-  }
 
   const upcoming = meetings.filter(m => isUpcoming(m.scheduled_at));
   const past     = meetings.filter(m => !isUpcoming(m.scheduled_at));
@@ -448,9 +467,6 @@ export default function MeetingsPage() {
       {showSchedule && canSchedule && (
         <ScheduleModal members={[...members, ...(user ? [{ id: user.id, first_name: user.first_name ?? '', last_name: user.last_name ?? '', email: user.email ?? '', role: user.role }] : [])]} onClose={() => setShowSchedule(false)} onCreated={loadData} />
       )}
-      {showDirectCall && (
-        <DirectCallModal members={members} onClose={() => setShowDirectCall(false)} onCallStarted={s => setActiveCall(s)} />
-      )}
 
       <div style={{ animation: 'fadeIn .3s ease' }}>
         {/* Header */}
@@ -465,12 +481,6 @@ export default function MeetingsPage() {
             <p style={{ color: 'var(--text-muted)', fontSize: '.875rem', margin: '4px 0 0' }}>Video meetings and instant calls for your academy</p>
           </div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <button onClick={() => setShowDirectCall(true)} style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 16px', borderRadius: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '.85rem', cursor: 'pointer' }}>
-              <IcoPhone /> Call
-            </button>
-            <button onClick={startGroupCall} disabled={startingGroup} style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 16px', borderRadius: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '.85rem', cursor: startingGroup ? 'not-allowed' : 'pointer' }}>
-              <IcoUsers /> {startingGroup ? 'Starting…' : 'Group Call'}
-            </button>
             {canSchedule && (
               <button onClick={() => setShowSchedule(true)} style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 18px', borderRadius: 10, background: 'linear-gradient(135deg,#6366F1,#8B5CF6)', border: 'none', color: '#fff', fontWeight: 700, fontSize: '.85rem', cursor: 'pointer' }}>
                 <IcoPlus /> Schedule Meeting

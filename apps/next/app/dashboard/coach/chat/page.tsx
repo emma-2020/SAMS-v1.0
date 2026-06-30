@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback, useReducer } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { chatApi } from '@sams/api';
-import type { ChatChannel, ChatChannelMember, ChatMessage, ChatAttachment, TeamMember, ReportedMessage } from '@sams/api';
+import { chatApi, meetingsApi } from '@sams/api';
+import type { ChatChannel, ChatChannelMember, ChatMessage, ChatAttachment, TeamMember, ReportedMessage, CallSession } from '@sams/api';
 import { useAuthStore } from '@sams/store';
 
 // ─── Constants ──────────────────────────────────────────────────────
@@ -144,6 +144,47 @@ const IcoBlock = ({ size = 13 }: { size?: number }) => (
 const IcoImage = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
     <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+  </svg>
+);
+const IcoPhone = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.42 2 2 0 0 1 3.58 1.25h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.18 6.18l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+  </svg>
+);
+const IcoVideoCall = () => (
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+  </svg>
+);
+const IcoPhoneOff = () => (
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="1" y1="1" x2="23" y2="23"/>
+    <path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-3.41m-2.7-5.24a19.42 19.42 0 0 1-1.07-3.5 2 2 0 0 1 2-2.18h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11l-1.27 1.27"/>
+  </svg>
+);
+const IcoMicOff = () => (
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="1" y1="1" x2="23" y2="23"/><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"/><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>
+  </svg>
+);
+const IcoMicOn = () => (
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>
+  </svg>
+);
+const IcoCamOff = () => (
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="1" y1="1" x2="23" y2="23"/><path d="M21 21H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3m3-3h6l2 3h4a2 2 0 0 1 2 2v9.34m-7.72-2.06a4 4 0 1 1-5.56-5.56"/>
+  </svg>
+);
+const IcoCamOn = () => (
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+  </svg>
+);
+const IcoScreenShare = () => (
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="3" width="20" height="14" rx="2"/><polyline points="8 21 12 17 16 21"/><line x1="12" y1="17" x2="12" y2="21"/>
   </svg>
 );
 
@@ -1481,6 +1522,129 @@ function NewDMModal({ onClose, onChannel }: {
   );
 }
 
+// ─── CallRoom ─────────────────────────────────────────────────────────
+function CallRoom({ roomUrl, sessionId, title, onLeave }: { roomUrl: string; sessionId?: string; title: string; onLeave: () => void }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const frameRef     = useRef<any>(null);
+  const [muted,   setMuted]   = useState(false);
+  const [camOff,  setCamOff]  = useState(false);
+  const [elapsed, setElapsed] = useState(0);
+  const [status,  setStatus]  = useState<'connecting' | 'connected'>('connecting');
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    let frame: any;
+    import('@daily-co/daily-js').then(mod => {
+      const DailyIframe = (mod as any).default ?? mod;
+      frame = DailyIframe.createFrame(containerRef.current!, { iframeStyle: { width: '100%', height: '100%', border: 'none' }, showLeaveButton: false });
+      frameRef.current = frame;
+      frame.on('joined-meeting', () => setStatus('connected'));
+      frame.join({ url: roomUrl }).catch(console.error);
+    });
+    const timer = setInterval(() => setElapsed(s => s + 1), 1000);
+    return () => { clearInterval(timer); if (frame) { frame.leave().catch(() => {}); frame.destroy(); } };
+  }, [roomUrl]);
+
+  async function leave() {
+    if (frameRef.current) { await frameRef.current.leave().catch(() => {}); frameRef.current.destroy(); }
+    if (sessionId) await meetingsApi.updateCallStatus(sessionId, 'ended').catch(() => {});
+    onLeave();
+  }
+  function toggleMute()  { if (!frameRef.current) return; const n = !muted;  frameRef.current.setLocalAudio(!n); setMuted(n); }
+  function toggleCam()   { if (!frameRef.current) return; const n = !camOff; frameRef.current.setLocalVideo(!n); setCamOff(n); }
+  function shareScreen() { if (!frameRef.current) return; frameRef.current.startScreenShare().catch(() => {}); }
+
+  const mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
+  const ss = String(elapsed % 60).padStart(2, '0');
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#080C16', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ height: 56, background: 'rgba(15,23,42,0.97)', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', padding: '0 20px', gap: 14, flexShrink: 0 }}>
+        <div style={{ width: 28, height: 28, borderRadius: 7, background: 'linear-gradient(135deg,#6366F1,#8B5CF6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><IcoVideoCall /></div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 700, color: '#fff', fontSize: '0.88rem' }}>{title}</div>
+          <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)' }}>{mm}:{ss} · {status === 'connected' ? 'Connected' : 'Connecting…'}</div>
+        </div>
+        <button onClick={toggleMute} style={{ width: 38, height: 38, borderRadius: '50%', background: muted ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.08)', border: `1px solid ${muted ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.15)'}`, color: muted ? '#EF4444' : '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {muted ? <IcoMicOff /> : <IcoMicOn />}
+        </button>
+        <button onClick={toggleCam} style={{ width: 38, height: 38, borderRadius: '50%', background: camOff ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.08)', border: `1px solid ${camOff ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.15)'}`, color: camOff ? '#EF4444' : '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {camOff ? <IcoCamOff /> : <IcoCamOn />}
+        </button>
+        <button onClick={shareScreen} style={{ width: 38, height: 38, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <IcoScreenShare />
+        </button>
+        <button onClick={leave} style={{ height: 38, padding: '0 16px', borderRadius: 9, background: 'linear-gradient(135deg,#DC2626,#EF4444)', border: 'none', color: '#fff', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <IcoPhoneOff /> End
+        </button>
+      </div>
+      <div ref={containerRef} style={{ flex: 1 }} />
+    </div>
+  );
+}
+
+// ─── IncomingCallModal ─────────────────────────────────────────────────
+function IncomingCallModal({ onActivate }: { onActivate: (s: CallSession) => void }) {
+  const [pending,  setPending]  = useState<CallSession | null>(null);
+  const [declining, setDeclining] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    const poll = async () => {
+      try {
+        const calls = await meetingsApi.getPendingCalls();
+        if (alive && calls.length > 0) setPending(p => p ?? calls[0]);
+      } catch (_) {}
+    };
+    poll();
+    const id = setInterval(poll, 2000);
+    return () => { alive = false; clearInterval(id); };
+  }, []);
+
+  async function accept() {
+    if (!pending) return;
+    await meetingsApi.updateCallStatus(pending.id, 'active').catch(() => {});
+    onActivate(pending);
+    setPending(null);
+  }
+  async function decline() {
+    if (!pending || declining) return;
+    setDeclining(true);
+    await meetingsApi.updateCallStatus(pending.id, 'ended').catch(() => {});
+    setPending(null);
+    setDeclining(false);
+  }
+
+  if (!pending) return null;
+  const callerName = pending.users ? `${pending.users.first_name} ${pending.users.last_name}` : 'Someone';
+  const init = callerName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+
+  return (
+    <>
+      <style>{`@keyframes slide-up-ring{from{transform:translate(-50%,30px);opacity:0}to{transform:translate(-50%,0);opacity:1}}@keyframes pulse-ring-chat{0%,100%{box-shadow:0 0 0 8px rgba(99,102,241,.18),0 0 0 16px rgba(99,102,241,.08)}50%{box-shadow:0 0 0 12px rgba(99,102,241,.10),0 0 0 24px rgba(99,102,241,.04)}}`}</style>
+      <div style={{ position: 'fixed', inset: 0, zIndex: 9990, background: 'rgba(11,17,32,.55)', backdropFilter: 'blur(6px)' }} />
+      <div style={{ position: 'fixed', bottom: 28, left: '50%', zIndex: 9991, width: 320, background: 'linear-gradient(145deg,#1E293B,#0F172A)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 22, padding: '24px 20px 20px', boxShadow: '0 32px 80px rgba(0,0,0,.6)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, animation: 'slide-up-ring .3s cubic-bezier(.34,1.56,.64,1) forwards' }}>
+        <div style={{ width: 66, height: 66, borderRadius: '50%', background: 'linear-gradient(135deg,#6366F118,#8B5CF610)', border: '2px solid #6366F135', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', fontWeight: 900, color: '#818CF8', animation: 'pulse-ring-chat 2s infinite' }}>{init}</div>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,.4)', marginBottom: 4 }}>Incoming call</div>
+          <div style={{ fontWeight: 800, fontSize: '1.15rem', color: '#fff', letterSpacing: '-.02em' }}>{callerName}</div>
+          {pending.users?.role && <div style={{ fontSize: '0.68rem', color: '#818CF8', marginTop: 3 }}>{pending.users.role}</div>}
+        </div>
+        <div style={{ display: 'flex', gap: 18, marginTop: 4 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
+            <button onClick={decline} disabled={declining} style={{ width: 54, height: 54, borderRadius: '50%', background: 'linear-gradient(135deg,#DC2626,#EF4444)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', boxShadow: '0 4px 16px rgba(239,68,68,.4)' }}><IcoPhoneOff /></button>
+            <span style={{ fontSize: '.6rem', color: 'rgba(255,255,255,.35)', fontWeight: 500 }}>Decline</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
+            <button onClick={accept} style={{ width: 54, height: 54, borderRadius: '50%', background: 'linear-gradient(135deg,#059669,#10B981)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', boxShadow: '0 4px 16px rgba(16,185,129,.45)' }}><IcoPhone /></button>
+            <span style={{ fontSize: '.6rem', color: 'rgba(255,255,255,.35)', fontWeight: 500 }}>Accept</span>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ─── Mobile hook ──────────────────────────────────────────────────────
 function useIsMobile(bp = 768) {
   const [mobile, setMobile] = useState(false);
@@ -1525,6 +1689,31 @@ export default function ChatPage() {
   const [showReports,     setShowReports]     = useState(false);
   const [reportingMsgId,  setReportingMsgId]  = useState<string | null>(null);
   const [mobileView,      setMobileView]      = useState<'list' | 'chat'>('list');
+
+  // Call state
+  const [activeCall,   setActiveCall]   = useState<CallSession | null>(null);
+  const [startingCall, setStartingCall] = useState(false);
+
+  async function startDirectCall() {
+    if (!activeChannel || activeChannel.type !== 'direct' || !activeChannel.other_user || startingCall) return;
+    setStartingCall(true);
+    try {
+      const session = await meetingsApi.startCall({ recipientId: activeChannel.other_user.id });
+      setActiveCall(session);
+    } catch (e) { console.error(e); }
+    finally { setStartingCall(false); }
+  }
+
+  async function startGroupCall() {
+    if (!activeChannel || startingCall) return;
+    setStartingCall(true);
+    try {
+      const teamId = (activeChannel as any).team_id ?? undefined;
+      const session = await meetingsApi.startCall(teamId ? { teamId } : {});
+      setActiveCall(session);
+    } catch (e) { console.error(e); }
+    finally { setStartingCall(false); }
+  }
 
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const latestRef  = useRef<string | null>(null);
@@ -1781,6 +1970,33 @@ export default function ChatPage() {
             <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#10B981', display: 'inline-block', boxShadow: '0 0 0 3px rgba(16,185,129,0.20)' }} />
             <span style={{ fontSize: '0.68rem', color: '#94A3B8', fontFamily: 'var(--font-mono)' }}>Live · {POLL_MS / 1000}s</span>
           </div>
+
+          {/* ── Call buttons ── */}
+          {activeChannel?.type === 'direct' && (
+            <button
+              onClick={startDirectCall}
+              disabled={startingCall}
+              title="Voice / video call"
+              style={{ width: 34, height: 34, borderRadius: '50%', border: '1px solid #D1FAE5', background: '#F0FDF4', cursor: startingCall ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#059669', opacity: startingCall ? 0.6 : 1, transition: 'all 0.15s' }}
+              onMouseEnter={e => { if (!startingCall) { e.currentTarget.style.background = '#DCFCE7'; e.currentTarget.style.borderColor = '#86EFAC'; } }}
+              onMouseLeave={e => { e.currentTarget.style.background = '#F0FDF4'; e.currentTarget.style.borderColor = '#D1FAE5'; }}
+            >
+              {startingCall ? <span className="spinner" style={{ width: 12, height: 12, borderWidth: 2, borderColor: '#86EFAC', borderTopColor: '#059669' }} /> : <IcoPhone />}
+            </button>
+          )}
+          {activeChannel && activeChannel.type !== 'direct' && (
+            <button
+              onClick={startGroupCall}
+              disabled={startingCall}
+              title="Start group video call"
+              style={{ width: 34, height: 34, borderRadius: '50%', border: '1px solid #EDE9FE', background: '#F5F3FF', cursor: startingCall ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7C3AED', opacity: startingCall ? 0.6 : 1, transition: 'all 0.15s' }}
+              onMouseEnter={e => { if (!startingCall) { e.currentTarget.style.background = '#EDE9FE'; e.currentTarget.style.borderColor = '#DDD6FE'; } }}
+              onMouseLeave={e => { e.currentTarget.style.background = '#F5F3FF'; e.currentTarget.style.borderColor = '#EDE9FE'; }}
+            >
+              {startingCall ? <span className="spinner" style={{ width: 12, height: 12, borderWidth: 2, borderColor: '#DDD6FE', borderTopColor: '#7C3AED' }} /> : <IcoVideoCall />}
+            </button>
+          )}
+
           {isAdmin && (
             <button onClick={() => setShowReports(true)} title="Message reports"
               style={{ width: 34, height: 34, borderRadius: '50%', border: '1px solid #FDE68A', background: '#FFFBEB', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#D97706', position: 'relative' }}>
@@ -1850,7 +2066,19 @@ export default function ChatPage() {
     </div>
   );
 
+  // Active call takes over full screen
+  if (activeCall) {
+    const title = activeCall.team_id
+      ? `${activeChannel?.name ?? 'Team'} Call`
+      : activeChannel?.type === 'direct' && activeChannel.other_user
+        ? `${activeChannel.other_user.first_name} ${activeChannel.other_user.last_name}`
+        : 'Video Call';
+    return <CallRoom roomUrl={activeCall.daily_room_url} sessionId={activeCall.id} title={title} onLeave={() => setActiveCall(null)} />;
+  }
+
   return (
+    <>
+    <IncomingCallModal onActivate={s => setActiveCall(s)} />
     <div style={{ animation: 'fadeIn 0.3s ease' }}>
       <div className="sams-chat-window" style={{ display: 'flex', minHeight: 0, height: 'calc(100vh - 112px)', maxHeight: 800, gap: 0, background: '#F8FAFC', borderRadius: 20, overflow: 'hidden', border: '1.5px solid #F1F5F9', boxShadow: '0 4px 24px rgba(15,23,42,0.07)' }}>
         {mobile ? (
@@ -1896,6 +2124,7 @@ export default function ChatPage() {
         <AdminReportsPanel onClose={() => setShowReports(false)} />
       )}
     </div>
+    </>
   );
 }
 
