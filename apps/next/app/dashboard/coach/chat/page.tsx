@@ -1522,63 +1522,191 @@ function NewDMModal({ onClose, onChannel }: {
   );
 }
 
-// ─── CallRoom ─────────────────────────────────────────────────────────
+// ─── WhatsApp-style CallRoom ───────────────────────────────────────────
+// Uses createCallObject() — raw tracks, fully custom UI. No iframe, no meeting-room feel.
 function CallRoom({ roomUrl, sessionId, title, onLeave }: { roomUrl: string; sessionId?: string; title: string; onLeave: () => void }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const frameRef     = useRef<any>(null);
-  const [muted,   setMuted]   = useState(false);
-  const [camOff,  setCamOff]  = useState(false);
-  const [elapsed, setElapsed] = useState(0);
-  const [status,  setStatus]  = useState<'connecting' | 'connected'>('connecting');
+  const callRef        = useRef<any>(null);
+  const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const localVideoRef  = useRef<HTMLVideoElement>(null);
+  const audioEls       = useRef<Record<string, HTMLAudioElement>>({});
+
+  const [status,         setStatus]         = useState<'calling' | 'connected'>('calling');
+  const [muted,          setMuted]          = useState(false);
+  const [camOff,         setCamOff]         = useState(false);
+  const [remoteHasVideo, setRemoteHasVideo] = useState(false);
+  const [elapsed,        setElapsed]        = useState(0);
+  const [dots,           setDots]           = useState('');
 
   useEffect(() => {
-    if (!containerRef.current) return;
-    let frame: any;
+    if (status !== 'calling') return;
+    const id = setInterval(() => setDots(d => d.length >= 3 ? '' : d + '.'), 500);
+    return () => clearInterval(id);
+  }, [status]);
+
+  useEffect(() => {
+    if (status !== 'connected') return;
+    const id = setInterval(() => setElapsed(s => s + 1), 1000);
+    return () => clearInterval(id);
+  }, [status]);
+
+  useEffect(() => {
+    let call: any;
     import('@daily-co/daily-js').then(mod => {
       const DailyIframe = (mod as any).default ?? mod;
-      frame = DailyIframe.createFrame(containerRef.current!, { iframeStyle: { width: '100%', height: '100%', border: 'none' }, showLeaveButton: false });
-      frameRef.current = frame;
-      frame.on('joined-meeting', () => setStatus('connected'));
-      frame.join({ url: roomUrl }).catch(console.error);
+      call = DailyIframe.createCallObject({ audioSource: true, videoSource: true });
+      callRef.current = call;
+
+      function updateRemote(c: any) {
+        const parts = Object.values(c.participants()) as any[];
+        const remotes = parts.filter((p: any) => !p.local);
+
+        const withVideo = remotes.find((p: any) =>
+          p.tracks?.video?.persistentTrack && p.tracks?.video?.state === 'playable'
+        );
+        setRemoteHasVideo(!!withVideo);
+        if (withVideo && remoteVideoRef.current) {
+          const t = withVideo.tracks.video.persistentTrack;
+          const cur = remoteVideoRef.current.srcObject as MediaStream | null;
+          if (!cur || !cur.getTracks().includes(t)) {
+            remoteVideoRef.current.srcObject = new MediaStream([t]);
+          }
+        }
+
+        remotes.forEach((p: any) => {
+          const at = p.tracks?.audio?.persistentTrack;
+          if (!at || p.tracks?.audio?.state !== 'playable') return;
+          if (!audioEls.current[p.session_id]) {
+            const el = new Audio();
+            el.autoplay = true;
+            el.srcObject = new MediaStream([at]);
+            el.play().catch(() => {});
+            audioEls.current[p.session_id] = el;
+          }
+        });
+
+        const lvt = c.participants().local?.tracks?.video?.persistentTrack;
+        if (lvt && localVideoRef.current) {
+          localVideoRef.current.srcObject = new MediaStream([lvt]);
+        }
+
+        if (remotes.length > 0) setStatus('connected');
+      }
+
+      call.on('joined-meeting', () => {
+        setStatus('connected');
+        const lvt = call.participants().local?.tracks?.video?.persistentTrack;
+        if (lvt && localVideoRef.current) localVideoRef.current.srcObject = new MediaStream([lvt]);
+      });
+      call.on('participant-joined', () => updateRemote(call));
+      call.on('participant-left',   () => updateRemote(call));
+      call.on('track-started',      () => updateRemote(call));
+      call.on('track-stopped',      () => updateRemote(call));
+
+      call.join({ url: roomUrl }).catch(console.error);
     });
-    const timer = setInterval(() => setElapsed(s => s + 1), 1000);
-    return () => { clearInterval(timer); if (frame) { frame.leave().catch(() => {}); frame.destroy(); } };
+
+    return () => {
+      Object.values(audioEls.current).forEach(el => el.pause());
+      audioEls.current = {};
+      if (call) { call.leave().catch(() => {}); call.destroy(); }
+    };
   }, [roomUrl]);
 
   async function leave() {
-    if (frameRef.current) { await frameRef.current.leave().catch(() => {}); frameRef.current.destroy(); }
+    if (callRef.current) { await callRef.current.leave().catch(() => {}); callRef.current.destroy(); }
     if (sessionId) await meetingsApi.updateCallStatus(sessionId, 'ended').catch(() => {});
     onLeave();
   }
-  function toggleMute()  { if (!frameRef.current) return; const n = !muted;  frameRef.current.setLocalAudio(!n); setMuted(n); }
-  function toggleCam()   { if (!frameRef.current) return; const n = !camOff; frameRef.current.setLocalVideo(!n); setCamOff(n); }
-  function shareScreen() { if (!frameRef.current) return; frameRef.current.startScreenShare().catch(() => {}); }
 
-  const mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
-  const ss = String(elapsed % 60).padStart(2, '0');
+  function toggleMute() {
+    if (!callRef.current) return;
+    const next = !muted;
+    callRef.current.setLocalAudio(!next);
+    setMuted(next);
+  }
+
+  function toggleCam() {
+    if (!callRef.current) return;
+    const next = !camOff;
+    callRef.current.setLocalVideo(!next);
+    setCamOff(next);
+    if (next && localVideoRef.current) localVideoRef.current.srcObject = null;
+    else {
+      const lvt = callRef.current?.participants()?.local?.tracks?.video?.persistentTrack;
+      if (lvt && localVideoRef.current) localVideoRef.current.srcObject = new MediaStream([lvt]);
+    }
+  }
+
+  const mm       = String(Math.floor(elapsed / 60)).padStart(2, '0');
+  const ss       = String(elapsed % 60).padStart(2, '0');
+  const initials = title.split(' ').slice(0, 2).map(w => w[0] ?? '').join('').toUpperCase() || '?';
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#080C16', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ height: 56, background: 'rgba(15,23,42,0.97)', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', padding: '0 20px', gap: 14, flexShrink: 0 }}>
-        <div style={{ width: 28, height: 28, borderRadius: 7, background: 'linear-gradient(135deg,#6366F1,#8B5CF6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><IcoVideoCall /></div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 700, color: '#fff', fontSize: '0.88rem' }}>{title}</div>
-          <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)' }}>{mm}:{ss} · {status === 'connected' ? 'Connected' : 'Connecting…'}</div>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#0D1117', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit' }}>
+
+      {/* Remote video — full background when active */}
+      {remoteHasVideo && (
+        <video ref={remoteVideoRef} autoPlay playsInline style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }} />
+      )}
+
+      {/* Gradient overlay for readability */}
+      <div style={{ position: 'absolute', inset: 0, background: remoteHasVideo ? 'linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, transparent 40%, transparent 60%, rgba(0,0,0,0.7) 100%)' : 'transparent', zIndex: 1, pointerEvents: 'none' }} />
+
+      {/* Centre — avatar + name + status (video-off state) */}
+      <div style={{ position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, justifyContent: 'center', pointerEvents: 'none' }}>
+        {!remoteHasVideo && (
+          <>
+            <div style={{ position: 'relative', width: 120, height: 120, marginBottom: 28 }}>
+              {status === 'calling' && [1, 2, 3].map(i => (
+                <div key={i} style={{ position: 'absolute', inset: -i * 18, borderRadius: '50%', border: '2px solid rgba(99,102,241,0.22)', animation: `whatsapp-pulse ${1 + i * 0.3}s ease-out infinite`, animationDelay: `${i * 0.2}s` }} />
+              ))}
+              <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: 'linear-gradient(135deg,#6366F1,#8B5CF6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.2rem', fontWeight: 800, color: '#fff', boxShadow: status === 'calling' ? '0 0 40px rgba(99,102,241,0.5)' : 'none' }}>
+                {initials}
+              </div>
+            </div>
+            <div style={{ fontWeight: 700, fontSize: '1.4rem', color: '#fff', textShadow: '0 2px 8px rgba(0,0,0,0.5)', marginBottom: 8 }}>{title}</div>
+            <div style={{ fontSize: '0.95rem', color: 'rgba(255,255,255,0.6)' }}>
+              {status === 'calling' ? `Calling${dots}` : `${mm}:${ss}`}
+            </div>
+          </>
+        )}
+
+        {/* Video-on: name + timer float at top */}
+        {remoteHasVideo && (
+          <div style={{ position: 'absolute', top: -260, left: 0, right: 0, textAlign: 'center' }}>
+            <div style={{ fontWeight: 700, fontSize: '1.1rem', color: '#fff', textShadow: '0 2px 8px rgba(0,0,0,0.6)' }}>{title}</div>
+            <div style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.7)', marginTop: 3 }}>{mm}:{ss}</div>
+          </div>
+        )}
+      </div>
+
+      {/* Local video PIP — bottom right */}
+      {!camOff && status === 'connected' && (
+        <div style={{ position: 'absolute', bottom: 110, right: 20, width: 88, height: 130, borderRadius: 14, overflow: 'hidden', border: '2px solid rgba(255,255,255,0.2)', zIndex: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.5)', background: '#1E293B' }}>
+          <video ref={localVideoRef} autoPlay muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }} />
         </div>
-        <button onClick={toggleMute} style={{ width: 38, height: 38, borderRadius: '50%', background: muted ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.08)', border: `1px solid ${muted ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.15)'}`, color: muted ? '#EF4444' : '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      )}
+
+      {/* Controls row */}
+      <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', gap: 24, paddingBottom: 52 }}>
+        <button onClick={toggleMute} title={muted ? 'Unmute' : 'Mute'} style={{ width: 60, height: 60, borderRadius: '50%', background: muted ? '#EF4444' : 'rgba(255,255,255,0.18)', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)', boxShadow: '0 4px 16px rgba(0,0,0,0.4)', transition: 'all 0.15s' }}>
           {muted ? <IcoMicOff /> : <IcoMicOn />}
         </button>
-        <button onClick={toggleCam} style={{ width: 38, height: 38, borderRadius: '50%', background: camOff ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.08)', border: `1px solid ${camOff ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.15)'}`, color: camOff ? '#EF4444' : '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {/* Red end-call button (rotated phone = hang-up icon) */}
+        <button onClick={leave} title="End call" style={{ width: 72, height: 72, borderRadius: '50%', background: '#EF4444', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 24px rgba(239,68,68,0.55)', transition: 'all 0.15s', transform: 'rotate(135deg)' }}>
+          <IcoPhone />
+        </button>
+        <button onClick={toggleCam} title={camOff ? 'Turn camera on' : 'Turn camera off'} style={{ width: 60, height: 60, borderRadius: '50%', background: camOff ? '#EF4444' : 'rgba(255,255,255,0.18)', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)', boxShadow: '0 4px 16px rgba(0,0,0,0.4)', transition: 'all 0.15s' }}>
           {camOff ? <IcoCamOff /> : <IcoCamOn />}
         </button>
-        <button onClick={shareScreen} style={{ width: 38, height: 38, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <IcoScreenShare />
-        </button>
-        <button onClick={leave} style={{ height: 38, padding: '0 16px', borderRadius: 9, background: 'linear-gradient(135deg,#DC2626,#EF4444)', border: 'none', color: '#fff', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-          <IcoPhoneOff /> End
-        </button>
       </div>
-      <div ref={containerRef} style={{ flex: 1 }} />
+
+      <style>{`
+        @keyframes whatsapp-pulse {
+          0%   { transform: scale(1); opacity: 0.65; }
+          100% { transform: scale(1.6); opacity: 0; }
+        }
+      `}</style>
     </div>
   );
 }
