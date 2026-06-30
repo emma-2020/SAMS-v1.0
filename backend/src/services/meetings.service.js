@@ -266,7 +266,7 @@ async function startCall({ callerId, teamId, recipientId, academyId }) {
       daily_room_url:  room.url,
       status:          'ringing',
     })
-    .select()
+    .select('*, users!call_sessions_caller_id_fkey(first_name, last_name, role, avatar_url)')
     .single();
 
   if (error) throw new InternalError(error.message);
@@ -278,7 +278,7 @@ async function getPendingCalls({ userId, academyId }) {
   const cutoff = new Date(Date.now() - 60 * 1000).toISOString();
   const { data, error } = await supabaseAdmin
     .from('call_sessions')
-    .select('*, users!call_sessions_caller_id_fkey(first_name, last_name, role)')
+    .select('*, users!call_sessions_caller_id_fkey(first_name, last_name, role, avatar_url)')
     .eq('academy_id', academyId)
     .eq('recipient_id', userId)
     .eq('status', 'ringing')
