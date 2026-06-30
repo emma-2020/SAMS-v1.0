@@ -1537,7 +1537,7 @@ function CallCtrlBtn({ on, offColor = 'rgba(255,255,255,0.18)', onColor = '#EF44
 }
 
 // ─── WhatsApp-style CallRoom ───────────────────────────────────────────
-function CallRoom({ roomUrl, sessionId, title, onLeave }: { roomUrl: string; sessionId?: string; title: string; onLeave: () => void }) {
+function CallRoom({ roomUrl, sessionId, title, avatarUrl, onLeave }: { roomUrl: string; sessionId?: string; title: string; avatarUrl?: string | null; onLeave: () => void }) {
   const callRef        = useRef<any>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const localVideoRef  = useRef<HTMLVideoElement>(null);
@@ -1702,9 +1702,13 @@ function CallRoom({ roomUrl, sessionId, title, onLeave }: { roomUrl: string; ses
             {phase !== 'connected' && [1, 2, 3].map(i => (
               <div key={i} style={{ position: 'absolute', inset: -i * 20, borderRadius: '50%', border: '2px solid rgba(99,102,241,0.2)', animation: `wa-pulse ${0.9 + i * 0.35}s ease-out infinite`, animationDelay: `${i * 0.22}s` }} />
             ))}
-            <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: 'linear-gradient(135deg,#6366F1,#8B5CF6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(1.8rem,6vw,2.4rem)', fontWeight: 800, color: '#fff', boxShadow: phase !== 'connected' ? '0 0 52px rgba(99,102,241,0.5)' : '0 8px 40px rgba(0,0,0,0.5)' }}>
-              {initials}
-            </div>
+            {avatarUrl ? (
+              <img src={avatarUrl} alt={title} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', boxShadow: phase !== 'connected' ? '0 0 52px rgba(99,102,241,0.45)' : '0 8px 40px rgba(0,0,0,0.5)' }} />
+            ) : (
+              <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: 'linear-gradient(135deg,#6366F1,#8B5CF6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(1.8rem,6vw,2.4rem)', fontWeight: 800, color: '#fff', boxShadow: phase !== 'connected' ? '0 0 52px rgba(99,102,241,0.5)' : '0 8px 40px rgba(0,0,0,0.5)' }}>
+                {initials}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -2256,7 +2260,13 @@ export default function ChatPage() {
       : isCaller
         ? (activeChannel?.other_user ? `${activeChannel.other_user.first_name} ${activeChannel.other_user.last_name}` : 'Call')
         : (activeCall.users ? `${activeCall.users.first_name} ${activeCall.users.last_name}` : 'Call');
-    return <CallRoom roomUrl={activeCall.daily_room_url} sessionId={activeCall.id} title={title} onLeave={() => setActiveCall(null)} />;
+    // Profile photo: use other_user's avatar for DMs; caller's avatar for incoming calls
+    const avatarUrl = activeCall.team_id
+      ? null
+      : isCaller
+        ? (activeChannel?.other_user?.avatar_url ?? null)
+        : (activeCall.users?.avatar_url ?? null);
+    return <CallRoom roomUrl={activeCall.daily_room_url} sessionId={activeCall.id} title={title} avatarUrl={avatarUrl} onLeave={() => setActiveCall(null)} />;
   }
 
   return (

@@ -24,7 +24,7 @@ export interface CallSession {
   team_id?: string;
   created_at: string;
   ended_at?: string;
-  users?: { first_name: string; last_name: string; role: string };
+  users?: { first_name: string; last_name: string; role: string; avatar_url?: string | null };
 }
 
 export interface AcademyMember {
