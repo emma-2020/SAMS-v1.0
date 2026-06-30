@@ -1522,92 +1522,127 @@ function NewDMModal({ onClose, onChannel }: {
   );
 }
 
+// ─── Call control button helper ────────────────────────────────────────
+function CallCtrlBtn({ on, offColor = 'rgba(255,255,255,0.18)', onColor = '#EF4444', onClick, label, children }: {
+  on: boolean; offColor?: string; onColor?: string; onClick: () => void; label: string; children: React.ReactNode;
+}) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7 }}>
+      <button onClick={onClick} style={{ width: 58, height: 58, borderRadius: '50%', background: on ? onColor : offColor, border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(12px)', boxShadow: '0 4px 16px rgba(0,0,0,0.4)', transition: 'all 0.15s' }}>
+        {children}
+      </button>
+      <span style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.55)', fontWeight: 500, letterSpacing: '0.02em' }}>{label}</span>
+    </div>
+  );
+}
+
 // ─── WhatsApp-style CallRoom ───────────────────────────────────────────
-// Uses createCallObject() — raw tracks, fully custom UI. No iframe, no meeting-room feel.
 function CallRoom({ roomUrl, sessionId, title, onLeave }: { roomUrl: string; sessionId?: string; title: string; onLeave: () => void }) {
   const callRef        = useRef<any>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const localVideoRef  = useRef<HTMLVideoElement>(null);
-  const audioEls       = useRef<Record<string, HTMLAudioElement>>({});
+  const audioRefs      = useRef<Record<string, HTMLAudioElement>>({});
+  const speakerRef     = useRef(true);
 
-  const [status,         setStatus]         = useState<'calling' | 'connected'>('calling');
-  const [muted,          setMuted]          = useState(false);
-  const [camOff,         setCamOff]         = useState(false);
-  const [remoteHasVideo, setRemoteHasVideo] = useState(false);
-  const [elapsed,        setElapsed]        = useState(0);
-  const [dots,           setDots]           = useState('');
+  const [phase,       setPhase]       = useState<'calling' | 'ringing' | 'connected'>('calling');
+  const [muted,       setMuted]       = useState(false);
+  const [camOff,      setCamOff]      = useState(false);
+  const [speakerOn,   setSpeakerOn]   = useState(true);
+  const [remoteVideo, setRemoteVideo] = useState(false);
+  const [elapsed,     setElapsed]     = useState(0);
+  const [dots,        setDots]        = useState('');
 
+  // Animated dots while calling/ringing
   useEffect(() => {
-    if (status !== 'calling') return;
+    if (phase === 'connected') return;
     const id = setInterval(() => setDots(d => d.length >= 3 ? '' : d + '.'), 500);
     return () => clearInterval(id);
-  }, [status]);
+  }, [phase]);
 
+  // Timer ticks while connected
   useEffect(() => {
-    if (status !== 'connected') return;
+    if (phase !== 'connected') return;
+    setElapsed(0);
     const id = setInterval(() => setElapsed(s => s + 1), 1000);
     return () => clearInterval(id);
-  }, [status]);
+  }, [phase]);
+
+  // Speaker toggle applies to already-created audio elements
+  useEffect(() => {
+    speakerRef.current = speakerOn;
+    Object.values(audioRefs.current).forEach(el => { el.muted = !speakerOn; });
+  }, [speakerOn]);
 
   useEffect(() => {
     let call: any;
     import('@daily-co/daily-js').then(mod => {
-      const DailyIframe = (mod as any).default ?? mod;
-      call = DailyIframe.createCallObject({ audioSource: true, videoSource: true });
+      const Daily = (mod as any).default ?? mod;
+      call = Daily.createCallObject({ audioSource: true, videoSource: true });
       callRef.current = call;
 
-      function updateRemote(c: any) {
-        const parts = Object.values(c.participants()) as any[];
-        const remotes = parts.filter((p: any) => !p.local);
+      function sync() {
+        const all     = Object.values(call.participants()) as any[];
+        const remotes = all.filter((p: any) => !p.local);
 
-        const withVideo = remotes.find((p: any) =>
-          p.tracks?.video?.persistentTrack && p.tracks?.video?.state === 'playable'
-        );
-        setRemoteHasVideo(!!withVideo);
-        if (withVideo && remoteVideoRef.current) {
-          const t = withVideo.tracks.video.persistentTrack;
+        // Detect if any remote participant has a playable video track
+        const vidPart = remotes.find((p: any) => {
+          const v = p.tracks?.video;
+          return v?.persistentTrack && (v.state === 'playable' || v.state === 'loading');
+        });
+
+        setRemoteVideo(!!vidPart);
+
+        if (vidPart?.tracks?.video?.persistentTrack && remoteVideoRef.current) {
+          const t = vidPart.tracks.video.persistentTrack;
           const cur = remoteVideoRef.current.srcObject as MediaStream | null;
           if (!cur || !cur.getTracks().includes(t)) {
             remoteVideoRef.current.srcObject = new MediaStream([t]);
           }
+        } else if (!vidPart && remoteVideoRef.current) {
+          // Clear to avoid black frozen frame
+          remoteVideoRef.current.srcObject = null;
         }
 
+        // Wire audio for each remote
         remotes.forEach((p: any) => {
           const at = p.tracks?.audio?.persistentTrack;
           if (!at || p.tracks?.audio?.state !== 'playable') return;
-          if (!audioEls.current[p.session_id]) {
+          if (!audioRefs.current[p.session_id]) {
             const el = new Audio();
             el.autoplay = true;
+            el.muted = !speakerRef.current;
             el.srcObject = new MediaStream([at]);
             el.play().catch(() => {});
-            audioEls.current[p.session_id] = el;
+            audioRefs.current[p.session_id] = el;
           }
         });
 
-        const lvt = c.participants().local?.tracks?.video?.persistentTrack;
-        if (lvt && localVideoRef.current) {
-          localVideoRef.current.srcObject = new MediaStream([lvt]);
+        // Local video refresh
+        const lv = call.participants().local?.tracks?.video?.persistentTrack;
+        if (lv && localVideoRef.current) {
+          const cur = localVideoRef.current.srcObject as MediaStream | null;
+          if (!cur || !cur.getTracks().includes(lv)) {
+            localVideoRef.current.srcObject = new MediaStream([lv]);
+          }
         }
 
-        if (remotes.length > 0) setStatus('connected');
+        if (remotes.length > 0) setPhase('connected');
       }
 
       call.on('joined-meeting', () => {
-        setStatus('connected');
-        const lvt = call.participants().local?.tracks?.video?.persistentTrack;
-        if (lvt && localVideoRef.current) localVideoRef.current.srcObject = new MediaStream([lvt]);
+        setPhase('ringing');
+        const lv = call.participants().local?.tracks?.video?.persistentTrack;
+        if (lv && localVideoRef.current) localVideoRef.current.srcObject = new MediaStream([lv]);
       });
-      call.on('participant-joined', () => updateRemote(call));
-      call.on('participant-left',   () => updateRemote(call));
-      call.on('track-started',      () => updateRemote(call));
-      call.on('track-stopped',      () => updateRemote(call));
+
+      ['participant-joined', 'participant-left', 'participant-updated', 'track-started', 'track-stopped'].forEach(ev => call.on(ev, sync));
 
       call.join({ url: roomUrl }).catch(console.error);
     });
 
     return () => {
-      Object.values(audioEls.current).forEach(el => el.pause());
-      audioEls.current = {};
+      Object.values(audioRefs.current).forEach(el => el.pause());
+      audioRefs.current = {};
       if (call) { call.leave().catch(() => {}); call.destroy(); }
     };
   }, [roomUrl]);
@@ -1630,81 +1665,100 @@ function CallRoom({ roomUrl, sessionId, title, onLeave }: { roomUrl: string; ses
     const next = !camOff;
     callRef.current.setLocalVideo(!next);
     setCamOff(next);
-    if (next && localVideoRef.current) localVideoRef.current.srcObject = null;
-    else {
-      const lvt = callRef.current?.participants()?.local?.tracks?.video?.persistentTrack;
-      if (lvt && localVideoRef.current) localVideoRef.current.srcObject = new MediaStream([lvt]);
+    if (next && localVideoRef.current) {
+      localVideoRef.current.srcObject = null;
+    } else {
+      const lv = callRef.current?.participants()?.local?.tracks?.video?.persistentTrack;
+      if (lv && localVideoRef.current) localVideoRef.current.srcObject = new MediaStream([lv]);
     }
   }
 
   const mm       = String(Math.floor(elapsed / 60)).padStart(2, '0');
   const ss       = String(elapsed % 60).padStart(2, '0');
   const initials = title.split(' ').slice(0, 2).map(w => w[0] ?? '').join('').toUpperCase() || '?';
+  const statusText = phase === 'calling' ? `Calling${dots}` : phase === 'ringing' ? `Ringing${dots}` : `${mm}:${ss}`;
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#0D1117', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit' }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#111827', display: 'flex', flexDirection: 'column', fontFamily: 'inherit', color: '#fff', userSelect: 'none' }}>
 
-      {/* Remote video — full background when active */}
-      {remoteHasVideo && (
-        <video ref={remoteVideoRef} autoPlay playsInline style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }} />
-      )}
+      {/* Remote video — always in DOM, hidden when off (avoids remount flicker) */}
+      <video ref={remoteVideoRef} autoPlay playsInline style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0, opacity: remoteVideo ? 1 : 0, transition: 'opacity 0.3s' }} />
 
-      {/* Gradient overlay for readability */}
-      <div style={{ position: 'absolute', inset: 0, background: remoteHasVideo ? 'linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, transparent 40%, transparent 60%, rgba(0,0,0,0.7) 100%)' : 'transparent', zIndex: 1, pointerEvents: 'none' }} />
+      {/* Scrim so text is always readable over video */}
+      <div style={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none', background: remoteVideo ? 'linear-gradient(180deg, rgba(0,0,0,0.5) 0%, transparent 28%, transparent 62%, rgba(0,0,0,0.7) 100%)' : 'transparent', transition: 'opacity 0.3s' }} />
 
-      {/* Centre — avatar + name + status (video-off state) */}
-      <div style={{ position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, justifyContent: 'center', pointerEvents: 'none' }}>
-        {!remoteHasVideo && (
-          <>
-            <div style={{ position: 'relative', width: 120, height: 120, marginBottom: 28 }}>
-              {status === 'calling' && [1, 2, 3].map(i => (
-                <div key={i} style={{ position: 'absolute', inset: -i * 18, borderRadius: '50%', border: '2px solid rgba(99,102,241,0.22)', animation: `whatsapp-pulse ${1 + i * 0.3}s ease-out infinite`, animationDelay: `${i * 0.2}s` }} />
-              ))}
-              <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: 'linear-gradient(135deg,#6366F1,#8B5CF6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.2rem', fontWeight: 800, color: '#fff', boxShadow: status === 'calling' ? '0 0 40px rgba(99,102,241,0.5)' : 'none' }}>
-                {initials}
-              </div>
-            </div>
-            <div style={{ fontWeight: 700, fontSize: '1.4rem', color: '#fff', textShadow: '0 2px 8px rgba(0,0,0,0.5)', marginBottom: 8 }}>{title}</div>
-            <div style={{ fontSize: '0.95rem', color: 'rgba(255,255,255,0.6)' }}>
-              {status === 'calling' ? `Calling${dots}` : `${mm}:${ss}`}
-            </div>
-          </>
-        )}
-
-        {/* Video-on: name + timer float at top */}
-        {remoteHasVideo && (
-          <div style={{ position: 'absolute', top: -260, left: 0, right: 0, textAlign: 'center' }}>
-            <div style={{ fontWeight: 700, fontSize: '1.1rem', color: '#fff', textShadow: '0 2px 8px rgba(0,0,0,0.6)' }}>{title}</div>
-            <div style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.7)', marginTop: 3 }}>{mm}:{ss}</div>
-          </div>
-        )}
+      {/* ── TOP BAR: name + status always visible ── */}
+      <div style={{ position: 'relative', zIndex: 10, paddingTop: 'max(52px, env(safe-area-inset-top, 52px))', paddingBottom: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, textAlign: 'center', padding: '52px 20px 0' }}>
+        <div style={{ fontWeight: 700, fontSize: 'clamp(1.1rem,4vw,1.3rem)', textShadow: '0 2px 10px rgba(0,0,0,0.55)', lineHeight: 1.2 }}>{title}</div>
+        <div style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.65)', letterSpacing: '0.02em' }}>{statusText}</div>
       </div>
 
-      {/* Local video PIP — bottom right */}
-      {!camOff && status === 'connected' && (
-        <div style={{ position: 'absolute', bottom: 110, right: 20, width: 88, height: 130, borderRadius: 14, overflow: 'hidden', border: '2px solid rgba(255,255,255,0.2)', zIndex: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.5)', background: '#1E293B' }}>
+      {/* ── CENTER: avatar when remote video is off ── */}
+      <div style={{ flex: 1, position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+        {/* Avatar always visible — opacity transitions when video comes/goes */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, opacity: remoteVideo ? 0 : 1, transition: 'opacity 0.3s', pointerEvents: 'none' }}>
+          <div style={{ position: 'relative', width: 'clamp(100px,25vw,140px)', height: 'clamp(100px,25vw,140px)' }}>
+            {/* Pulse rings — show while calling or ringing */}
+            {phase !== 'connected' && [1, 2, 3].map(i => (
+              <div key={i} style={{ position: 'absolute', inset: -i * 20, borderRadius: '50%', border: '2px solid rgba(99,102,241,0.2)', animation: `wa-pulse ${0.9 + i * 0.35}s ease-out infinite`, animationDelay: `${i * 0.22}s` }} />
+            ))}
+            <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: 'linear-gradient(135deg,#6366F1,#8B5CF6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(1.8rem,6vw,2.4rem)', fontWeight: 800, color: '#fff', boxShadow: phase !== 'connected' ? '0 0 52px rgba(99,102,241,0.5)' : '0 8px 40px rgba(0,0,0,0.5)' }}>
+              {initials}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── LOCAL VIDEO PIP: bottom-right corner ── */}
+      {!camOff && phase === 'connected' && (
+        <div style={{ position: 'absolute', zIndex: 20, bottom: 'calc(max(40px, env(safe-area-inset-bottom, 40px)) + 90px)', right: 16, width: 'clamp(72px,20vw,88px)', height: 'clamp(108px,28vw,128px)', borderRadius: 14, overflow: 'hidden', border: '2px solid rgba(255,255,255,0.22)', boxShadow: '0 8px 28px rgba(0,0,0,0.55)', background: '#1E293B' }}>
           <video ref={localVideoRef} autoPlay muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }} />
         </div>
       )}
 
-      {/* Controls row */}
-      <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', gap: 24, paddingBottom: 52 }}>
-        <button onClick={toggleMute} title={muted ? 'Unmute' : 'Mute'} style={{ width: 60, height: 60, borderRadius: '50%', background: muted ? '#EF4444' : 'rgba(255,255,255,0.18)', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)', boxShadow: '0 4px 16px rgba(0,0,0,0.4)', transition: 'all 0.15s' }}>
-          {muted ? <IcoMicOff /> : <IcoMicOn />}
-        </button>
-        {/* Red end-call button (rotated phone = hang-up icon) */}
-        <button onClick={leave} title="End call" style={{ width: 72, height: 72, borderRadius: '50%', background: '#EF4444', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 24px rgba(239,68,68,0.55)', transition: 'all 0.15s', transform: 'rotate(135deg)' }}>
-          <IcoPhone />
-        </button>
-        <button onClick={toggleCam} title={camOff ? 'Turn camera on' : 'Turn camera off'} style={{ width: 60, height: 60, borderRadius: '50%', background: camOff ? '#EF4444' : 'rgba(255,255,255,0.18)', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)', boxShadow: '0 4px 16px rgba(0,0,0,0.4)', transition: 'all 0.15s' }}>
-          {camOff ? <IcoCamOff /> : <IcoCamOn />}
-        </button>
+      {/* ── BOTTOM CONTROLS ── */}
+      <div style={{ position: 'relative', zIndex: 10, paddingBottom: 'max(40px, env(safe-area-inset-bottom, 40px))', paddingTop: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'center', gap: 'clamp(12px,4vw,28px)', padding: '0 20px' }}>
+
+          {/* Speaker */}
+          <CallCtrlBtn on={!speakerOn} onClick={() => setSpeakerOn(s => !s)} label="Speaker">
+            {speakerOn ? (
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+            ) : (
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+            )}
+          </CallCtrlBtn>
+
+          {/* Mute */}
+          <CallCtrlBtn on={muted} onClick={toggleMute} label={muted ? 'Unmute' : 'Mute'}>
+            {muted ? <IcoMicOff /> : <IcoMicOn />}
+          </CallCtrlBtn>
+
+          {/* End call — big red, centre */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7 }}>
+            <button onClick={leave} style={{ width: 68, height: 68, borderRadius: '50%', background: '#EF4444', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 28px rgba(239,68,68,0.55)', transform: 'rotate(135deg)', transition: 'all 0.15s' }}>
+              <IcoPhone />
+            </button>
+            <span style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.55)', fontWeight: 500 }}>End</span>
+          </div>
+
+          {/* Camera */}
+          <CallCtrlBtn on={camOff} onClick={toggleCam} label={camOff ? 'Cam on' : 'Camera'}>
+            {camOff ? <IcoCamOff /> : <IcoCamOn />}
+          </CallCtrlBtn>
+
+          {/* Screen share */}
+          <CallCtrlBtn on={false} onClick={() => callRef.current?.startScreenShare?.().catch(() => {})} label="Share">
+            <IcoScreenShare />
+          </CallCtrlBtn>
+
+        </div>
       </div>
 
       <style>{`
-        @keyframes whatsapp-pulse {
-          0%   { transform: scale(1); opacity: 0.65; }
-          100% { transform: scale(1.6); opacity: 0; }
+        @keyframes wa-pulse {
+          0%   { transform: scale(1); opacity: 0.7; }
+          100% { transform: scale(1.85); opacity: 0; }
         }
       `}</style>
     </div>
@@ -2196,11 +2250,12 @@ export default function ChatPage() {
 
   // Active call takes over full screen
   if (activeCall) {
+    const isCaller = activeCall.caller_id === user?.id;
     const title = activeCall.team_id
-      ? `${activeChannel?.name ?? 'Team'} Call`
-      : activeChannel?.type === 'direct' && activeChannel.other_user
-        ? `${activeChannel.other_user.first_name} ${activeChannel.other_user.last_name}`
-        : 'Video Call';
+      ? (activeChannel?.name ?? 'Group Call')
+      : isCaller
+        ? (activeChannel?.other_user ? `${activeChannel.other_user.first_name} ${activeChannel.other_user.last_name}` : 'Call')
+        : (activeCall.users ? `${activeCall.users.first_name} ${activeCall.users.last_name}` : 'Call');
     return <CallRoom roomUrl={activeCall.daily_room_url} sessionId={activeCall.id} title={title} onLeave={() => setActiveCall(null)} />;
   }
 
