@@ -44,7 +44,7 @@ export default function RequestDetailClient() {
       showToast('success', `Academy "${request.academy_name}" provisioned. Invite email sent to ${request.contact_email}.`);
       setTimeout(() => router.push('/platform/requests'), 2000);
     } catch (err: any) {
-      showToast('error', err?.response?.data?.error || 'Approval failed. Please try again.');
+      showToast('error', err?.message || 'Approval failed. Please try again.');
     } finally {
       setActionLoading(false);
     }
@@ -61,7 +61,7 @@ export default function RequestDetailClient() {
       showToast('success', 'Request rejected.');
       setTimeout(() => router.push('/platform/requests'), 1500);
     } catch (err: any) {
-      showToast('error', err?.response?.data?.error || 'Rejection failed.');
+      showToast('error', err?.message || 'Rejection failed.');
     } finally {
       setActionLoading(false);
     }
