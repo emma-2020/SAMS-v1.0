@@ -254,6 +254,22 @@ async function approveRequest(requestId, platformAdminId) {
     throw new ConflictError(`Request is already ${request.status}.`);
   }
 
+  // ── Pre-check: email already registered? ──────────────────────
+  // Check the public users table first (faster than auth admin lookup).
+  const { data: existingUser } = await supabaseAdmin
+    .from('users')
+    .select('id, academy_id, academies(name)')
+    .eq('email', request.contact_email)
+    .maybeSingle();
+
+  if (existingUser) {
+    const academyName = existingUser.academies?.name || 'another academy';
+    throw new ConflictError(
+      `The email ${request.contact_email} is already registered as an Admin of "${academyName}". ` +
+      `Please reject this request and ask the applicant to use a different email address.`
+    );
+  }
+
   // ── Step 1: Create the academy ────────────────────────────────
   const { data: academy, error: academyErr } = await supabaseAdmin
     .from('academies')
@@ -288,8 +304,15 @@ async function approveRequest(requestId, platformAdminId) {
   if (authErr || !authData?.user) {
     // Roll back the academy row to keep the DB clean
     await supabaseAdmin.from('academies').delete().eq('id', academy.id);
-    if (authErr?.message?.includes('already registered')) {
-      throw new ConflictError('A Supabase auth account already exists for this email.');
+    const isAlreadyRegistered =
+      authErr?.status === 422 ||
+      authErr?.message?.toLowerCase().includes('already') ||
+      authErr?.message?.toLowerCase().includes('registered');
+    if (isAlreadyRegistered) {
+      throw new ConflictError(
+        `The email ${request.contact_email} is already registered in the auth system. ` +
+        `Please reject this request and ask the applicant to use a different email address.`
+      );
     }
     throw new InternalError('Failed to create auth user: ' + (authErr?.message || 'unknown'));
   }
@@ -403,6 +426,62 @@ async function rejectRequest(requestId, platformAdminId, reason) {
 }
 
 // ─────────────────────────────────────────────────────────────────
+// TOGGLE ACADEMY STATUS (activate / deactivate)
+// ─────────────────────────────────────────────────────────────────
+
+async function setAcademyStatus(academyId, isActive) {
+  const { data, error } = await supabaseAdmin
+    .from('academies')
+    .update({ is_active: isActive })
+    .eq('id', academyId)
+    .select('id, name, is_active')
+    .single();
+
+  if (error || !data) throw new NotFoundError('Academy not found.');
+  return data;
+}
+
+// ─────────────────────────────────────────────────────────────────
+// DELETE ACADEMY (hard delete — cascades to all tenant data)
+// ─────────────────────────────────────────────────────────────────
+
+async function deleteAcademy(academyId) {
+  // Verify it exists first so we can return a useful error
+  const { data: academy, error: fetchErr } = await supabaseAdmin
+    .from('academies')
+    .select('id, name')
+    .eq('id', academyId)
+    .single();
+
+  if (fetchErr || !academy) throw new NotFoundError('Academy not found.');
+
+  // Delete auth users who belong to this academy before deleting the academy row,
+  // so Supabase auth stays in sync. Fetch all user IDs first.
+  const { data: members } = await supabaseAdmin
+    .from('users')
+    .select('id')
+    .eq('academy_id', academyId);
+
+  const { error: deleteErr } = await supabaseAdmin
+    .from('academies')
+    .delete()
+    .eq('id', academyId);
+
+  if (deleteErr) throw new InternalError('Failed to delete academy: ' + deleteErr.message);
+
+  // Best-effort: remove Supabase auth accounts for all members (non-blocking)
+  if (members?.length) {
+    Promise.all(
+      members.map(u => supabaseAdmin.auth.admin.deleteUser(u.id))
+    ).catch(err =>
+      console.error('[PlatformService.deleteAcademy] Auth cleanup partial failure:', err.message)
+    );
+  }
+
+  return { deleted: true, academy_name: academy.name };
+}
+
+// ─────────────────────────────────────────────────────────────────
 // LIST ALL ACADEMIES
 // ─────────────────────────────────────────────────────────────────
 
@@ -493,6 +572,8 @@ module.exports = {
   approveRequest,
   rejectRequest,
   listAcademies,
+  setAcademyStatus,
+  deleteAcademy,
   getStats,
   createPlatformAdmin,
 };

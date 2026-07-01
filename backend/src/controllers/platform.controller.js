@@ -61,6 +61,26 @@ async function listAcademies(req, res, next) {
   } catch (err) { next(err); }
 }
 
+// PATCH /api/platform/academies/:id/status   body: { is_active: boolean }
+async function setAcademyStatus(req, res, next) {
+  try {
+    const { is_active } = req.body;
+    if (typeof is_active !== 'boolean') {
+      return res.status(400).json({ success: false, error: '"is_active" must be a boolean.' });
+    }
+    const academy = await service.setAcademyStatus(req.params.id, is_active);
+    return res.json({ success: true, data: { academy } });
+  } catch (err) { next(err); }
+}
+
+// DELETE /api/platform/academies/:id
+async function deleteAcademy(req, res, next) {
+  try {
+    const result = await service.deleteAcademy(req.params.id);
+    return res.json({ success: true, data: result });
+  } catch (err) { next(err); }
+}
+
 // POST /api/platform/mfa/setup — authenticated, generates TOTP secret + QR code
 async function mfaSetup(req, res, next) {
   try {
@@ -102,4 +122,6 @@ module.exports = {
   approveRequest,
   rejectRequest,
   listAcademies,
+  setAcademyStatus,
+  deleteAcademy,
 };

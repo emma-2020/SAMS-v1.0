@@ -161,6 +161,22 @@ export async function getPlatformAcademies(): Promise<PlatformAcademy[]> {
   return res.data.academies ?? [];
 }
 
+export async function setAcademyStatus(id: string, is_active: boolean): Promise<PlatformAcademy> {
+  const res = (await apiClient.patch(`/platform/academies/${id}/status`, { is_active }, { headers: platformHeaders() })) as {
+    success: boolean;
+    data:    { academy: PlatformAcademy };
+  };
+  return res.data.academy;
+}
+
+export async function deleteAcademy(id: string): Promise<{ deleted: boolean; academy_name: string }> {
+  const res = (await apiClient.delete(`/platform/academies/${id}`, { headers: platformHeaders() })) as {
+    success: boolean;
+    data:    { deleted: boolean; academy_name: string };
+  };
+  return res.data;
+}
+
 export async function submitEnrollment(payload: {
   academy_name:      string;
   contact_name:      string;

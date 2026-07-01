@@ -37,6 +37,8 @@ router.get('/requests',                 controller.listRequests);
 router.get('/requests/:id',             controller.getRequest);
 router.post('/requests/:id/approve',    controller.approveRequest);
 router.post('/requests/:id/reject',     controller.rejectRequest);
-router.get('/academies',                controller.listAcademies);
+router.get('/academies',                    controller.listAcademies);
+router.patch('/academies/:id/status',       controller.setAcademyStatus);
+router.delete('/academies/:id',             controller.deleteAcademy);
 
 module.exports = router;
