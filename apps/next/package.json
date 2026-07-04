@@ -10,11 +10,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@daily-co/daily-js": "^0.91.0",
     "@capacitor/android": "^8.4.0",
     "@capacitor/cli": "^8.4.0",
     "@capacitor/core": "^8.4.0",
     "@capacitor/ios": "^8.4.0",
+    "@daily-co/daily-js": "^0.91.0",
     "@sams/api": "workspace:*",
     "@sams/app": "workspace:*",
     "@sams/store": "workspace:*",
@@ -41,6 +41,7 @@
     "eslint": "^8",
     "eslint-config-next": "14.2.35",
     "postcss": "^8.4.47",
+    "sharp": "^0.35.3",
     "tailwindcss": "^3.4.19",
     "typescript": "^5.3.0"
   }
