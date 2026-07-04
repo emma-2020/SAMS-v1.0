@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.sams.sportsmanagement',
-  appName: 'SAMS',
+  appName: 'PlaySAMS',
   webDir: 'out',
   server: {
     // Production live-server mode — always loads latest from Vercel.

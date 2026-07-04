@@ -7,7 +7,7 @@ import { ThemeProvider } from '@/lib/theme/provider';
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const metadata: Metadata = {
-  title: 'SAMS — Sports Academy Management',
+  title: 'PlaySAMS — Sports Academy Management',
   description: 'The command centre for elite academies.',
 };
 

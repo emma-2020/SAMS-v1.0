@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Android 13+ "themed icon" monochrome layer. Single flat shape, no
+  gradient — the OS repaints this to one tint chosen from the user's
+  wallpaper. The "S" is a real cutout, so it can't be erased by that
+  repaint the way a two-color icon would be.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <path id="shieldPath" d="M512,210 C462,210 415,192 390,160 C300,190 215,240 215,320 C215,590 340,780 512,880 C684,780 809,590 809,320 C809,240 724,190 634,160 C609,192 562,210 512,210 Z"/>
+    <polygon id="starShape" points="512,50 529.64,95.73 578.57,98.37 540.53,129.27 553.16,176.63 512,150 470.84,176.63 483.47,129.27 445.43,98.37 494.36,95.73"/>
+    <path id="leafL" d="M390,890 Q320,940 260,910 Q320,860 390,890 Z"/>
+    <path id="leafR" d="M634,890 Q704,940 764,910 Q704,860 634,890 Z"/>
+    <path id="leafL2" d="M430,850 Q360,895 300,870 Q360,830 430,850 Z"/>
+    <path id="leafR2" d="M594,850 Q664,895 724,870 Q664,830 594,850 Z"/>
+
+    <mask id="sCut" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1024">
+      <rect x="0" y="0" width="1024" height="1024" fill="#fff"/>
+      <text x="512" y="648" font-size="500" font-weight="800" text-anchor="middle"
+            font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif"
+            fill="#000" letter-spacing="-8">S</text>
+    </mask>
+  </defs>
+
+  <g transform="translate(512,512) scale(0.74) translate(-512,-495)" fill="#000000">
+    <use href="#starShape"/>
+    <use href="#leafL2"/>
+    <use href="#leafR2"/>
+    <use href="#leafL"/>
+    <use href="#leafR"/>
+    <use href="#shieldPath" mask="url(#sCut)"/>
+  </g>
+</svg>

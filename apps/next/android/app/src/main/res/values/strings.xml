@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">SAMS</string>
-    <string name="title_activity_main">SAMS</string>
+    <string name="app_name">PlaySAMS</string>
+    <string name="title_activity_main">PlaySAMS</string>
     <string name="package_name">com.sams.sportsmanagement</string>
     <string name="custom_url_scheme">com.sams.sportsmanagement</string>
 </resources>

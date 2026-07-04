@@ -107,10 +107,8 @@ export default function RegisterPage() {
 
         {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 36, justifyContent: 'center' }}>
-          <div style={{ width: 38, height: 38, borderRadius: 10, background: 'linear-gradient(135deg,#6366F1,#4F46E5)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 24px rgba(99,102,241,0.3)' }}>
-            <span style={{ fontWeight: 900, fontSize: '1rem', color: 'white' }}>S</span>
-          </div>
-          <div style={{ fontWeight: 800, fontSize: '1rem', color: '#0F172A', letterSpacing: '0.08em' }}>SAMS</div>
+          <img src="/brand/sams-icon.svg" alt="PlaySAMS" width={38} height={38} style={{ borderRadius: 10, boxShadow: '0 8px 24px rgba(99,102,241,0.3)' }} />
+          <div style={{ fontWeight: 800, fontSize: '1rem', color: '#0F172A', letterSpacing: '0.08em' }}>PLAYSAMS</div>
         </div>
 
         <div style={{ background: '#FFFFFF', borderRadius: 20, padding: 40, boxShadow: '0 4px 32px rgba(0,0,0,0.08)', border: '1px solid #E2E8F0' }}>

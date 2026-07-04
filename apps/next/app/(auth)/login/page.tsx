@@ -184,12 +184,10 @@ export default function LoginPage() {
 
         {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 52 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 10, background: 'linear-gradient(135deg, #6366F1, #4F46E5)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 24px rgba(99,102,241,0.35)' }}>
-            <span style={{ fontWeight: 900, fontSize: '1rem', color: 'white' }}>S</span>
-          </div>
+          <img src="/brand/sams-icon.svg" alt="PlaySAMS" width={40} height={40} style={{ borderRadius: 10, boxShadow: '0 8px 24px rgba(99,102,241,0.35)' }} />
           <div>
-            <div style={{ fontWeight: 800, fontSize: '1rem', color: 'white', letterSpacing: '0.1em' }}>SAMS</div>
-            <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)', letterSpacing: '0.04em' }}>Sports Academy</div>
+            <div style={{ fontWeight: 800, fontSize: '1rem', color: 'white', letterSpacing: '0.1em' }}>PLAYSAMS</div>
+            <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)', letterSpacing: '0.04em' }}>Sports Academy Management</div>
           </div>
         </div>
 
