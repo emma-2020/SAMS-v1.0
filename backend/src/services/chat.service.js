@@ -109,7 +109,7 @@ async function uploadAttachment({ channelId, teamId, userId, academyId, role, fi
 // SEND MESSAGE
 // ─────────────────────────────────────────────────────────────────
 
-async function sendMessage({ channelId, teamId, senderId, academyId, role, messageText, attachmentUrl, fileName, mimeType, fileSize }) {
+async function sendMessage({ channelId, teamId, senderId, academyId, role, messageText, attachmentUrl, fileName, mimeType, fileSize, clientMessageId }) {
   const resolvedChannelId = await resolveChannelId({ channelId, teamId, academyId });
   await assertChannelMembership({ channelId: resolvedChannelId, userId: senderId, academyId, role });
 
@@ -149,25 +149,46 @@ async function sendMessage({ channelId, teamId, senderId, academyId, role, messa
   const { data, error } = await supabaseAdmin
     .from('messages')
     .insert({
-      academy_id:     academyId,
-      channel_id:     resolvedChannelId,
-      team_id:        ch?.team_id || null,
-      sender_id:      senderId,
-      message_text:   cleanText    || null,
-      attachment_url: attachmentUrl || null,
-      file_name:      fileName     || null,
-      mime_type:      mimeType     || null,
-      file_size:      fileSize     || null,
+      academy_id:        academyId,
+      channel_id:        resolvedChannelId,
+      team_id:           ch?.team_id || null,
+      sender_id:         senderId,
+      message_text:      cleanText    || null,
+      attachment_url:    attachmentUrl || null,
+      file_name:         fileName     || null,
+      mime_type:         mimeType     || null,
+      file_size:         fileSize     || null,
+      client_message_id: clientMessageId || null,
     })
     .select(`
       id, team_id, channel_id, sender_id, message_text,
-      attachment_url, file_name, mime_type, file_size,
+      attachment_url, file_name, mime_type, file_size, client_message_id,
       created_at,
       users!messages_sender_id_fkey ( id, first_name, last_name, role, avatar_url )
     `)
     .single();
 
   if (error) {
+    // 23505 = unique_violation. An offline-queued send that's retried (e.g.
+    // the first response was lost mid-flight, or two retries raced each
+    // other) lands here on the retry — fetch and return the row that
+    // actually won the insert instead of erroring or duplicating it.
+    if (error.code === '23505' && clientMessageId) {
+      const { data: winner } = await supabaseAdmin
+        .from('messages')
+        .select(`
+          id, team_id, channel_id, sender_id, message_text,
+          attachment_url, file_name, mime_type, file_size, client_message_id,
+          created_at,
+          users!messages_sender_id_fkey ( id, first_name, last_name, role, avatar_url )
+        `)
+        .eq('academy_id', academyId)
+        .eq('channel_id', resolvedChannelId)
+        .eq('sender_id', senderId)
+        .eq('client_message_id', clientMessageId)
+        .single();
+      if (winner) return winner;
+    }
     console.error('[ChatService.sendMessage]', error.message);
     throw new InternalError('Failed to send message. Please try again.');
   }
