@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback, useReducer } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { chatApi, meetingsApi } from '@sams/api';
-import type { ChatChannel, ChatChannelMember, ChatMessage, ChatAttachment, TeamMember, ReportedMessage, CallSession } from '@sams/api';
+import { chatApi, meetingsApi, OfflineQueuedError, subscribeOfflineQueue, listQueuedMutations, generateClientId } from '@sams/api';
+import type { ChatChannel, ChatChannelMember, ChatMessage, ChatAttachment, TeamMember, ReportedMessage, CallSession, QueueEvent } from '@sams/api';
 import { useAuthStore } from '@sams/store';
 
 // ─── Constants ──────────────────────────────────────────────────────
@@ -257,13 +257,14 @@ function channelAvatar(ch: ChatChannel): { bg: string; text: string; ring: strin
 }
 
 // ─── Messages reducer ────────────────────────────────────────────────
-type OptMsg = ChatMessage & { _opt?: boolean };
+type OptMsg = ChatMessage & { _opt?: boolean; _pending?: boolean };
 
 type MsgAction =
   | { type: 'SET';     messages: OptMsg[] }
   | { type: 'MERGE';   messages: OptMsg[] }
   | { type: 'ADD_OPT'; message: OptMsg }
   | { type: 'CONFIRM'; tempId: string; confirmed: OptMsg }
+  | { type: 'PENDING'; tempId: string }
   | { type: 'REJECT';  tempId: string }
   | { type: 'REMOVE';  id: string };
 
@@ -277,6 +278,10 @@ function reducer(state: OptMsg[], action: MsgAction): OptMsg[] {
     }
     case 'ADD_OPT':  return [...state, action.message];
     case 'CONFIRM':  return state.map(m => m.id === action.tempId ? action.confirmed : m);
+    // Left in the list (still _opt so it renders dimmed) instead of being
+    // rejected — the send was queued and will go out automatically on
+    // reconnect, rather than having actually failed.
+    case 'PENDING':  return state.map(m => m.id === action.tempId ? { ...m, _pending: true } : m);
     case 'REJECT':   return state.filter(m => m.id !== action.tempId);
     case 'REMOVE':   return state.filter(m => m.id !== action.id);
     default: return state;
@@ -1974,7 +1979,10 @@ export default function ChatPage() {
   const handleSend = useCallback(async (text: string, attachment?: ChatAttachment) => {
     if (!activeChannel || !user) return;
     setSendError(''); setSending(true);
-    const tempId = `opt-${Date.now()}`;
+    // Doubles as the client_message_id sent to the backend — if this send
+    // gets queued offline and retried later, the eventual queue "sent" event
+    // carries the same id, so it can be matched back to this exact bubble.
+    const tempId = generateClientId();
     const optimistic: OptMsg = {
       id: tempId, channel_id: activeChannel.id, sender_id: user.id,
       body: text || null, created_at: new Date().toISOString(), _opt: true,
@@ -1987,14 +1995,61 @@ export default function ChatPage() {
     dispatch({ type: 'ADD_OPT', message: optimistic });
     setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
     try {
-      const confirmed = await chatApi.sendMessage(activeChannel.id, text, attachment);
+      const confirmed = await chatApi.sendMessage(activeChannel.id, text, attachment, tempId);
       dispatch({ type: 'CONFIRM', tempId, confirmed });
       latestRef.current = confirmed.id;
     } catch (err: unknown) {
-      dispatch({ type: 'REJECT', tempId });
-      setSendError(err instanceof Error ? err.message : 'Failed to send.');
+      if (err instanceof OfflineQueuedError) {
+        dispatch({ type: 'PENDING', tempId });
+      } else {
+        dispatch({ type: 'REJECT', tempId });
+        setSendError(err instanceof Error ? err.message : 'Failed to send.');
+      }
     } finally { setSending(false); }
   }, [activeChannel, user]);
+
+  // Pending-send count for the "waiting to send" banner, and reconciliation
+  // of queued sends once they actually go out (offline queue survives across
+  // channel switches/reloads; this component just reflects its state).
+  const [pendingChatCount, setPendingChatCount] = useState(0);
+  const activeChannelIdRef = useRef<string | null>(null);
+  useEffect(() => { activeChannelIdRef.current = activeChannel?.id ?? null; }, [activeChannel?.id]);
+
+  useEffect(() => {
+    listQueuedMutations().then(items => {
+      setPendingChatCount(items.filter(i => i.url === '/chat').length);
+    });
+    return subscribeOfflineQueue((event: QueueEvent) => {
+      if (event.type === 'enqueued' && event.item.url === '/chat') {
+        setPendingChatCount(c => c + 1);
+      }
+      if (event.type === 'sent' && event.item.url === '/chat') {
+        setPendingChatCount(c => Math.max(0, c - 1));
+        const clientMessageId = event.item.data?.client_message_id as string | undefined;
+        const raw = (event.response as { data?: { message?: unknown } } | undefined)?.data?.message;
+        if (clientMessageId && raw) {
+          const confirmed = chatApi.mapChatMessage(raw as Parameters<typeof chatApi.mapChatMessage>[0]);
+          dispatch({ type: 'CONFIRM', tempId: clientMessageId, confirmed });
+          // Keep the poll's "since" cursor in sync so it doesn't independently
+          // re-add this same message via MERGE under its real id — only
+          // meaningful if this send belongs to the channel currently open.
+          if (event.item.data?.channel_id === activeChannelIdRef.current) {
+            latestRef.current = confirmed.id;
+          }
+        }
+      }
+      if (event.type === 'flush-failed' && event.item.url === '/chat' && event.permanent) {
+        setPendingChatCount(c => Math.max(0, c - 1));
+        const clientMessageId = event.item.data?.client_message_id as string | undefined;
+        if (clientMessageId) {
+          dispatch({ type: 'REJECT', tempId: clientMessageId });
+          if (event.item.data?.channel_id === activeChannelIdRef.current) {
+            setSendError('A queued message could not be delivered and was not sent.');
+          }
+        }
+      }
+    });
+  }, []);
 
   const handleDeleteMsg = useCallback(async (id: string) => {
     dispatch({ type: 'REMOVE', id });
@@ -2245,6 +2300,12 @@ export default function ChatPage() {
         <div className="alert alert-error" style={{ margin: '0 16px 6px', flexShrink: 0 }}>
           <span style={{ fontSize: '0.83rem' }}>{sendError}</span>
           <button onClick={() => setSendError('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', padding: '0 4px', marginLeft: 'auto' }}>✕</button>
+        </div>
+      )}
+
+      {pendingChatCount > 0 && (
+        <div style={{ margin: '0 16px 6px', padding: '7px 12px', borderRadius: 10, background: '#FFFBEB', border: '1px solid #FDE68A', color: '#92400E', fontSize: '0.78rem', fontWeight: 600, flexShrink: 0 }}>
+          ⏳ {pendingChatCount} message{pendingChatCount > 1 ? 's' : ''} waiting to send — will go out automatically when you're back online.
         </div>
       )}
 

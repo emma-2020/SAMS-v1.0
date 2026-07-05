@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage, type StateStorage } from 'zustand/middleware';
-import type { Session, UserProfile } from '@sams/api';
+import { clearOfflineData, type Session, type UserProfile } from '@sams/api';
 
 /**
  * Cross-platform storage resolver.
@@ -67,8 +67,13 @@ export const useAuthStore = create<AuthStore>()(
       login: (session, profile) =>
         set({ session, user: profile, isAuthenticated: true, isLoading: false, error: null }),
 
-      logout: () =>
-        set({ session: null, user: null, isAuthenticated: false, isLoading: false, error: null }),
+      logout: () => {
+        // Fire-and-forget: a different account may sign in on this same
+        // device next, and must never see this account's cached reads or
+        // queued-but-unsent offline mutations.
+        clearOfflineData().catch(() => {});
+        set({ session: null, user: null, isAuthenticated: false, isLoading: false, error: null });
+      },
 
       refreshSession: (newSession) => set({ session: newSession }),
 

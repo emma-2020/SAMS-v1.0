@@ -137,6 +137,8 @@ const validateChatQuery = runChecks([
   },
 ]);
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 const validateChatBody = runChecks([
   ({ body }) => {
     if (!body.channel_id && !body.team_id) {
@@ -151,6 +153,14 @@ const validateChatBody = runChecks([
     }
     if (body.message_text && body.message_text.length > MAX_MESSAGE_LENGTH) {
       return `"message_text" cannot exceed ${MAX_MESSAGE_LENGTH} characters.`;
+    }
+  },
+  ({ body }) => {
+    // Offline-queued sends attach this for server-side de-dup on retry
+    // (see database/migrations/022_...) — reject a malformed value here with
+    // a clean 400 rather than letting it fail as a raw Postgres type error.
+    if (body.client_message_id !== undefined && !UUID_RE.test(String(body.client_message_id))) {
+      return '"client_message_id" must be a valid UUID.';
     }
   },
 ]);

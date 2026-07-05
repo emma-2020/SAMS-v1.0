@@ -23,19 +23,20 @@ async function getMessages(req, res, next) {
 
 async function sendMessage(req, res, next) {
   try {
-    const { channel_id, team_id, message_text, attachment_url, file_name, mime_type, file_size } = req.body;
+    const { channel_id, team_id, message_text, attachment_url, file_name, mime_type, file_size, client_message_id } = req.body;
 
     const message = await chatService.sendMessage({
-      channelId:     channel_id,
-      teamId:        team_id,
-      senderId:      req.user.id,
-      academyId:     req.academyId,
-      role:          req.user.role,
-      messageText:   message_text,
-      attachmentUrl: attachment_url,
-      fileName:      file_name,
-      mimeType:      mime_type,
-      fileSize:      file_size,
+      channelId:       channel_id,
+      teamId:          team_id,
+      senderId:        req.user.id,
+      academyId:       req.academyId,
+      role:            req.user.role,
+      messageText:     message_text,
+      attachmentUrl:   attachment_url,
+      fileName:        file_name,
+      mimeType:        mime_type,
+      fileSize:        file_size,
+      clientMessageId: client_message_id,
     });
 
     return res.status(201).json({
