@@ -137,6 +137,15 @@ SAMS-v1.0/
 - Storage uses `localStorage` (web). No AsyncStorage — Capacitor runs the web app, not a native React Native runtime.
 - API client configured via `configureApiClient()` — must be called once on app mount (done in `AuthProvider`).
 
+### Offline support (added Jul 2026)
+- Core module: `packages/api/src/offline/` — IndexedDB-backed GET cache + mutation queue, wired into `apiClient`'s axios interceptors in `packages/api/src/client.ts`. Works identically on web and inside the Capacitor WebView (same IndexedDB API in both).
+- **Full offline read + write** (queued while offline, auto-replayed on reconnect): chat sends (`POST /chat`) and attendance saves (`POST /attendance`) only. Allowlisted in `packages/api/src/offline/config.ts` (`isQueueableMutation`) — a route only belongs there if it's provably safe to replay blind (chat de-dupes via `client_message_id`, migration `022_chat_client_message_id.sql`; attendance is an idempotent upsert). Do not add a route here without an equivalent replay-safety story.
+- **Read-only cache** (last-known-good served if a GET fails offline): schedule, chat, attendance, announcements, teams, documents, health, workouts, notifications, analytics — see `isCacheableGet` in the same file. The live fee/payment ledger (`fees.ts` / `feesApi`) is deliberately never cached or queued — a stale balance shown as current is a real-money risk, not just a UX one.
+- **Known limitation**: the read cache only helps when a fetch fails *while a page is already mounted* (e.g. a poll, or a manual refresh) — reloading the browser tab or navigating to a fresh route while offline still hard-fails, because Next.js's own route/shell fetch needs connectivity and the service worker (`apps/next/public/sw.js`) deliberately does not cache page navigations (caching per-user HTML on a shared device was a real cross-user data-leak risk, since fixed). Closing that gap requires flipping Capacitor out of live-server mode (see below) — not done, and shouldn't be without a concrete need, since it costs back the app-store-free release flow.
+- `packages/store/src/auth.ts`'s `logout()` calls `clearOfflineData()` — required so a different account signing in on the same device never sees the previous account's cached reads or queued-but-unsent mutations.
+- Global status pill: `apps/next/components/shell/OfflineIndicator.tsx`, rendered in `AppShell`'s topbar — shows "Offline" / "Syncing N…" off of `isOffline()` / `subscribeOfflineQueue()`. Always re-derive queue counts via `listQueuedMutations()`; don't hand-maintain a counter (drifts across tabs).
+- Capacitor is still in live-server mode (unaffected by any of the above) — see the Capacitor section above.
+
 ## V1.0 Scope Constraint
 Stripe, PDF generation, video tools, Apple Health sync, and AI scheduling are explicitly out of scope. Do not introduce these.
 Chat file attachments (images and PDF, max 10 MB) are in scope — see `POST /api/chat/upload` and `database/migrations/004_chat_attachments.sql`.

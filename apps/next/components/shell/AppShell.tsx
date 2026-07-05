@@ -15,6 +15,7 @@ import { useTheme } from '@/lib/theme/provider';
 import { NAV_CONFIG } from '@sams/app';
 import type { NavItem } from '@sams/app';
 import type { Notification, UserProfile } from '@sams/api';
+import OfflineIndicator from './OfflineIndicator';
 
 // ── Icon resolver ──────────────────────────────────────────────────────────────
 const ICON_MAP: Record<string, LucideIcon> = {
@@ -573,6 +574,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           )}
 
           <div style={{ flex: 1 }} />
+
+          <OfflineIndicator />
 
           {/* Bell */}
           <div style={{ position: 'relative' }} ref={notifRef}>

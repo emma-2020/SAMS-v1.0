@@ -2,8 +2,8 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { scheduleApi, apiClient } from '@sams/api';
-import type { ScheduleEvent } from '@sams/api';
+import { scheduleApi, apiClient, OfflineQueuedError, subscribeOfflineQueue } from '@sams/api';
+import type { ScheduleEvent, QueueEvent } from '@sams/api';
 
 // ─── Types ──────────────────────────────────────────────────────────
 interface RosterPlayer {
@@ -193,6 +193,7 @@ function AttendanceInner() {
   const [statuses,     setStatuses]    = useState<Record<string, string>>({});
   const [notes,        setNotes]       = useState<Record<string, string>>({});
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [savedOffline, setSavedOffline] = useState(false);
   const [exporting,    setExporting]   = useState(false);
   const [events,       setEvents]      = useState<ScheduleEvent[]>([]);
   const [eventsLoading, setEventsLoading] = useState(true);
@@ -235,7 +236,7 @@ function AttendanceInner() {
   function handleSelectEvent(id: string) {
     setSelectedEventId(id);
     router.replace(`/dashboard/coach/attendance?event=${id}`, { scroll: false });
-    setStatuses({}); setNotes({}); setSavedSuccess(false);
+    setStatuses({}); setNotes({}); setSavedSuccess(false); setSavedOffline(false);
   }
 
   function handleSetStatus(playerId: string, status: string | null) {
@@ -243,13 +244,30 @@ function AttendanceInner() {
       if (status === null) { const n = { ...prev }; delete n[playerId]; return n; }
       return { ...prev, [playerId]: status };
     });
-    setSavedSuccess(false);
+    setSavedSuccess(false); setSavedOffline(false);
   }
 
   function handleNoteChange(playerId: string, note: string) {
     setNotes(prev => ({ ...prev, [playerId]: note }));
-    setSavedSuccess(false);
+    setSavedSuccess(false); setSavedOffline(false);
   }
+
+  // If this event's attendance was queued offline, flip to "saved" once the
+  // queue actually sends it (reconnect, or the periodic flaky-network retry).
+  useEffect(() => {
+    return subscribeOfflineQueue((event: QueueEvent) => {
+      if (event.type === 'enqueued') return;
+      if (event.item.url !== '/attendance' || event.item.data?.event_id !== selectedEventId) return;
+      if (event.type === 'sent') {
+        setSavedOffline(false);
+        setSavedSuccess(true);
+      }
+      if (event.type === 'flush-failed' && event.permanent) {
+        setSavedOffline(false);
+        setSaveError('This offline save could not be delivered. Please try saving again.');
+      }
+    });
+  }, [selectedEventId]);
 
   async function handleExportCsv() {
     if (!selectedEventId) return;
@@ -278,12 +296,18 @@ function AttendanceInner() {
       status: statuses[p.player_id] || 'Present',
       notes: notes[p.player_id] || undefined,
     }));
-    setSaving(true); setSaveError('');
+    setSaving(true); setSaveError(''); setSavedOffline(false); setSavedSuccess(false);
     try {
       await (apiClient as any).post('/attendance', { event_id: selectedEventId, records });
       setSavedSuccess(true);
     } catch (e: unknown) {
-      setSaveError(e instanceof Error ? e.message : 'Failed to save');
+      if (e instanceof OfflineQueuedError) {
+        // logAttendance() upserts on (event_id, player_id), so replaying the
+        // exact same records later is always safe to resend unchanged.
+        setSavedOffline(true);
+      } else {
+        setSaveError(e instanceof Error ? e.message : 'Failed to save');
+      }
     }
     setSaving(false);
   }
@@ -401,11 +425,16 @@ function AttendanceInner() {
 
               {/* Save bar */}
               {roster.length > 0 && (
-                <div className="att-save-bar" style={{ marginTop: 16, padding: '14px 18px', background: savedSuccess ? '#ECFDF5' : '#fff', border: `1.5px solid ${savedSuccess ? '#A7F3D0' : '#E2E8F0'}`, borderRadius: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'all 0.2s' }}>
+                <div className="att-save-bar" style={{ marginTop: 16, padding: '14px 18px', background: savedSuccess ? '#ECFDF5' : savedOffline ? '#FFFBEB' : '#fff', border: `1.5px solid ${savedSuccess ? '#A7F3D0' : savedOffline ? '#FDE68A' : '#E2E8F0'}`, borderRadius: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'all 0.2s' }}>
                   {savedSuccess ? (
                     <span style={{ fontSize: '0.875rem', color: '#059669', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 7 }}>
                       <span style={{ width: 22, height: 22, borderRadius: 99, background: '#059669', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>✓</span>
                       Attendance saved successfully!
+                    </span>
+                  ) : savedOffline ? (
+                    <span style={{ fontSize: '0.875rem', color: '#92400E', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 7 }}>
+                      <span style={{ width: 22, height: 22, borderRadius: 99, background: '#D97706', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>⏳</span>
+                      Saved offline — will sync automatically when you're back online.
                     </span>
                   ) : (
                     <span style={{ fontSize: '0.82rem', color: '#64748B' }}>

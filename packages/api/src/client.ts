@@ -1,4 +1,5 @@
 import axios, { type InternalAxiosRequestConfig } from 'axios';
+import { stashRawRequestData, cacheGetResponseIfApplicable, handleOfflineOnError, installOfflineSupport } from './offline';
 
 // Resolved at runtime so it works in Next.js (server + client) and Expo
 function resolveBaseUrl(): string {
@@ -66,7 +67,7 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
     config.headers.delete('Content-Type');
   }
-  return config;
+  return stashRawRequestData(config);
 });
 
 // Single-attempt refresh queue on 401 — mirrors the existing CRA pattern.
@@ -76,7 +77,12 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 // _onUnauthorized() fires a spurious router.replace('/login') that remounts
 // the login page and silently wipes the error state before the user can see it.
 apiClient.interceptors.response.use(
-  (res) => res.data,
+  (res) => {
+    // Best-effort cache write for offline fallback later — never blocks or
+    // fails the response itself.
+    cacheGetResponseIfApplicable(res).catch(() => {});
+    return res.data;
+  },
   async (err) => {
     const original = err.config;
     const authHeader = (original?.headers?.Authorization as string | undefined) ?? '';
@@ -110,7 +116,25 @@ apiClient.interceptors.response.use(
       _queue = [];
       _onUnauthorized(expiredToken);
     }
+
+    // Offline fallback: serve a cached GET, or queue an approved mutation
+    // (chat send / attendance log) for automatic retry. Throws
+    // OfflineQueuedError for the queued case, which callers can catch
+    // specifically to show "saved offline" instead of a hard failure. A real
+    // (non-network) error, or a route not covered by either path, falls
+    // through unchanged to the generic error below.
+    const offlineOutcome = await handleOfflineOnError(err);
+    if (offlineOutcome !== undefined) return offlineOutcome;
+
     const message = err.response?.data?.error ?? err.message ?? 'Request failed';
-    throw new Error(message);
+    const wrapped = new Error(message) as Error & { status?: number };
+    // A status means the server actually responded (a real rejection, not a
+    // network error) — the offline queue's replay sender uses this to tell
+    // "genuinely rejected" apart from "still offline" (see offline/queue.ts's
+    // PermanentQueueError).
+    if (err.response?.status) wrapped.status = err.response.status;
+    throw wrapped;
   }
 );
+
+installOfflineSupport(apiClient);

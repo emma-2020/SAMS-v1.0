@@ -9,12 +9,14 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 export const metadata: Metadata = {
   title: 'PlaySAMS — Sports Academy Management',
   description: 'The command centre for elite academies.',
+  manifest: '/manifest.json',
 };
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover', // required for env(safe-area-inset-*) on iOS notched phones
+  themeColor: '#111827',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -85,6 +87,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     document.getElementById('launch-splash').classList.add('show');
                   }
                 } catch (e) {}
+              })();
+            `,
+          }}
+        />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function () {
+                if ('serviceWorker' in navigator) {
+                  window.addEventListener('load', function () {
+                    navigator.serviceWorker.register('/sw.js').catch(function () {});
+                  });
+                }
               })();
             `,
           }}

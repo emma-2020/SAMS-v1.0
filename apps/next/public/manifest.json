@@ -1,0 +1,17 @@
+{
+  "name": "PlaySAMS — Sports Academy Management",
+  "short_name": "PlaySAMS",
+  "description": "The command centre for elite academies.",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#0A0F1E",
+  "theme_color": "#111827",
+  "icons": [
+    {
+      "src": "/brand/sams-playstore-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

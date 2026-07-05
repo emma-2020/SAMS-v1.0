@@ -1,4 +1,14 @@
 export { apiClient, configureApiClient } from './client';
+export {
+  OfflineQueuedError,
+  subscribeOfflineQueue,
+  listQueuedMutations,
+  isOffline,
+  onNetworkChange,
+  clearOfflineData,
+  generateClientId,
+} from './offline';
+export type { QueuedMutation, QueueEvent } from './offline';
 export type * from './types';
 export type { AttendanceSession, AttendanceRecord } from './attendance';
 export type { InviteDetails } from './auth';
