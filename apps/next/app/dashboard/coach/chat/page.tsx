@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useReducer } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { chatApi, meetingsApi, OfflineQueuedError, subscribeOfflineQueue, listQueuedMutations, generateClientId } from '@sams/api';
+import { chatApi, meetingsApi, OfflineQueuedError, subscribeOfflineQueue, generateClientId } from '@sams/api';
 import type { ChatChannel, ChatChannelMember, ChatMessage, ChatAttachment, TeamMember, ReportedMessage, CallSession, QueueEvent } from '@sams/api';
 import { useAuthStore } from '@sams/store';
 
@@ -190,7 +190,16 @@ const IcoScreenShare = () => (
 
 // ── Message ticks (WhatsApp-style) ───────────────────────────────────
 // Ticks render BELOW the bubble on a light (#F8FAFC) background, so colors must be visible
-function MsgTicks({ isOpt }: { isOpt?: boolean }) {
+function MsgTicks({ isOpt, pending }: { isOpt?: boolean; pending?: boolean }) {
+  if (pending) {
+    // Clock = queued while offline, not yet sent to the server at all
+    return (
+      <svg width="12" height="12" viewBox="0 0 13 13" fill="none" style={{ flexShrink: 0 }}>
+        <circle cx="6.5" cy="6.5" r="5.5" stroke="#94A3B8" strokeWidth="1.3" />
+        <path d="M6.5 3.5V6.5L8.5 8" stroke="#94A3B8" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
   if (isOpt) {
     // Single grey tick = sending / pending
     return (
@@ -492,7 +501,7 @@ function MessageBubble({ msg, isSelf, showHeader, isLast, canDelete, onDelete, o
         {isSelf ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 3, justifyContent: 'flex-end', marginTop: 1 }}>
             <span style={{ fontSize: '0.56rem', color: '#94A3B8', fontFamily: 'var(--font-mono)' }}>{ts}</span>
-            <MsgTicks isOpt={!!msg._opt} />
+            <MsgTicks isOpt={!!msg._opt} pending={!!msg._pending} />
           </div>
         ) : (!showHeader && isLast && (
           <span style={{ fontSize: '0.58rem', color: '#94A3B8', fontFamily: 'var(--font-mono)', marginTop: 0 }}>{ts}</span>
@@ -2008,23 +2017,15 @@ export default function ChatPage() {
     } finally { setSending(false); }
   }, [activeChannel, user]);
 
-  // Pending-send count for the "waiting to send" banner, and reconciliation
-  // of queued sends once they actually go out (offline queue survives across
-  // channel switches/reloads; this component just reflects its state).
-  const [pendingChatCount, setPendingChatCount] = useState(0);
+  // Reconciliation of queued sends once they actually go out (offline queue
+  // survives across channel switches/reloads; this component just reflects
+  // its state via the per-message clock/tick icons).
   const activeChannelIdRef = useRef<string | null>(null);
   useEffect(() => { activeChannelIdRef.current = activeChannel?.id ?? null; }, [activeChannel?.id]);
 
   useEffect(() => {
-    listQueuedMutations().then(items => {
-      setPendingChatCount(items.filter(i => i.url === '/chat').length);
-    });
     return subscribeOfflineQueue((event: QueueEvent) => {
-      if (event.type === 'enqueued' && event.item.url === '/chat') {
-        setPendingChatCount(c => c + 1);
-      }
       if (event.type === 'sent' && event.item.url === '/chat') {
-        setPendingChatCount(c => Math.max(0, c - 1));
         const clientMessageId = event.item.data?.client_message_id as string | undefined;
         const raw = (event.response as { data?: { message?: unknown } } | undefined)?.data?.message;
         if (clientMessageId && raw) {
@@ -2039,7 +2040,6 @@ export default function ChatPage() {
         }
       }
       if (event.type === 'flush-failed' && event.item.url === '/chat' && event.permanent) {
-        setPendingChatCount(c => Math.max(0, c - 1));
         const clientMessageId = event.item.data?.client_message_id as string | undefined;
         if (clientMessageId) {
           dispatch({ type: 'REJECT', tempId: clientMessageId });
@@ -2300,12 +2300,6 @@ export default function ChatPage() {
         <div className="alert alert-error" style={{ margin: '0 16px 6px', flexShrink: 0 }}>
           <span style={{ fontSize: '0.83rem' }}>{sendError}</span>
           <button onClick={() => setSendError('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', padding: '0 4px', marginLeft: 'auto' }}>✕</button>
-        </div>
-      )}
-
-      {pendingChatCount > 0 && (
-        <div style={{ margin: '0 16px 6px', padding: '7px 12px', borderRadius: 10, background: '#FFFBEB', border: '1px solid #FDE68A', color: '#92400E', fontSize: '0.78rem', fontWeight: 600, flexShrink: 0 }}>
-          ⏳ {pendingChatCount} message{pendingChatCount > 1 ? 's' : ''} waiting to send — will go out automatically when you're back online.
         </div>
       )}
 
