@@ -17,20 +17,20 @@ if (typeof workbox !== 'undefined') {
   // string, so it must appear in this file EXACTLY once — don't repeat it
   // in a comment, that was the bug that broke this the first time.)
   workbox.precaching.precacheAndRoute(self.__WB_MANIFEST || [], {
-    // Next.js static export serves "/foo" as the file "foo.html" (no
-    // trailing slash, no extension in the URL) — without this, a precached
-    // entry at "/dashboard/coach/chat.html" would never match a fetch for
-    // the URL "/dashboard/coach/chat", and offline navigation would silently
-    // fail even though the file IS cached. This is the single most important
-    // and easy-to-get-wrong piece of this whole change — verify it actually
-    // works for a real nested route in the Verify phase, don't just trust
-    // this comment.
+    // The manifest itself is built with clean URLs (see scripts/build-sw.js's
+    // manifestTransforms — "/dashboard/coach/chat/", not the on-disk
+    // "dashboard/coach/chat/index.html"), matching what real navigation
+    // actually requests with next.config.js's trailingSlash:true. This is
+    // just a fallback for a request that arrives WITHOUT the trailing slash
+    // (an old link, something typed by hand) — normally the server 301s
+    // that to the slash form, but there's no server to do that while
+    // offline, so the service worker needs to try both itself.
     urlManipulation: ({ url }) => {
       const variations = [url];
       if (!url.pathname.endsWith('/') && !url.pathname.includes('.')) {
-        const htmlUrl = new URL(url.href);
-        htmlUrl.pathname = url.pathname + '.html';
-        variations.push(htmlUrl);
+        const slashUrl = new URL(url.href);
+        slashUrl.pathname = url.pathname + '/';
+        variations.push(slashUrl);
       }
       return variations;
     },
@@ -58,11 +58,7 @@ self.addEventListener('fetch', (event) => {
   // and let its own client-side router figure out what to render.
   if (req.mode === 'navigate') {
     event.respondWith(
-      fetch(req).catch(() =>
-        caches.match(req)
-          .then((r) => r || caches.match('/index.html'))
-          .then((r) => r || caches.match('/'))
-      )
+      fetch(req).catch(() => caches.match(req).then((r) => r || caches.match('/')))
     );
     return;
   }
