@@ -1,8 +1,9 @@
 /** @type {import('next').NextConfig} */
 
 const nextConfig = {
-  // Static export only for Capacitor builds. Web production uses normal Next.js server.
-  ...(process.env.NEXT_OUTPUT === 'export' ? { output: 'export' } : {}),
+  // Static export for all builds: web production and Capacitor both ship the
+  // same static export (app shell is now fully offline-cacheable).
+  output: 'export',
 
   // Transpile workspace packages and react-native-web
   transpilePackages: [
