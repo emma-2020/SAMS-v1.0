@@ -23,6 +23,25 @@ function toCleanUrl(entry) {
   return entry;
 }
 
+// Workbox aborts precaching ENTIRELY if a single manifest entry 404s on
+// install — confirmed via the actual deployed service worker's own install
+// lifecycle (it silently died partway through with only 4/148 files
+// cached). Two categories fail specifically on Vercel's hosting (not on a
+// local static-file server, which is why local testing didn't catch this):
+//  - Next's special error-page artifacts (404.html, 404/) — Vercel
+//    intercepts requests to its own error-page path and serves its own
+//    404 response rather than the literal static file there.
+//  - JS chunk filenames containing literal "[" "]" characters, produced for
+//    the one dynamic route (platform/requests/[id]) — that route already
+//    has its own generateStaticParams placeholder fallback and works fine
+//    loaded fresh online; not precaching this one chunk doesn't undermine
+//    the app-shell-boots-offline goal for every real user-facing route.
+function isUnprecacheable(entry) {
+  if (entry.url === '404.html' || entry.url === '404/index.html') return true;
+  if (entry.url.includes('[') || entry.url.includes(']')) return true;
+  return false;
+}
+
 async function run() {
   const { count, size, warnings } = await injectManifest({
     swSrc: path.join(__dirname, '..', 'sw-src.js'),
@@ -35,7 +54,7 @@ async function run() {
     globIgnores: ['sw.js', '**/*.map'],
     maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
     manifestTransforms: [
-      (entries) => ({ manifest: entries.map(toCleanUrl), warnings: [] }),
+      (entries) => ({ manifest: entries.filter((e) => !isUnprecacheable(e)).map(toCleanUrl), warnings: [] }),
     ],
   });
   if (warnings.length) {
