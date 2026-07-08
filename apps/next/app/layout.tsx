@@ -95,10 +95,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           dangerouslySetInnerHTML={{
             __html: `
               (function () {
-                if ('serviceWorker' in navigator) {
-                  window.addEventListener('load', function () {
-                    navigator.serviceWorker.register('/sw.js').catch(function () {});
+                if (!('serviceWorker' in navigator)) return;
+                function register() {
+                  navigator.serviceWorker.register('/sw.js').catch(function (err) {
+                    console.error('[sw] registration failed:', err);
                   });
+                }
+                // 'load' may have ALREADY fired by the time this inline script
+                // runs (e.g. a fast, mostly-cached page load) — in that case
+                // addEventListener('load', ...) never calls back, and the
+                // service worker silently never registers. Register
+                // immediately if the page is already done loading; only wait
+                // for the event if it genuinely hasn't happened yet.
+                if (document.readyState === 'complete') {
+                  register();
+                } else {
+                  window.addEventListener('load', register);
                 }
               })();
             `,

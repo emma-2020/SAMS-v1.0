@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Layers, CalendarDays, LayoutDashboard } from 'lucide-react';
 
 // ── Static data ───────────────────────────────────────────────────────
@@ -441,9 +442,19 @@ function DashboardMockup() {
 // ── Page ─────────────────────────────────────────────────────────────
 
 export default function HomePage() {
+  const router = useRouter();
   const [activeRole, setActiveRole] = useState('admin');
   const [openFaq, setOpenFaq]       = useState<number | null>(null);
   const role = ROLES.find(r => r.key === activeRole)!;
+
+  // Moved from middleware.ts — static export (needed for the app shell to
+  // boot offline) disables Next.js middleware entirely, so the
+  // app.playsams.com → /login redirect has to happen client-side instead.
+  useEffect(() => {
+    if (window.location.hostname === 'app.playsams.com') {
+      router.replace('/login');
+    }
+  }, [router]);
 
   return (
     <>
