@@ -40,6 +40,15 @@ const CACHEABLE_GETS: Array<(url: string) => boolean> = [
   (url) => url.startsWith('/workouts'),
   (url) => url.startsWith('/notifications'),
   (url) => url.startsWith('/analytics'),
+  // Chat *messages* were already cached, but the channel LIST wasn't — that
+  // meant offline users couldn't even reach a conversation to see its
+  // already-cached messages, since the screen that lists channels failed
+  // first. Roster/meetings follow the same read-only reference-data logic
+  // as schedule/teams above.
+  (url) => url.startsWith('/chat/channels'),
+  (url) => url.startsWith('/coach/players'),
+  (url) => url.startsWith('/admin/roster'),
+  (url) => url.startsWith('/meetings'),
 ];
 
 export function isCacheableGet(url: string | undefined): boolean {
