@@ -39,7 +39,23 @@ if (typeof workbox !== 'undefined') {
 
 self.addEventListener('install', () => { self.skipWaiting(); });
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    Promise.all([
+      self.clients.claim(),
+      // One-time cleanup of "sams-shell-v1", a cache bucket left behind by
+      // the very first, pre-Workbox version of this service worker — Workbox
+      // already manages cleanup of its OWN precache generations (anything
+      // prefixed "sams-shell-precache"), but has no knowledge of a bucket
+      // from a completely different, no-longer-used naming scheme.
+      caches.keys().then((names) =>
+        Promise.all(
+          names
+            .filter((name) => !name.startsWith('sams-shell-precache') && name !== 'sams-shell-runtime')
+            .map((name) => caches.delete(name))
+        )
+      ),
+    ])
+  );
 });
 
 self.addEventListener('fetch', (event) => {
