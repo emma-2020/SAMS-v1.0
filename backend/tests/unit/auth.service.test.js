@@ -1,12 +1,12 @@
 // tests/unit/services/auth.service.test.js
 'use strict';
 
-jest.mock('../../../src/config/supabase');
+jest.mock('../../src/config/supabase');
 
-const { supabaseAdmin }  = require('../../../src/config/supabase');
-const authService        = require('../../../src/services/auth.service');
+const { supabaseAdmin }  = require('../../src/config/supabase');
+const authService        = require('../../src/services/auth.service');
 const { ConflictError, UnauthorizedError, NotFoundError, BadRequestError } =
-  require('../../../src/utils/errors');
+  require('../../src/utils/errors');
 
 // ─── Supabase chain mock builder ──────────────────────────────────
 
@@ -161,6 +161,55 @@ describe('authService.login', () => {
     );
 
     await expect(authService.login(credentials))
+      .rejects.toBeInstanceOf(UnauthorizedError);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────
+// RESET PASSWORD TESTS
+// ─────────────────────────────────────────────────────────────────
+
+describe('authService.resetPassword', () => {
+
+  const validToken    = 'recovery-access-token';
+  const validPassword = 'NewSecurePass1!';
+
+  // ── Regression: validatePasswordChange must receive the raw string,
+  //    not an object — a strong password must not be rejected as "required".
+  test('does not reject a valid strong password as missing', async () => {
+    supabaseAdmin.auth = {
+      getUser: jest.fn().mockResolvedValue({
+        data:  { user: { id: 'u1', email: 'jordan@riverside.com' } },
+        error: null,
+      }),
+      admin: {
+        updateUserById: jest.fn().mockResolvedValue({ error: null }),
+      },
+    };
+
+    await expect(authService.resetPassword(validToken, validPassword))
+      .resolves.toBeUndefined();
+
+    expect(supabaseAdmin.auth.admin.updateUserById).toHaveBeenCalledWith(
+      'u1',
+      { password: validPassword }
+    );
+  });
+
+  test('throws BadRequestError when the new password is too weak', async () => {
+    await expect(authService.resetPassword(validToken, 'weak'))
+      .rejects.toBeInstanceOf(BadRequestError);
+  });
+
+  test('throws UnauthorizedError when the recovery token is invalid or expired', async () => {
+    supabaseAdmin.auth = {
+      getUser: jest.fn().mockResolvedValue({
+        data:  { user: null },
+        error: { message: 'invalid token' },
+      }),
+    };
+
+    await expect(authService.resetPassword('bad-token', validPassword))
       .rejects.toBeInstanceOf(UnauthorizedError);
   });
 });
