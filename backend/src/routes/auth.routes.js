@@ -4,7 +4,7 @@
 /**
  * Auth Routes
  * -----------
- * Public:    POST /signup  POST /login  POST /refresh
+ * Public:    POST /login  POST /refresh  POST /register  POST /setup-account
  * Protected: POST /logout  GET  /me
  */
 
@@ -36,7 +36,6 @@ const upload = multer({
 const router = Router();
 
 // ── Public ────────────────────────────────────────────────────────
-router.post('/signup',           controller.signup);
 router.post('/login',            controller.login);
 router.post('/refresh',          controller.refresh);
 router.get( '/invite/:token',    controller.verifyInviteToken);

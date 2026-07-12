@@ -28,33 +28,6 @@ function checkPasswordStrength(password) {
   return errors;
 }
 
-function validateSignupPayload({ email, password, role, first_name, last_name }) {
-  const errors = [];
-
-  if (!email || typeof email !== 'string' || !EMAIL_RE.test(email.trim())) {
-    errors.push('A valid email address is required.');
-  }
-
-  errors.push(...checkPasswordStrength(password));
-
-  const VALID_ROLES = ['Admin', 'Coach', 'Player', 'Parent'];
-  if (!role || !VALID_ROLES.includes(role)) {
-    errors.push(`Role must be one of: ${VALID_ROLES.join(', ')}.`);
-  }
-
-  if (!first_name || typeof first_name !== 'string' || first_name.trim().length < 1) {
-    errors.push('first_name is required.');
-  }
-
-  if (!last_name || typeof last_name !== 'string' || last_name.trim().length < 1) {
-    errors.push('last_name is required.');
-  }
-
-  if (errors.length > 0) {
-    throw new BadRequestError(errors.join(' '));
-  }
-}
-
 function validateLoginPayload({ email, password }) {
   if (!email || typeof email !== 'string' || !EMAIL_RE.test(email.trim())) {
     throw new BadRequestError('A valid email address is required.');
@@ -78,7 +51,6 @@ function sanitizeString(value, { lowercase = false } = {}) {
 }
 
 module.exports = {
-  validateSignupPayload,
   validateLoginPayload,
   validatePasswordChange,
   sanitizeString,
