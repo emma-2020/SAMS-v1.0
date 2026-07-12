@@ -13,6 +13,7 @@
 
 const { supabaseAdmin } = require('../config/supabase');
 const {
+  AppError,
   NotFoundError,
   ForbiddenError,
   BadRequestError,
@@ -141,6 +142,24 @@ async function createAssignment({ userId, academyId, role, payload }) {
     throw new BadRequestError('At least one exercise is required.');
   }
 
+  // Normalize exercise field names before touching the DB.
+  // The DB schema (workout_exercises) uses `description` / `sets_reps_notes`,
+  // but the shared cross-platform API contract (packages/api `Exercise` type,
+  // used by the web/mobile "Create Training Plan" forms) sends `name` / `notes`.
+  // Accepting only the DB column names here caused `ex.description.trim()` to
+  // throw a TypeError on the client's actual payload shape (description was
+  // always undefined) — an unhandled exception thrown *after* the assignment
+  // row was already inserted below, which is why plans were being created
+  // with 0 exercises before a generic 500 was returned.
+  const normalizedExercises = exercises.map((ex) => ({
+    description:     String(ex.description ?? ex.name ?? '').trim(),
+    sets_reps_notes: String(ex.sets_reps_notes ?? ex.notes ?? '').trim() || null,
+  }));
+
+  if (normalizedExercises.some((ex) => !ex.description)) {
+    throw new BadRequestError('Each exercise requires a non-empty name/description.');
+  }
+
   // Verify team_id belongs to this academy (if provided)
   if (team_id) {
     const { data: team } = await supabaseAdmin
@@ -182,23 +201,47 @@ async function createAssignment({ userId, academyId, role, payload }) {
     throw new InternalError('Failed to create workout assignment. Please try again.');
   }
 
-  // Insert exercises
-  const exerciseRows = exercises.map((ex, i) => ({
-    academy_id:      academyId,               // tenant isolation
-    assignment_id:   assignment.id,
-    sort_order:      i,
-    description:     ex.description.trim(),
-    sets_reps_notes: ex.sets_reps_notes?.trim() || null,
-  }));
+  // Insert exercises.
+  // Everything in this block runs after the plan row above already exists,
+  // so on ANY failure here (Supabase error or unexpected exception) we roll
+  // back the plan row rather than leaving an orphaned "0 exercises" record —
+  // Supabase gives us no multi-table transaction here, so this is a
+  // best-effort compensating delete, matching the pattern used in
+  // platform.service.js's academy-provisioning flow.
+  let savedExercises;
+  try {
+    const exerciseRows = normalizedExercises.map((ex, i) => ({
+      academy_id:      academyId,               // tenant isolation
+      assignment_id:   assignment.id,
+      sort_order:      i,
+      description:     ex.description,
+      sets_reps_notes: ex.sets_reps_notes,
+    }));
 
-  const { data: savedExercises, error: eError } = await supabaseAdmin
-    .from('workout_exercises')
-    .insert(exerciseRows)
-    .select('id, sort_order, description, sets_reps_notes');
+    const { data, error: eError } = await supabaseAdmin
+      .from('workout_exercises')
+      .insert(exerciseRows)
+      .select('id, sort_order, description, sets_reps_notes');
 
-  if (eError) {
-    console.error('[WorkoutService.createAssignment] exercises insert:', eError.message);
-    throw new InternalError('Failed to save workout exercises. Please try again.');
+    if (eError) {
+      console.error('[WorkoutService.createAssignment] exercises insert:', eError.message);
+      throw new InternalError('Failed to save workout exercises. Please try again.');
+    }
+    savedExercises = data;
+  } catch (err) {
+    console.error(
+      '[WorkoutService.createAssignment] exercises insert failed, rolling back plan',
+      assignment.id, '-', err.message
+    );
+    const { error: rbError } = await supabaseAdmin
+      .from('workout_assignments')
+      .delete()
+      .eq('id', assignment.id)
+      .eq('academy_id', academyId);
+    if (rbError) {
+      console.error('[WorkoutService.createAssignment] rollback failed:', rbError.message);
+    }
+    throw err instanceof AppError ? err : new InternalError('Failed to save workout exercises. Please try again.');
   }
 
   // Fire-and-forget: notify assigned player(s) about new workout
