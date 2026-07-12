@@ -591,14 +591,14 @@ function InputBar({ onSend, disabled, activeChannelId }: {
         </button>
         <textarea ref={ref} value={text} onChange={e => setText(e.target.value)} onKeyDown={onKey}
           onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
-          disabled={disabled} rows={1} placeholder="Type a message…"
+          disabled={disabled} rows={1} placeholder="Type a message…" aria-label="Type a message"
           style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: '#1E293B', fontFamily: 'inherit', fontSize: '0.88rem', lineHeight: 1.5, resize: 'none', minHeight: 24, maxHeight: 120, paddingTop: 4, paddingBottom: 4 }} />
         {text.length > MAX_CHARS * 0.8 && (
           <span style={{ fontSize: '0.65rem', fontFamily: 'var(--font-mono)', alignSelf: 'flex-end', paddingBottom: 8, flexShrink: 0, color: text.length > MAX_CHARS ? 'var(--danger)' : '#94A3B8' }}>
             {MAX_CHARS - text.length}
           </span>
         )}
-        <button onClick={doSend} disabled={!canSend} type="button"
+        <button onClick={doSend} disabled={!canSend} type="button" aria-label="Send message"
           style={{ width: 38, height: 38, borderRadius: '50%', flexShrink: 0, background: canSend ? 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)' : '#F1F5F9', border: 'none', cursor: canSend ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s', transform: canSend ? 'scale(1)' : 'scale(0.88)', boxShadow: canSend ? '0 4px 12px rgba(99,102,241,0.38)' : 'none' }}>
           <IcoSend active={canSend} />
         </button>
@@ -2127,10 +2127,10 @@ export default function ChatPage() {
         {/* Search bar */}
         <div style={{ position: 'relative' }}>
           <div style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }}><IcoSearch /></div>
-          <input value={searchQ} onChange={e => setSearchQ(e.target.value)} placeholder="Search conversations…"
+          <input value={searchQ} onChange={e => setSearchQ(e.target.value)} placeholder="Search conversations…" aria-label="Search conversations"
             style={{ width: '100%', padding: '8px 10px 8px 32px', borderRadius: 10, border: '1.5px solid #E2E8F0', fontSize: '0.82rem', color: '#0F172A', outline: 'none', boxSizing: 'border-box', background: '#F8FAFC', fontFamily: 'inherit' }}
-            onFocus={e => { e.currentTarget.style.borderColor = '#6366F1'; e.currentTarget.style.background = '#FFF'; }}
-            onBlur={e  => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.background = '#F8FAFC'; }}
+            onFocus={e => { e.currentTarget.style.borderColor = '#6366F1'; e.currentTarget.style.background = '#FFF'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.15)'; }}
+            onBlur={e  => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.background = '#F8FAFC'; e.currentTarget.style.boxShadow = 'none'; }}
           />
         </div>
       </div>
