@@ -108,6 +108,7 @@ export function PlayerDashboardScreen() {
       color: fees.length === 0 ? '#94A3B8' : feeBalance <= 0 ? '#059669' : '#DC2626',
       icon: '💳',
       sub: loading || fees.length === 0 ? 'No records' : feeBalance <= 0 ? 'All cleared' : 'outstanding',
+      action: () => router.push('/dashboard/player/fees'),
     },
   ];
 
@@ -331,6 +332,7 @@ export function PlayerDashboardScreen() {
               {([
                 { label: 'Health Dashboard', path: '/dashboard/player/health',   color: '#10B981', icon: '💊', desc: 'View & log wellness'      },
                 { label: 'My Workouts',      path: '/dashboard/player/workouts', color: '#D97706', icon: '🏋️', desc: 'Training assignments'      },
+                { label: 'My Fees',          path: '/dashboard/player/fees',     color: '#D97706', icon: '💳', desc: 'View balance & pay online'  },
                 { label: 'Full Schedule',    path: '/dashboard/player/schedule', color: '#7C3AED', icon: '📅', desc: 'All sessions & matches'     },
                 { label: 'Team Chat',        path: '/dashboard/player/chat',     color: '#7C3AED', icon: '💬', desc: 'Message teammates & coach'  },
               ] as const).map(({ label, path, color, icon, desc }) => (
