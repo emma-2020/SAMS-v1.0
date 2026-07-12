@@ -596,7 +596,7 @@ async function forgotPassword(email) {
 // ─────────────────────────────────────────────────────────────────
 
 async function resetPassword(accessToken, newPassword) {
-  validatePasswordChange({ new_password: newPassword, confirm_password: newPassword });
+  validatePasswordChange(newPassword);
 
   // Verify the recovery token and extract the user
   const { data: { user }, error: tokenError } =
