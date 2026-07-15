@@ -63,11 +63,19 @@ export default function LoginPage() {
   const [forgotSent,    setForgotSent]    = useState(false);
   const [forgotError,   setForgotError]   = useState('');
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const { name, value } = e.target;
-    setForm(p => ({ ...p, [name]: value }));
-    if (errors[name]) setErrors(p => ({ ...p, [name]: '' }));
-    if (apiError) setApiError('');
+  // Field-specific change handlers (deliberately not a single name-keyed
+  // handler bound via <input name="...">). A native, un-hydrated HTML form
+  // submit only serializes fields that carry a `name` attribute; keeping
+  // these inputs name-less means an unhydrated submit can never leak the
+  // password into the URL query string. Matches the pattern already used
+  // on the register / reset-password / platform-login forms.
+  function makeChangeHandler(field: keyof typeof form) {
+    return (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value;
+      setForm(p => ({ ...p, [field]: value }));
+      if (errors[field]) setErrors(p => ({ ...p, [field]: '' }));
+      if (apiError) setApiError('');
+    };
   }
 
   function validate(): Record<string, string> {
@@ -267,8 +275,8 @@ export default function LoginPage() {
               <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', letterSpacing: '0.01em' }} htmlFor="academy_id">Academy ID</label>
               <div style={{ position: 'relative' }}>
                 <span className="login-icon"><IconBuilding /></span>
-                <input id="academy_id" name="academy_id" type="text"
-                  value={form.academy_id} onChange={handleChange}
+                <input id="academy_id" type="text"
+                  value={form.academy_id} onChange={makeChangeHandler('academy_id')}
                   placeholder="Your academy UUID"
                   className={`login-input${errors.academy_id ? ' error' : ''}`}
                   disabled={loading} autoComplete="off" />
@@ -281,8 +289,8 @@ export default function LoginPage() {
               <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', letterSpacing: '0.01em' }} htmlFor="email">Email Address</label>
               <div style={{ position: 'relative' }}>
                 <span className="login-icon"><IconMail /></span>
-                <input id="email" name="email" type="email"
-                  value={form.email} onChange={handleChange}
+                <input id="email" type="email"
+                  value={form.email} onChange={makeChangeHandler('email')}
                   placeholder="you@academy.com"
                   className={`login-input${errors.email ? ' error' : ''}`}
                   disabled={loading} autoComplete="email" />
@@ -295,9 +303,9 @@ export default function LoginPage() {
               <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', letterSpacing: '0.01em' }} htmlFor="password">Password</label>
               <div style={{ position: 'relative' }}>
                 <span className="login-icon"><IconLock /></span>
-                <input id="password" name="password"
+                <input id="password"
                   type={showPassword ? 'text' : 'password'}
-                  value={form.password} onChange={handleChange}
+                  value={form.password} onChange={makeChangeHandler('password')}
                   placeholder="••••••••"
                   className={`login-input login-input-pw${errors.password ? ' error' : ''}`}
                   disabled={loading} autoComplete="current-password" />
