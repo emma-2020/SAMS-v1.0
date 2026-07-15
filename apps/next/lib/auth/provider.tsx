@@ -3,10 +3,27 @@
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@sams/store';
-import { authApi, configureApiClient } from '@sams/api';
+import { authApi, configureApiClient, type UserProfile } from '@sams/api';
 import { ROLE_DASHBOARD } from '@sams/app';
 import { useInactivityLogout } from './useInactivityLogout';
 import { useBackButton } from './useBackButton';
+
+/**
+ * Reverse of ROLE_DASHBOARD: '/dashboard/admin' -> 'Admin', etc.
+ * Derived once from the same source of truth so the two can never drift.
+ */
+const ROLE_BY_PATH_SEGMENT: Record<string, UserProfile['role']> = Object.fromEntries(
+  Object.entries(ROLE_DASHBOARD).map(([role, path]) => [path.split('/')[2], role])
+) as Record<string, UserProfile['role']>;
+
+/**
+ * Returns the role that owns a given /dashboard/<segment>/... path, or
+ * undefined for role-agnostic paths (e.g. /dashboard/settings, /dashboard itself).
+ */
+function roleForPath(pathname: string): UserProfile['role'] | undefined {
+  const segment = pathname.split('/')[2];
+  return segment ? ROLE_BY_PATH_SEGMENT[segment] : undefined;
+}
 
 /**
  * Mounts at the root layout. On every app load:
@@ -99,22 +116,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
  * Client component that enforces auth on protected routes.
  * Redirects unauthenticated users to /login, preserving the attempted path.
  *
+ * Also enforces role-scoped routing: a signed-in user whose role doesn't
+ * match the /dashboard/<role>/... segment they're on (e.g. a Player hitting
+ * /dashboard/admin/roster directly) is redirected to their own dashboard
+ * instead of the wrong-role page shell rendering. This is a client-side
+ * defense-in-depth guard — the backend already 403s the underlying data
+ * calls regardless — but leaving the wrong-role UI to render is a real UX/
+ * trust gap, hence this check.
+ *
+ * Admin is exempt from the role-mismatch check: AppShell's "Switch Role
+ * View" picker lets an Admin legitimately browse /dashboard/coach,
+ * /dashboard/player, /dashboard/parent, etc. to preview those dashboards
+ * (see `viewAsRole` state in components/shell/AppShell.tsx). That preview
+ * state lives only in AppShell's local state, not the auth store, so the
+ * only reliable way to distinguish "Admin previewing" from "wrong role" here
+ * is by the actual authenticated role — which is exactly the group this
+ * guard should never block.
+ *
  * Renders children immediately when a cached session exists in the store so
  * page-level data fetches start in parallel with the background /me check,
  * eliminating the auth-gate → data-fetch sequential waterfall.
  * If the token is stale the onUnauthorized handler in AuthProvider redirects.
  */
 export function ProtectedGuard({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isInitialised, session } = useAuthStore();
+  const { isAuthenticated, isInitialised, session, user } = useAuthStore();
   const router = useRouter();
   const pathname = usePathname();
+
+  const pathRole = roleForPath(pathname);
+  const isWrongRole = !!user && !!pathRole && user.role !== 'Admin' && user.role !== pathRole;
 
   useEffect(() => {
     if (!isInitialised) return;
     if (!isAuthenticated) {
       router.replace(`/login?from=${encodeURIComponent(pathname)}`);
+      return;
     }
-  }, [isInitialised, isAuthenticated, pathname, router]);
+    if (isWrongRole && user) {
+      router.replace(ROLE_DASHBOARD[user.role] ?? '/dashboard');
+    }
+  }, [isInitialised, isAuthenticated, isWrongRole, user, pathname, router]);
 
   // If a persisted session exists, render the app immediately instead of
   // blocking behind the /me round-trip. The background auth check still runs;
@@ -130,6 +171,8 @@ export function ProtectedGuard({ children }: { children: React.ReactNode }) {
   }
 
   if (isInitialised && !isAuthenticated) return null;
+  // Don't flash the wrong-role page shell while the redirect above is firing.
+  if (isWrongRole) return null;
   return <>{children}</>;
 }
 
