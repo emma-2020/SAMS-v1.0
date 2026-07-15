@@ -7,6 +7,7 @@ export {
   onNetworkChange,
   clearOfflineData,
   generateClientId,
+  recheckOfflineStateOnResume,
 } from './offline';
 export type { QueuedMutation, QueueEvent } from './offline';
 export type * from './types';

@@ -7,6 +7,7 @@ import { authApi, configureApiClient, type UserProfile } from '@sams/api';
 import { ROLE_DASHBOARD } from '@sams/app';
 import { useInactivityLogout } from './useInactivityLogout';
 import { useBackButton } from './useBackButton';
+import { useNativeConnectivityResume } from './useNativeConnectivityResume';
 
 /**
  * Reverse of ROLE_DASHBOARD: '/dashboard/admin' -> 'Admin', etc.
@@ -38,6 +39,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useInactivityLogout();
   useBackButton();
+  useNativeConnectivityResume();
 
   // Wire API client synchronously on every render so it survives Fast Refresh
   // in development and is always ready before child effects fire API calls.

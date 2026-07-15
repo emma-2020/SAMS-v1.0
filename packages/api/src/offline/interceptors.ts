@@ -2,7 +2,7 @@ import type { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axio
 import { getCachedResponse, setCachedResponse, cacheKeyFor } from './cache';
 import { isQueueableMutation, isCacheableGet } from './config';
 import { enqueueMutation, flushOfflineQueue, listQueuedMutations, PermanentQueueError, type QueuedMutation } from './queue';
-import { reportNetworkOutcome } from './network';
+import { reportNetworkOutcome, recheckConnectivity } from './network';
 import { OfflineQueuedError } from './errors';
 import { clearAllOfflineStores } from './storage';
 
@@ -90,6 +90,12 @@ export async function handleOfflineOnError(err: AxiosError): Promise<unknown> {
   return undefined;
 }
 
+// Set by installOfflineSupport so recheckOfflineStateOnResume (below) can
+// kick a flush attempt without installOfflineSupport's caller needing to
+// thread the axios client through separately. Module-level by necessity —
+// there's only ever one apiClient/offline installation per app.
+let attemptFlushRef: (() => void) | null = null;
+
 export function installOfflineSupport(client: AxiosInstance): void {
   if (typeof window === 'undefined') return;
 
@@ -116,6 +122,7 @@ export function installOfflineSupport(client: AxiosInstance): void {
   };
 
   const attemptFlush = () => { flushOfflineQueue(sender).catch(() => {}); };
+  attemptFlushRef = attemptFlush;
 
   window.addEventListener('online', attemptFlush);
   attemptFlush(); // in case items were queued in a previous session
@@ -123,9 +130,31 @@ export function installOfflineSupport(client: AxiosInstance): void {
   // Backstop for "connected but no real throughput" — navigator.onLine and
   // the online/offline events don't fire for that case, only real requests
   // reveal it. Only bothers making a request if something is actually queued.
+  // Note: this interval (like all JS timers) is paused while an Android
+  // Capacitor WebView is backgrounded, so it cannot be relied on to recover
+  // promptly from a stale offline state after a resume — that's what
+  // recheckOfflineStateOnResume below is for.
   setInterval(() => {
     listQueuedMutations().then((items) => { if (items.length) attemptFlush(); });
   }, 30_000);
+}
+
+// Called on app resume (native Capacitor only — see
+// apps/next/lib/auth/useNativeConnectivityResume.ts). Two independent,
+// idempotent corrections for the same root cause: the WebView missing a
+// connectivity transition while backgrounded.
+//  1. recheckConnectivity() re-reads navigator.onLine fresh rather than
+//     trusting whatever the last-received (and possibly missed) event left
+//     `online` as.
+//  2. Kicking the flush attempt directly, rather than waiting for the
+//     'online' event or the 30s backstop interval (also paused while
+//     backgrounded) to get around to it — if anything is queued and
+//     connectivity is actually back, this proves it immediately via a real
+//     request and self-corrects `online` through reportNetworkOutcome(true).
+//     A no-op if nothing is queued.
+export function recheckOfflineStateOnResume(): void {
+  recheckConnectivity();
+  attemptFlushRef?.();
 }
 
 // Call on logout so cached reads and queued-but-unsent mutations from the
