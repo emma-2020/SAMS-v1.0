@@ -9,6 +9,7 @@ export {
   listQueuedMutations,
   isOffline,
   onNetworkChange,
+  recheckOfflineStateOnResume,
 } from './interceptors';
 export type { QueuedMutation, QueueEvent } from './interceptors';
 export { generateClientId } from './ids';

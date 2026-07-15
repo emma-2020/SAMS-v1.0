@@ -27,6 +27,19 @@ export function onNetworkChange(listener: Listener): () => void {
   return () => listeners.delete(listener);
 }
 
+// Actively re-reads the live navigator.onLine value instead of waiting for a
+// push event. Exists for the Android/Capacitor WebView case: backgrounding
+// pauses JS timers and can cause the 'online'/'offline' events (and their
+// underlying navigator.onLine change notification) to never reach this
+// module's listeners across a background→foreground transition, leaving
+// `online` stuck at whatever it was the instant the app was suspended. A
+// fresh synchronous read on resume sidesteps that — see
+// apps/next/lib/auth/useNativeConnectivityResume.ts, which calls this from
+// Capacitor's native 'resume' lifecycle signal.
+export function recheckConnectivity(): void {
+  if (typeof navigator !== 'undefined') setOnline(navigator.onLine);
+}
+
 if (typeof window !== 'undefined') {
   window.addEventListener('online', () => setOnline(true));
   window.addEventListener('offline', () => setOnline(false));
