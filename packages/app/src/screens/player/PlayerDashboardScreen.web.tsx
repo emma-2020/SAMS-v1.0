@@ -4,8 +4,21 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { healthApi, scheduleApi, workoutApi, feesApi } from '@sams/api';
 import { useAuthStore } from '@sams/store';
-import type { HealthEntry, ScheduleEvent, WorkoutPlan, FeeLedgerEntry } from '@sams/api';
+import type { HealthEntry, ScheduleEvent, WorkoutPlan, FeeLedgerEntry, Exercise } from '@sams/api';
 import { AnnouncementsBanner } from '../../components/AnnouncementsBanner';
+
+/* The `/workouts` endpoint returns each assignment's exercises under
+   `workout_exercises` (with a per-player `is_completed` flag) — see
+   backend/src/services/workout.service.js. `WorkoutPlan.exercises` in
+   @sams/api does not reflect this; fall back to it defensively but
+   prefer the real field, same as the dedicated Workouts page. */
+interface PlayerWorkoutExercise {
+  id?: string;
+  is_completed?: boolean;
+}
+interface PlayerWorkoutPlan extends WorkoutPlan {
+  workout_exercises?: PlayerWorkoutExercise[];
+}
 
 function daysUntil(iso: string) {
   const d = Math.ceil((new Date(iso).getTime() - Date.now()) / 86400000);
@@ -28,7 +41,7 @@ export function PlayerDashboardScreen() {
 
   const [events,     setEvents]     = useState<ScheduleEvent[]>([]);
   const [healthLogs, setHealthLogs] = useState<HealthEntry[]>([]);
-  const [workouts,   setWorkouts]   = useState<WorkoutPlan[]>([]);
+  const [workouts,   setWorkouts]   = useState<PlayerWorkoutPlan[]>([]);
   const [fees,       setFees]       = useState<FeeLedgerEntry[]>([]);
   const [loading,    setLoading]    = useState(true);
 
@@ -42,7 +55,7 @@ export function PlayerDashboardScreen() {
       .then(([evts, hl, wk, f]) => {
         setEvents(evts ?? []);
         setHealthLogs(hl ?? []);
-        setWorkouts(wk ?? []);
+        setWorkouts((wk ?? []) as PlayerWorkoutPlan[]);
         setFees(f ?? []);
       })
       .catch(() => {})
@@ -61,7 +74,11 @@ export function PlayerDashboardScreen() {
     ? new Date(latestLog.submitted_at).toDateString() === today.toDateString()
     : false;
 
-  const totalExercises = workouts.flatMap(w => w.exercises ?? []).length;
+  const totalExercises = workouts.flatMap<PlayerWorkoutExercise | Exercise>(w => w.workout_exercises ?? w.exercises ?? []).length;
+  const completedExercises = workouts.reduce(
+    (s, w) => s + (w.workout_exercises ?? []).filter(ex => ex.is_completed).length,
+    0
+  );
 
   const fitnessScore = latestLog ? latestLog.overall_score : null;
   const fitnessLabel = fitnessScore === null ? 'Log Today'
@@ -92,7 +109,7 @@ export function PlayerDashboardScreen() {
     },
     {
       label: 'Workouts Progress',
-      value: loading ? '…' : totalExercises ? `0/${totalExercises}` : '—',
+      value: loading ? '…' : totalExercises ? `${completedExercises}/${totalExercises}` : '—',
       color: '#D97706', icon: '🏋️',
       action: () => router.push('/dashboard/player/workouts'),
     },

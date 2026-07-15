@@ -4,12 +4,31 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { healthApi, scheduleApi, workoutApi } from '@sams/api';
 import { useAuthStore } from '@sams/store';
-import type { HealthEntry, ScheduleEvent, WorkoutPlan } from '@sams/api';
+import type { HealthEntry, ScheduleEvent, WorkoutPlan, Exercise } from '@sams/api';
 import { AnnouncementsBanner } from '@sams/app';
 import {
   PieChart, Pie, Cell,
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
 } from 'recharts';
+
+/* ═══════════════════════════════════════════════════════════════
+   TYPES
+   The `/workouts` endpoint actually returns each assignment's
+   exercises under `workout_exercises` (with a per-player
+   `is_completed` flag) — see backend/src/services/workout.service.js.
+   `WorkoutPlan.exercises` in @sams/api does not reflect this; fall
+   back to it defensively but prefer the real field, same as the
+   dedicated Workouts page (apps/next/app/dashboard/player/workouts/page.tsx).
+═══════════════════════════════════════════════════════════════ */
+
+interface PlayerWorkoutExercise {
+  id?: string;
+  is_completed?: boolean;
+}
+
+interface PlayerWorkoutPlan extends WorkoutPlan {
+  workout_exercises?: PlayerWorkoutExercise[];
+}
 
 /* ═══════════════════════════════════════════════════════════════
    INLINE SPARKLINE
@@ -232,7 +251,7 @@ export default function PlayerDashboardPage() {
 
   const [events,     setEvents]     = useState<ScheduleEvent[]>([]);
   const [healthLogs, setHealthLogs] = useState<HealthEntry[]>([]);
-  const [workouts,   setWorkouts]   = useState<WorkoutPlan[]>([]);
+  const [workouts,   setWorkouts]   = useState<PlayerWorkoutPlan[]>([]);
   const [loading,    setLoading]    = useState(true);
 
   useEffect(() => {
@@ -244,7 +263,7 @@ export default function PlayerDashboardPage() {
       .then(([evts, hl, wk]) => {
         setEvents(evts ?? []);
         setHealthLogs(hl ?? []);
-        setWorkouts(wk ?? []);
+        setWorkouts((wk ?? []) as PlayerWorkoutPlan[]);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -255,8 +274,12 @@ export default function PlayerDashboardPage() {
   const todayEvents   = events.filter(ev => new Date(ev.start_time).toDateString() === today.toDateString());
   const latestLog     = healthLogs[0] ?? null;
   const todayLogged   = latestLog ? new Date(latestLog.submitted_at).toDateString() === today.toDateString() : false;
-  const allExercises  = workouts.flatMap(w => w.exercises ?? []);
+  const allExercises  = workouts.flatMap<PlayerWorkoutExercise | Exercise>(w => w.workout_exercises ?? w.exercises ?? []);
   const totalExercises = allExercises.length;
+  const completedExercises = workouts.reduce(
+    (s, w) => s + (w.workout_exercises ?? []).filter(ex => ex.is_completed).length,
+    0
+  );
   const fitnessScore  = latestLog ? latestLog.overall_score : null;
   const fitnessLabel  = fitnessScore === null ? 'Log Today' : fitnessScore >= 70 ? 'Fully Fit' : fitnessScore >= 45 ? 'Moderate' : 'Needs Rest';
   const fitnessColor  = fitnessScore === null ? '#7C3AED' : fitnessScore >= 70 ? '#10B981' : fitnessScore >= 45 ? '#F59E0B' : '#EF4444';
@@ -275,10 +298,13 @@ export default function PlayerDashboardPage() {
     score: l.overall_score,
   }));
 
-  const workoutDonut = [
-    { name: 'Assigned',  value: totalExercises,      color: '#7C3AED' },
-    { name: 'Remaining', value: totalExercises || 1,  color: '#E2E8F0' },
-  ];
+  const remainingExercises = totalExercises - completedExercises;
+  const workoutDonut = totalExercises > 0
+    ? [
+        { name: 'Completed', value: completedExercises, color: '#10B981' },
+        { name: 'Remaining', value: remainingExercises,  color: '#E2E8F0' },
+      ]
+    : [{ name: 'Remaining', value: 1, color: '#E2E8F0' }];
 
   /* ── Sparklines ────────────────────────────────────────────── */
   const sessionsSpark  = [events.length, events.length - 1, events.length + 1, events.length, upcoming.length + 1, upcoming.length, upcoming.length + 2, upcoming.length];
@@ -373,9 +399,9 @@ export default function PlayerDashboardPage() {
         <SolidCard
           gradient="linear-gradient(135deg, #B45309 0%, #F59E0B 100%)"
           shadowColor="#F59E0B" icon="🏋️"
-          value={loading ? '…' : totalExercises ? `0/${totalExercises}` : '—'}
+          value={loading ? '…' : totalExercises ? `${completedExercises}/${totalExercises}` : '—'}
           label="Workouts Progress"
-          sub="Exercises assigned"
+          sub="Exercises completed"
           onClick={() => router.push('/dashboard/player/workouts')}
           delay={160}
         />
