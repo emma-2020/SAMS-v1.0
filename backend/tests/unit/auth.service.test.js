@@ -1,12 +1,12 @@
 // tests/unit/services/auth.service.test.js
 'use strict';
 
-jest.mock('../../../src/config/supabase');
+jest.mock('../../src/config/supabase');
 
-const { supabaseAdmin }  = require('../../../src/config/supabase');
-const authService        = require('../../../src/services/auth.service');
+const { supabaseAdmin }  = require('../../src/config/supabase');
+const authService        = require('../../src/services/auth.service');
 const { ConflictError, UnauthorizedError, NotFoundError, BadRequestError } =
-  require('../../../src/utils/errors');
+  require('../../src/utils/errors');
 
 // ─── Supabase chain mock builder ──────────────────────────────────
 
@@ -27,100 +27,6 @@ function mockChain(returnValue) {
   });
   return handler;
 }
-
-// ─────────────────────────────────────────────────────────────────
-// SIGNUP TESTS
-// ─────────────────────────────────────────────────────────────────
-
-describe('authService.signup', () => {
-
-  const validPayload = {
-    email:      'jordan@riverside.com',
-    password:   'SecurePass1!',
-    role:       'Player',
-    first_name: 'Jordan',
-    last_name:  'Ellis',
-    academy_id: 'acad-uuid-001',
-  };
-
-  // ── Validation ──────────────────────────────────────────────────
-
-  test('throws BadRequestError when email is missing', async () => {
-    await expect(authService.signup({ ...validPayload, email: '' }))
-      .rejects.toBeInstanceOf(BadRequestError);
-  });
-
-  test('throws BadRequestError when email format is invalid', async () => {
-    await expect(authService.signup({ ...validPayload, email: 'not-an-email' }))
-      .rejects.toBeInstanceOf(BadRequestError);
-  });
-
-  test('throws BadRequestError when password is too short', async () => {
-    await expect(authService.signup({ ...validPayload, password: 'short' }))
-      .rejects.toBeInstanceOf(BadRequestError);
-  });
-
-  test('throws BadRequestError when role is invalid', async () => {
-    await expect(authService.signup({ ...validPayload, role: 'Superuser' }))
-      .rejects.toBeInstanceOf(BadRequestError);
-  });
-
-  test('throws BadRequestError when first_name is empty', async () => {
-    await expect(authService.signup({ ...validPayload, first_name: '' }))
-      .rejects.toBeInstanceOf(BadRequestError);
-  });
-
-  // ── Academy validation ──────────────────────────────────────────
-
-  test('throws NotFoundError when academy does not exist', async () => {
-    supabaseAdmin.from = jest.fn().mockReturnValue(
-      mockChain({ data: null, error: { message: 'Not found' } })
-    );
-
-    await expect(authService.signup(validPayload))
-      .rejects.toBeInstanceOf(NotFoundError);
-  });
-
-  // ── Conflict detection ─────────────────────────────────────────
-
-  test('throws ConflictError when email already registered in this academy', async () => {
-    let callCount = 0;
-    supabaseAdmin.from = jest.fn().mockImplementation(() => {
-      callCount++;
-      if (callCount === 1) {
-        // Academy lookup — found
-        return mockChain({ data: { id: 'acad-uuid-001' }, error: null });
-      }
-      // User lookup — already exists
-      return mockChain({ data: { id: 'existing-user' }, error: null });
-    });
-
-    await expect(authService.signup(validPayload))
-      .rejects.toBeInstanceOf(ConflictError);
-  });
-
-  // ── Auth user creation failure ─────────────────────────────────
-
-  test('throws InternalError and does not create profile if auth.admin.createUser fails', async () => {
-    let callCount = 0;
-    supabaseAdmin.from = jest.fn().mockImplementation(() => {
-      callCount++;
-      if (callCount === 1) return mockChain({ data: { id: 'acad-uuid-001' }, error: null });
-      return mockChain({ data: null, error: null });  // no existing user
-    });
-
-    supabaseAdmin.auth = {
-      admin: {
-        createUser:  jest.fn().mockResolvedValue({ data: null, error: { message: 'Auth error' } }),
-        deleteUser:  jest.fn().mockResolvedValue({}),
-      },
-    };
-
-    const { InternalError } = require('../../../src/utils/errors');
-    await expect(authService.signup(validPayload))
-      .rejects.toBeInstanceOf(InternalError);
-  });
-});
 
 // ─────────────────────────────────────────────────────────────────
 // LOGIN TESTS
@@ -255,6 +161,55 @@ describe('authService.login', () => {
     );
 
     await expect(authService.login(credentials))
+      .rejects.toBeInstanceOf(UnauthorizedError);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────
+// RESET PASSWORD TESTS
+// ─────────────────────────────────────────────────────────────────
+
+describe('authService.resetPassword', () => {
+
+  const validToken    = 'recovery-access-token';
+  const validPassword = 'NewSecurePass1!';
+
+  // ── Regression: validatePasswordChange must receive the raw string,
+  //    not an object — a strong password must not be rejected as "required".
+  test('does not reject a valid strong password as missing', async () => {
+    supabaseAdmin.auth = {
+      getUser: jest.fn().mockResolvedValue({
+        data:  { user: { id: 'u1', email: 'jordan@riverside.com' } },
+        error: null,
+      }),
+      admin: {
+        updateUserById: jest.fn().mockResolvedValue({ error: null }),
+      },
+    };
+
+    await expect(authService.resetPassword(validToken, validPassword))
+      .resolves.toBeUndefined();
+
+    expect(supabaseAdmin.auth.admin.updateUserById).toHaveBeenCalledWith(
+      'u1',
+      { password: validPassword }
+    );
+  });
+
+  test('throws BadRequestError when the new password is too weak', async () => {
+    await expect(authService.resetPassword(validToken, 'weak'))
+      .rejects.toBeInstanceOf(BadRequestError);
+  });
+
+  test('throws UnauthorizedError when the recovery token is invalid or expired', async () => {
+    supabaseAdmin.auth = {
+      getUser: jest.fn().mockResolvedValue({
+        data:  { user: null },
+        error: { message: 'invalid token' },
+      }),
+    };
+
+    await expect(authService.resetPassword('bad-token', validPassword))
       .rejects.toBeInstanceOf(UnauthorizedError);
   });
 });

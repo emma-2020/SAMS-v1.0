@@ -9,7 +9,6 @@
  * then formats the response.
  *
  * Routes handled (see auth.routes.js):
- *   POST /api/auth/signup
  *   POST /api/auth/login
  *   POST /api/auth/logout
  *   POST /api/auth/refresh
@@ -18,34 +17,6 @@
 
 const authService         = require('../services/auth.service');
 const { BadRequestError } = require('../utils/errors');
-
-
-// ─────────────────────────────────────────────────────────────────
-// POST /api/auth/signup
-// Body: { email, password, role, first_name, last_name, academy_id }
-// ─────────────────────────────────────────────────────────────────
-
-async function signup(req, res, next) {
-  try {
-    const { email, password, role, first_name, last_name, academy_id } = req.body;
-
-    if (!academy_id) {
-      throw new BadRequestError('academy_id is required for signup.');
-    }
-
-    const result = await authService.signup({
-      email, password, role, first_name, last_name, academy_id,
-    });
-
-    return res.status(201).json({
-      success: true,
-      message: result.message,
-      data:    { profile: result.profile },
-    });
-  } catch (err) {
-    next(err);
-  }
-}
 
 
 // ─────────────────────────────────────────────────────────────────
@@ -307,4 +278,4 @@ async function updatePreferences(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { signup, login, logout, refresh, me, updateProfile, changePassword, verifyInviteToken, register, uploadAvatar, setupAccount, forgotPassword, resetPassword, getPreferences, updatePreferences };
+module.exports = { login, logout, refresh, me, updateProfile, changePassword, verifyInviteToken, register, uploadAvatar, setupAccount, forgotPassword, resetPassword, getPreferences, updatePreferences };

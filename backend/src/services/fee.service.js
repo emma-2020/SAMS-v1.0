@@ -100,7 +100,12 @@ async function _initPaystackAndNotify({ fee, academyId, player, description, amo
         amountInPesewas: amountOwed,
         reference,
         metadata: { fee_id: fee.id, academy_id: academyId, player_id: player.id },
-        callbackUrl: `${DASHBOARD_URL}/dashboard/player`,
+        // Paystack appends ?trxref=...&reference=... to this URL on redirect.
+        // Points at a standalone, auth-optional confirmation page (not a
+        // /dashboard/* route) since whoever completes checkout — player,
+        // parent, or admin — may be doing so in a browser session with no
+        // live app login at all.
+        callbackUrl: `${DASHBOARD_URL}/fees/confirm`,
       });
 
       paymentUrl = ps.authorization_url;

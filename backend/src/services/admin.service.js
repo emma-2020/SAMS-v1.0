@@ -13,8 +13,9 @@
  *   4. Sends an invitation email with a registration link
  *   5. Returns the invitation record (token never exposed in API response)
  *
- *   Invitees click the link → frontend calls POST /api/auth/signup
- *   with the token attached → signup service validates token + academy_id.
+ *   Invitees click the link → frontend calls POST /api/auth/register
+ *   with the token + password → registerByInvitation() validates the token
+ *   and derives email/role/academy_id server-side from the invitation row.
  *
  * V1.0 scope: Admin-only. Admins cannot be invited (must be seeded directly).
  */

@@ -190,6 +190,18 @@ function AttendanceInner() {
   const searchParams = useSearchParams();
   const router       = useRouter();
   const [selectedEventId, setSelectedEventId] = useState<string | null>(searchParams.get('event'));
+  // Bumped on every explicit session selection (including re-selecting the
+  // session that's already active) so the roster-load effect below always
+  // re-fires. selectedEventId alone isn't a reliable effect dependency for
+  // this: React bails out of scheduling an update — and therefore never
+  // re-runs effects keyed on it — when setSelectedEventId(id) is called with
+  // an id equal to the current value (Object.is same-value check). Without
+  // this, clicking an already-selected session card (e.g. right after a hard
+  // reload restores `?event=` from the URL and the mount effect already
+  // fetched once) still runs the statuses/notes reset below but never
+  // re-fetches, permanently wiping the just-loaded attendance back to
+  // "every player Pending" even though the last GET response was correct.
+  const [selectVersion, setSelectVersion] = useState(0);
   const [statuses,     setStatuses]    = useState<Record<string, string>>({});
   const [notes,        setNotes]       = useState<Record<string, string>>({});
   const [savedSuccess, setSavedSuccess] = useState(false);
@@ -231,12 +243,13 @@ function AttendanceInner() {
       })
       .catch((e: unknown) => setRosterError(e instanceof Error ? e.message : 'Failed to load roster'))
       .finally(() => setRosterLoading(false));
-  }, [selectedEventId]);
+  }, [selectedEventId, selectVersion]);
 
   function handleSelectEvent(id: string) {
     setSelectedEventId(id);
+    setSelectVersion(v => v + 1);
     router.replace(`/dashboard/coach/attendance?event=${id}`, { scroll: false });
-    setStatuses({}); setNotes({}); setSavedSuccess(false); setSavedOffline(false);
+    setSavedSuccess(false); setSavedOffline(false);
   }
 
   function handleSetStatus(playerId: string, status: string | null) {
