@@ -22,21 +22,19 @@ import { recheckOfflineStateOnResume } from '@sams/api';
  * app resumes from the background, rather than passively waiting for a push
  * event that may never arrive.
  *
- * Ideally this would use @capacitor/app's `App.addListener('resume', ...)` /
- * `'appStateChange'` — the officially documented way to observe this
- * transition. That package is not currently a dependency of apps/next (only
- * @capacitor/core, @capacitor/android, @capacitor/ios, @capacitor/cli are
- * installed), so this instead listens for two redundant, dependency-free
- * signals that both cover the same transition:
+ * @capacitor/app IS a dependency of apps/next (added for the hardware
+ * back-button fix, see useBackButton.ts) and exposes App.addListener('resume'
+ * | 'appStateChange', ...), the officially documented way to observe this
+ * transition. This hook deliberately listens for two lower-level signals
+ * instead of adding an @capacitor/app listener as a third:
  *  - the 'resume' DOM event, which the Capacitor native bridge dispatches on
- *    `document` directly (the same underlying signal @capacitor/app's
- *    listener is built on, kept for Cordova-plugin backwards compatibility)
+ *    `document` directly — the same underlying signal @capacitor/app's own
+ *    listener is built on, kept here for Cordova-plugin back-compat
  *  - the standard Page Visibility API ('visibilitychange' → 'visible'), as a
  *    platform-guaranteed backstop in case 'resume' isn't dispatched on a
  *    given WebView/Capacitor version
- * Follow-up: adding @capacitor/app and switching to its App plugin would be
- * a small, drop-in improvement if/when that dependency is added — it's the
- * more explicitly-documented API surface for this exact use case.
+ * Two redundant signals cover more failure modes than a single App plugin
+ * listener would, so this hasn't been collapsed down to @capacitor/app alone.
  *
  * Guarded by Capacitor.isNativePlatform() (dynamically imported to avoid
  * pulling native-only code into the SSR/plain-web bundle) so plain-web
