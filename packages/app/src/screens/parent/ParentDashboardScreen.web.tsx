@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { healthApi, scheduleApi, coachApi, feesApi } from '@sams/api';
+import { healthApi, scheduleApi, analyticsApi, feesApi } from '@sams/api';
 import { useAuthStore } from '@sams/store';
-import type { HealthEntry, ScheduleEvent, Player, FeeLedgerEntry } from '@sams/api';
+import type { HealthEntry, ScheduleEvent, ParentAnalytics, FeeLedgerEntry } from '@sams/api';
 import { AnnouncementsBanner } from '../../components/AnnouncementsBanner';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -215,23 +215,23 @@ export function ParentDashboardScreen() {
   const router = useRouter();
   const today  = new Date();
 
-  const [alerts,  setAlerts]  = useState<HealthEntry[]>([]);
-  const [events,  setEvents]  = useState<ScheduleEvent[]>([]);
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [fees,    setFees]    = useState<FeeLedgerEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [alerts,     setAlerts]     = useState<HealthEntry[]>([]);
+  const [events,     setEvents]     = useState<ScheduleEvent[]>([]);
+  const [parentData, setParentData] = useState<ParentAnalytics | null>(null);
+  const [fees,       setFees]       = useState<FeeLedgerEntry[]>([]);
+  const [loading,    setLoading]    = useState(true);
 
   useEffect(() => {
     Promise.all([
       healthApi.getHealthAlerts(),
       scheduleApi.getEvents(),
-      coachApi.getPlayers(),
+      analyticsApi.getParentAnalytics(),
       feesApi.getFees(),
     ])
-      .then(([a, e, p, f]) => {
+      .then(([a, e, pa, f]) => {
         setAlerts(a ?? []);
         setEvents(e ?? []);
-        setPlayers(p ?? []);
+        setParentData(pa ?? null);
         setFees(f ?? []);
       })
       .catch(() => {})
@@ -239,8 +239,12 @@ export function ParentDashboardScreen() {
   }, []);
 
   /* ── Derived stats ─────────────────────────────────────────── */
+  // The parent-child link (same source the Schedule/Workouts/Health/Analytics
+  // pages resolve server-side) — NOT the coach roster endpoint, which returns
+  // no rows for a Parent-role caller.
+  const child       = parentData?.linked ? parentData.child : null;
   const upcoming    = events.filter(ev => new Date(ev.start_time) >= today);
-  const playerCount = players.length;
+  const playerCount = child ? 1 : 0;
   const feeBalance  = fees.reduce((s, f) => s + ((f.amount_owed ?? 0) - (f.amount_paid ?? 0)), 0);
   const alertCount  = alerts.length;
 
@@ -521,21 +525,22 @@ export function ParentDashboardScreen() {
               <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '3px 10px', borderRadius: 99, background: 'rgba(109,40,217,0.1)', color: '#7C3AED' }}>{playerCount} enrolled</span>
             </div>
             <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: 16 }}>Academy roster</div>
-            {players.length === 0 ? (
+            {!child ? (
               <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--text-muted)', fontSize: '0.82rem' }}>No children linked yet</div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {players.map(p => {
-                  const health      = p.latest_health?.overall_score;
+                {(() => {
+                  const health      = parentData?.wellness?.latestScore;
                   const healthCol   = health == null ? '#94A3B8' : health >= 70 ? '#10B981' : health >= 40 ? '#F59E0B' : '#EF4444';
                   const healthLabel = health == null ? 'No log' : health >= 70 ? 'Fit' : health >= 40 ? 'Moderate' : 'Alert';
-                  const initials    = `${p.first_name?.[0] ?? ''}${p.last_name?.[0] ?? ''}`.toUpperCase();
+                  const nameParts   = child.name.split(' ');
+                  const initials    = `${nameParts[0]?.[0] ?? ''}${nameParts[nameParts.length - 1]?.[0] ?? ''}`.toUpperCase();
                   return (
-                    <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', borderRadius: 12, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
+                    <div key={child.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', borderRadius: 12, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
                       <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg, #7C3AED, #EC4899)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 800, color: '#fff', flexShrink: 0 }}>{initials || '👧'}</div>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: '0.855rem', fontWeight: 700, color: 'var(--text-primary)' }}>{p.first_name} {p.last_name}</div>
-                        <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>{p.email}</div>
+                        <div style={{ fontSize: '0.855rem', fontWeight: 700, color: 'var(--text-primary)' }}>{child.name}</div>
+                        <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>{child.team}</div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
                         <div style={{ fontSize: '0.65rem', fontWeight: 700, padding: '3px 8px', borderRadius: 99, background: `${healthCol}14`, color: healthCol }}>{healthLabel}</div>
@@ -543,7 +548,7 @@ export function ParentDashboardScreen() {
                       </div>
                     </div>
                   );
-                })}
+                })()}
               </div>
             )}
           </div>
