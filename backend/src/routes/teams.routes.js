@@ -4,9 +4,10 @@
 /**
  * Teams Routes
  *
- * GET  /api/teams         — list teams the user can access
- * POST /api/teams         — create a team (Admin only)
- * GET  /api/teams/:id/members — list members of a team
+ * GET   /api/teams         — list teams the user can access
+ * POST  /api/teams         — create a team (Admin only)
+ * PATCH /api/teams/:id     — update a team's details (Admin only)
+ * GET   /api/teams/:id/members — list members of a team
  */
 
 const { Router } = require('express');
@@ -90,6 +91,39 @@ router.post('/', requireRole('Admin'), async (req, res, next) => {
 
     if (error) throw new InternalError('Failed to create team.');
     return res.status(201).json({ success: true, data: { team: data } });
+  } catch (err) { next(err); }
+});
+
+// PATCH /api/teams/:id — Admin only (update name/sport/division/coach)
+router.patch('/:id', requireRole('Admin'), async (req, res, next) => {
+  try {
+    const { name, sport, division, coach_id } = req.body;
+    if (name !== undefined && !name.trim()) {
+      return res.status(400).json({ success: false, error: 'Team name required.' });
+    }
+
+    const updates = {};
+    if (name !== undefined)     updates.name     = name.trim();
+    if (sport !== undefined)    updates.sport    = sport?.trim() || null;
+    if (division !== undefined) updates.division = division?.trim() || null;
+    if (coach_id !== undefined) updates.coach_id = coach_id || null;
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ success: false, error: 'No fields to update.' });
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from('teams')
+      .update(updates)
+      .eq('id', req.params.id)
+      .eq('academy_id', req.academyId)
+      .select(`id, name, division, sport, is_active, coach_id,
+        users!teams_coach_id_fkey ( id, first_name, last_name )
+      `)
+      .single();
+
+    if (error || !data) throw new NotFoundError('Team not found.');
+    return res.json({ success: true, data: { team: data } });
   } catch (err) { next(err); }
 });
 
