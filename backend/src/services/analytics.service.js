@@ -2,6 +2,7 @@
 
 const { supabaseAdmin } = require('../config/supabase');
 const { InternalError } = require('../utils/errors');
+const { computeWellnessScore } = require('../utils/wellness');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -17,15 +18,6 @@ function last6MonthKeys() {
     keys.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
   }
   return keys;
-}
-
-// Derive 0–100 wellness score from the three columns that actually exist in health_logs.
-// fatigue/soreness: 1=good, 5=bad → invert.  sleep_quality: 1=bad, 5=good → direct.
-function computeWellnessScore(row) {
-  const fat = (5 - row.fatigue)       / 4;  // 1→1.0, 5→0.0
-  const sor = (5 - row.soreness)      / 4;
-  const slp = (row.sleep_quality - 1) / 4;  // 1→0.0, 5→1.0
-  return Math.round(((fat + sor + slp) / 3) * 100);
 }
 
 // ─── Fee Analytics (Admin) ────────────────────────────────────────────────────
