@@ -14,6 +14,7 @@ const { Router }    = require('express');
 const { authenticate, extractTenant, requireRole } = require('../middleware/auth.middleware');
 const { supabaseAdmin } = require('../config/supabase');
 const { InternalError, NotFoundError, ForbiddenError } = require('../utils/errors');
+const { computeWellnessScore } = require('../utils/wellness');
 
 const router = Router();
 router.use(authenticate, extractTenant, requireRole('Admin', 'Coach'));
@@ -74,14 +75,25 @@ router.get('/players', async (req, res, next) => {
     }
 
     // Attach most-recent health log per player (one DB call, not N)
+    // NOTE: health_logs has no `overall_score` column — only fatigue/soreness/
+    // sleep_quality are real, persisted columns (see utils/wellness.js). Selecting
+    // a nonexistent column makes Supabase return an error (data: null); previously
+    // that error went unchecked here, so `healthLogs` silently became `[]` and
+    // *every* player looked like they had zero health data — even though the
+    // rows existed and other endpoints (health/alerts, analytics/wellness,
+    // /players/:id/profile below) queried them correctly.
     const playerIds = Object.keys(playerMap);
     if (playerIds.length > 0) {
-      const { data: healthLogs } = await supabaseAdmin
+      const { data: healthLogs, error: healthError } = await supabaseAdmin
         .from('health_logs')
-        .select('player_id, overall_score, fatigue, soreness, sleep_quality, is_flagged, logged_at')
+        .select('player_id, fatigue, soreness, sleep_quality, is_flagged, logged_at')
         .eq('academy_id', academyId)
         .in('player_id', playerIds)
         .order('logged_at', { ascending: false });
+
+      if (healthError) {
+        console.error('[coach.routes] /players health_logs fetch:', healthError.message);
+      }
 
       const seen = new Set();
       for (const log of (healthLogs || [])) {
@@ -89,7 +101,7 @@ router.get('/players', async (req, res, next) => {
         seen.add(log.player_id);
         if (playerMap[log.player_id]) {
           playerMap[log.player_id].latest_health = {
-            overall_score: log.overall_score,
+            overall_score: computeWellnessScore(log),
             fatigue:       log.fatigue,
             soreness:      log.soreness,
             sleep_quality: log.sleep_quality,
@@ -167,11 +179,18 @@ router.get('/players/:id/profile', async (req, res, next) => {
 
     if (playerRes.error || !playerRes.data) throw new NotFoundError('Player not found.');
 
+    // Same derived score as /players and analytics.service.js — health_logs has
+    // no overall_score column, so it must always be computed, never selected.
+    const healthLogs = (healthRes.data || []).map(log => ({
+      ...log,
+      overall_score: computeWellnessScore(log),
+    }));
+
     return res.json({
       success: true,
       data: {
         player:         playerRes.data,
-        healthLogs:     healthRes.data    || [],
+        healthLogs,
         workouts:       workoutsRes.data  || [],
         upcomingEvents: eventsRes.data    || [],
       },
