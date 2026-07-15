@@ -159,6 +159,10 @@ async function getAttendanceAnalytics({ academyId }) {
   const rows = attRows || [];
 
   // Per-player rates
+  // NOTE: attendance.status is stored as 'Present' | 'Absent' | 'Injured' (see
+  // database/migrations/002_v1_schema.sql CHECK constraint and
+  // attendance.service.js buildSummary()) — there is no 'Late' status in this
+  // app. Compare against the real, case-sensitive enum values here.
   const playerStats = {};
   rows.forEach(r => {
     const pid = r.player_id;
@@ -166,25 +170,25 @@ async function getAttendanceAnalytics({ academyId }) {
       playerStats[pid] = {
         id:      pid,
         name:    r.player ? `${r.player.first_name} ${r.player.last_name}` : '—',
-        present: 0, absent: 0, late: 0, total: 0,
+        present: 0, absent: 0, injured: 0, total: 0,
       };
     }
     playerStats[pid].total++;
-    if (r.status === 'present')      playerStats[pid].present++;
-    else if (r.status === 'absent')  playerStats[pid].absent++;
-    else if (r.status === 'late')    playerStats[pid].late++;
+    if (r.status === 'Present')       playerStats[pid].present++;
+    else if (r.status === 'Absent')   playerStats[pid].absent++;
+    else if (r.status === 'Injured')  playerStats[pid].injured++;
   });
 
   const playerRates = Object.values(playerStats).map(p => ({
     ...p,
-    rate:        p.total > 0 ? Math.round(((p.present + p.late * 0.5) / p.total) * 100) : 0,
-    gfaEligible: p.total > 0 ? ((p.present + p.late) / p.total) >= 0.7 : null,
+    rate:        p.total > 0 ? Math.round(((p.present + p.injured * 0.5) / p.total) * 100) : 0,
+    gfaEligible: p.total > 0 ? ((p.present + p.injured) / p.total) >= 0.7 : null,
   })).sort((a, b) => b.rate - a.rate);
 
   // Monthly trend (last 6 months)
   const monthlyMap = {};
   last6MonthKeys().forEach(k => {
-    monthlyMap[k] = { month: monthLabel(k), present: 0, absent: 0, late: 0, total: 0 };
+    monthlyMap[k] = { month: monthLabel(k), present: 0, absent: 0, injured: 0, total: 0 };
   });
   rows.forEach(r => {
     const ev = eventMap[r.event_id];
@@ -193,17 +197,17 @@ async function getAttendanceAnalytics({ academyId }) {
     const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
     if (monthlyMap[k]) {
       monthlyMap[k].total++;
-      if (r.status === 'present')     monthlyMap[k].present++;
-      else if (r.status === 'absent') monthlyMap[k].absent++;
-      else if (r.status === 'late')   monthlyMap[k].late++;
+      if (r.status === 'Present')      monthlyMap[k].present++;
+      else if (r.status === 'Absent')  monthlyMap[k].absent++;
+      else if (r.status === 'Injured') monthlyMap[k].injured++;
     }
   });
   const monthlyTrend = Object.values(monthlyMap).map(m => ({
     month:   m.month,
     present: m.present,
     absent:  m.absent,
-    late:    m.late,
-    rate:    m.total > 0 ? Math.round(((m.present + m.late * 0.5) / m.total) * 100) : 0,
+    injured: m.injured,
+    rate:    m.total > 0 ? Math.round(((m.present + m.injured * 0.5) / m.total) * 100) : 0,
   }));
 
   // KPIs
@@ -602,9 +606,13 @@ async function getWorkoutAnalytics({ academyId }) {
   const volumeTrend = Object.values(monthlyMap);
 
   // Per-assignment completion rate (most recent 10)
-  const recentAssignments = rows.slice(0, 10).map(a => {
-    const totalExercises = a.exerciseIds?.length ?? 0;
-    const doneCount = a.exerciseIds?.reduce((s, eid) => s + (compByExercise[eid] ?? 0), 0) ?? 0;
+  // Source from assignmentMap (built above from the joined `exercises` relation),
+  // NOT the raw `rows` — raw rows only carry `.exercises` (array of {id}) from the
+  // Supabase select, not the flattened `.exerciseIds` / `.teamName` used here, so
+  // reading those off `rows` directly always evaluated to undefined → 0 exercises.
+  const recentAssignments = Object.values(assignmentMap).slice(0, 10).map(a => {
+    const totalExercises = a.exerciseIds.length;
+    const doneCount = a.exerciseIds.reduce((s, eid) => s + (compByExercise[eid] ?? 0), 0);
     const rate = totalExercises > 0 ? Math.round((doneCount / totalExercises) * 100) : 0;
     return {
       title:    a.title,
