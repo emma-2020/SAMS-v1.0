@@ -41,13 +41,13 @@ export function AnnouncementsBanner({ role }: { role?: string }) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: '1rem' }}>📢</span>
-          <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.01em' }}>Announcements</span>
-          <span style={{ fontSize: '0.62rem', fontWeight: 700, padding: '1px 8px', borderRadius: 99, background: '#EEF2FF', color: '#6366F1', border: '1px solid #DDD6FE' }}>
+          <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>Announcements</span>
+          <span style={{ fontSize: '0.62rem', fontWeight: 700, padding: '1px 8px', borderRadius: 99, background: 'var(--accent-subtle)', color: 'var(--accent)', border: '1px solid var(--accent-light)' }}>
             {announcements.length}
           </span>
         </div>
         {isAdmin && (
-          <a href="/dashboard/admin/announcements" style={{ fontSize: '0.72rem', fontWeight: 700, color: '#6366F1', textDecoration: 'none' }}>
+          <a href="/dashboard/admin/announcements" style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--accent)', textDecoration: 'none' }}>
             Manage →
           </a>
         )}
@@ -59,25 +59,25 @@ export function AnnouncementsBanner({ role }: { role?: string }) {
           const audience = (ann.audience || 'everyone') as Audience;
           return (
             <div key={ann.id}
-              style={{ flexShrink: 0, width: 280, background: '#fff', border: '1.5px solid #E2E8F0', borderRadius: 14, padding: '14px 16px', borderLeft: '4px solid #6366F1', boxShadow: '0 1px 4px rgba(15,23,42,0.04)' }}>
+              style={{ flexShrink: 0, width: 280, background: 'var(--bg-surface)', border: '1.5px solid var(--border-default)', borderRadius: 14, padding: '14px 16px', borderLeft: '4px solid var(--accent)', boxShadow: 'var(--shadow-sm)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
                 <span style={{ fontSize: '0.75rem' }}>{AUDIENCE_ICON[audience]}</span>
-                <span style={{ fontWeight: 700, fontSize: '0.825rem', color: '#0F172A', lineHeight: 1.3,
+                <span style={{ fontWeight: 700, fontSize: '0.825rem', color: 'var(--text-primary)', lineHeight: 1.3,
                   display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                   {ann.title}
                 </span>
               </div>
-              <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748B', lineHeight: 1.5,
+              <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: 1.5,
                 display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                 {ann.body}
               </p>
               <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 {ann.author && (
-                  <span style={{ fontSize: '0.65rem', color: '#7C3AED', fontWeight: 600 }}>
+                  <span style={{ fontSize: '0.65rem', color: 'var(--role-admin)', fontWeight: 600 }}>
                     {ann.author.first_name} {ann.author.last_name}
                   </span>
                 )}
-                <span style={{ fontSize: '0.63rem', color: '#94A3B8', marginLeft: 'auto' }}>{fmtDate(ann.created_at)}</span>
+                <span style={{ fontSize: '0.63rem', color: 'var(--text-muted)', marginLeft: 'auto' }}>{fmtDate(ann.created_at)}</span>
               </div>
             </div>
           );
