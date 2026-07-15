@@ -101,16 +101,42 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     console.error('[sw] registration failed:', err);
                   });
                 }
+                // Registering right on 'load' kicks off the SW's install-time
+                // precache fetch (~148 files — the entire app shell, every
+                // role's every route — see scripts/build-sw.js) immediately,
+                // on EVERY page including /login. That bulk background
+                // download then races the network for whatever the user does
+                // in the next few seconds — on the login page specifically,
+                // that's submitting the form and being redirected straight
+                // into a dashboard that needs its own document + JS chunk +
+                // several API calls over the same connection. That
+                // contention was identified as the cause of erratic
+                // multi-second delays on login and on the first post-login
+                // dashboard load, even though no single request was actually
+                // slow. Deferring registration to an idle moment (with a
+                // timeout so it still fires on a never-truly-idle page, and
+                // a setTimeout fallback for Safari, which has no
+                // requestIdleCallback) pushes the precache burst off the
+                // critical path without giving up offline support — it
+                // still completes shortly after, just no longer competing
+                // with the interaction that matters most.
+                function schedule() {
+                  if ('requestIdleCallback' in window) {
+                    window.requestIdleCallback(register, { timeout: 4000 });
+                  } else {
+                    setTimeout(register, 2000);
+                  }
+                }
                 // 'load' may have ALREADY fired by the time this inline script
                 // runs (e.g. a fast, mostly-cached page load) — in that case
                 // addEventListener('load', ...) never calls back, and the
-                // service worker silently never registers. Register
+                // service worker silently never registers. Schedule
                 // immediately if the page is already done loading; only wait
                 // for the event if it genuinely hasn't happened yet.
                 if (document.readyState === 'complete') {
-                  register();
+                  schedule();
                 } else {
-                  window.addEventListener('load', register);
+                  window.addEventListener('load', schedule);
                 }
               })();
             `,
