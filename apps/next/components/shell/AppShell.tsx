@@ -442,7 +442,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
           {/* Main nav */}
           <div style={{ padding: '6px 10px 0', flex: 1 }}>
-            <div style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-muted)', padding: '8px 4px 6px' }}>Menu</div>
+            <div style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-secondary)', padding: '8px 4px 6px' }}>Menu</div>
             <nav style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {filterReg(config.main).map(item => (
                 <SidebarNavItem key={item.path} item={item} onClick={() => setSidebarOpen(false)} />
@@ -452,7 +452,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
           {/* General nav */}
           <div style={{ padding: '0 10px 6px' }}>
-            <div style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-muted)', padding: '8px 4px 6px' }}>General</div>
+            <div style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-secondary)', padding: '8px 4px 6px' }}>General</div>
             <nav style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {config.other.map(item => (
                 <SidebarNavItem key={item.path} item={item} onClick={() => setSidebarOpen(false)} />
