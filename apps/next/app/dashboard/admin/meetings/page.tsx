@@ -474,9 +474,13 @@ export default function MeetingsPage() {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
               <h1 style={{ fontSize: '1.55rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-.025em', margin: 0 }}>Meetings</h1>
-              <span style={{ background: 'var(--accent-subtle)', color: 'var(--accent)', border: '1px solid var(--accent-light)', borderRadius: 99, fontSize: '.72rem', fontWeight: 700, padding: '2px 10px' }}>
-                {upcoming.length} upcoming
-              </span>
+              {loading ? (
+                <span className="skeleton" style={{ display: 'inline-block', width: 78, height: 20, borderRadius: 99, verticalAlign: 'middle' }} />
+              ) : (
+                <span style={{ background: 'var(--accent-subtle)', color: 'var(--accent)', border: '1px solid var(--accent-light)', borderRadius: 99, fontSize: '.72rem', fontWeight: 700, padding: '2px 10px' }}>
+                  {upcoming.length} upcoming
+                </span>
+              )}
             </div>
             <p style={{ color: 'var(--text-muted)', fontSize: '.875rem', margin: '4px 0 0' }}>Video meetings and instant calls for your academy</p>
           </div>
