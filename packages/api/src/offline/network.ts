@@ -18,6 +18,17 @@ export function isOffline(): boolean {
   return !online;
 }
 
+// Combines this module's own tracked state with the browser's native
+// navigator.onLine. Callers classifying a *specific* network failure should
+// read this BEFORE calling reportNetworkOutcome() for that same failure —
+// reportNetworkOutcome(false) updates `online` unconditionally, so checking
+// after would make every network error look "offline" in hindsight,
+// including a genuine CORS block (which is just as response-less as a real
+// offline request and would otherwise be misclassified the same way).
+export function isKnownOffline(): boolean {
+  return isOffline() || (typeof navigator !== 'undefined' && navigator.onLine === false);
+}
+
 export function reportNetworkOutcome(success: boolean): void {
   setOnline(success);
 }
