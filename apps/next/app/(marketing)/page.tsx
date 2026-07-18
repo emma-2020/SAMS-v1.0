@@ -574,7 +574,7 @@ export default function HomePage() {
             </div>
 
             {/* Stats row */}
-            <div style={{
+            <div className="mkt-stats-row" style={{
               display: 'inline-flex', alignItems: 'center',
               padding: '16px 20px',
               borderRadius: 16, gap: 0,
@@ -584,17 +584,17 @@ export default function HomePage() {
             }}>
               {STATS.flatMap(({ value, label }, i) => {
                 const stat = (
-                  <div key={label} style={{ textAlign: 'center', padding: '0 16px' }}>
+                  <div key={label} className="mkt-stat-item" style={{ textAlign: 'center', padding: '0 16px' }}>
                     <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#F1F5F9', letterSpacing: '-0.03em', lineHeight: 1 }}>
                       {value}
                     </div>
-                    <div style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.32)', marginTop: 5, letterSpacing: '0.02em', whiteSpace: 'nowrap' }}>
+                    <div className="mkt-stat-label" style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.32)', marginTop: 5, letterSpacing: '0.02em', whiteSpace: 'nowrap' }}>
                       {label}
                     </div>
                   </div>
                 );
                 if (i < STATS.length - 1) {
-                  return [stat, <div key={`d${i}`} style={{ width: 1, height: 28, background: 'rgba(255,255,255,0.07)', flexShrink: 0 }} />];
+                  return [stat, <div key={`d${i}`} className="mkt-stat-divider" style={{ width: 1, height: 28, background: 'rgba(255,255,255,0.07)', flexShrink: 0 }} />];
                 }
                 return [stat];
               })}
@@ -1156,6 +1156,17 @@ export default function HomePage() {
         @media (max-width: 680px) {
           .mkt-steps-grid { grid-template-columns: 1fr !important; }
           .mkt-step-line  { display: none !important; }
+        }
+        @media (max-width: 640px) {
+          .mkt-stats-row {
+            display: grid !important;
+            grid-template-columns: repeat(2, 1fr) !important;
+            width: 100%;
+            gap: 16px 8px !important;
+          }
+          .mkt-stat-item    { padding: 0 6px !important; }
+          .mkt-stat-divider { display: none !important; }
+          .mkt-stat-label   { white-space: normal !important; }
         }
       `}</style>
 
