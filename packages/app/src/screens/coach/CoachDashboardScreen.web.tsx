@@ -320,9 +320,18 @@ export function CoachDashboardScreen() {
   const alertCount    = alerts.length;
   const upcomingCount = events.filter(e => new Date(e.start_time) >= new Date()).length;
 
-  const fitCount     = players.filter(p => (p.latest_health?.overall_score ?? -1) >= 70).length;
-  const modCount     = players.filter(p => { const s = p.latest_health?.overall_score ?? -1; return s >= 40 && s < 70; }).length;
-  const alertPlayers = players.filter(p => { const s = p.latest_health?.overall_score ?? -1; return s >= 0 && s < 40; }).length;
+  // "Alert" here is defined by the same is_flagged signal the Health Alerts tile
+  // and list widget consume (DB trigger fn_health_flag_check: fatigue >= 4 OR
+  // soreness >= 4 OR sleep_quality <= 2) rather than a separately-invented
+  // overall_score < 40 cutoff. The two criteria are NOT equivalent — a log
+  // flagged for poor sleep alone can still average out to a 60-75 overall_score
+  // (min unflagged score is 50, so score < 40 always implies is_flagged, but the
+  // converse doesn't hold). Using the score cutoff here let a page load show real
+  // entries in "Health Alerts" while "Alert Rate" and the donut both reported
+  // zero/no data for the same players — this keeps all three in agreement.
+  const fitCount     = players.filter(p => !p.latest_health?.is_flagged && (p.latest_health?.overall_score ?? -1) >= 70).length;
+  const modCount     = players.filter(p => { if (p.latest_health?.is_flagged) return false; const s = p.latest_health?.overall_score ?? -1; return s >= 40 && s < 70; }).length;
+  const alertPlayers = players.filter(p => p.latest_health?.is_flagged === true).length;
   const noDataCount  = players.filter(p => p.latest_health?.overall_score == null).length;
 
   const fitPct      = playerCount ? Math.round((fitCount / playerCount) * 100)           : 0;
