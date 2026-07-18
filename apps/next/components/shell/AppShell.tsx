@@ -27,6 +27,19 @@ function NavIcon({ name, size = 16, ...rest }: { name: string; size?: number; [k
   return <Icon size={size} {...(rest as object)} />;
 }
 
+// ── Active-route matching ────────────────────────────────────────────────────────
+// Role-root items (e.g. '/dashboard/admin') sit at the same depth as every other
+// item's parent and would otherwise prefix-match every nested route under that
+// role (e.g. '/dashboard/admin/roster'). Root-depth items must match exactly;
+// deeper items may still prefix-match their own sub-routes.
+function isNavItemActive(pathname: string, item: NavItem): boolean {
+  const depth   = item.path.split('/').length;
+  const isExact = depth <= 3;
+  return isExact
+    ? pathname === item.path
+    : pathname === item.path || pathname.startsWith(item.path + '/');
+}
+
 // ── Colours ────────────────────────────────────────────────────────────────────
 const ROLE_COLOR: Record<string, string> = {
   Admin: '#7C3AED', Coach: '#7C3AED', Player: '#7C3AED', Parent: '#7C3AED',
@@ -227,11 +240,7 @@ function MenuItem({ icon, label, onClick, danger, badge }: {
 function SidebarNavItem({ item, onClick }: { item: NavItem; onClick?: () => void }) {
   const pathname = usePathname();
   const router   = useRouter();
-  const depth    = item.path.split('/').length;
-  const isExact  = depth <= 3;
-  const activeCheck = isExact
-    ? pathname === item.path
-    : pathname === item.path || pathname.startsWith(item.path + '/');
+  const activeCheck = isNavItemActive(pathname, item);
 
   return (
     <button
@@ -370,7 +379,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       ? items.filter(i => i.path !== '/dashboard/player/registration')
       : items;
   const allItems      = [...filterReg(config.main), ...config.other];
-  const active        = allItems.find(i => pathname === i.path || pathname.startsWith(i.path + '/'));
+  const active        = allItems.find(i => isNavItemActive(pathname, i));
   const pageTitle     = active?.label ?? 'Dashboard';
 
   const BOTTOM_NAV_ICONS = ['LayoutDashboard', 'CalendarDays', 'MessageSquare', 'Settings'];
@@ -712,12 +721,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         zIndex: 50, padding: '0 4px',
       }}>
         {bottomNavItems.map(item => {
-          // Same depth-based exact-match logic as SidebarNavItem
-          const depth    = item.path.split('/').length;
-          const isExact  = depth <= 3;
-          const isActive = isExact
-            ? pathname === item.path
-            : pathname === item.path || pathname.startsWith(item.path + '/');
+          const isActive = isNavItemActive(pathname, item);
           return (
             <button
               key={item.path}
