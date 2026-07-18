@@ -114,6 +114,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+const VALID_ROLES = ['Admin', 'Coach', 'Player', 'Parent'] as const;
+
 /**
  * Client component that enforces auth on protected routes.
  * Redirects unauthenticated users to /login, preserving the attempted path.
@@ -141,15 +143,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
  * If the token is stale the onUnauthorized handler in AuthProvider redirects.
  */
 export function ProtectedGuard({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isInitialised, session, user } = useAuthStore();
+  const { isAuthenticated, isInitialised, session, user, logout } = useAuthStore();
   const router = useRouter();
   const pathname = usePathname();
 
   const pathRole = roleForPath(pathname);
   const isWrongRole = !!user && !!pathRole && user.role !== 'Admin' && user.role !== pathRole;
 
+  // Defense-in-depth: a tampered/corrupted persisted session (a valid-looking
+  // token but a null/missing/malformed user object) must never fall through
+  // to nav-rendering — the backend already blocks unauthorized data access,
+  // but nothing else stops AppShell from rendering with a null `user`. Treat
+  // "looks authenticated" (isAuthenticated flag OR a cached token) combined
+  // with "no usable user/role" as corrupted state.
+  const hasValidUser = !!user && VALID_ROLES.includes(user.role);
+  const isCorrupted = (isAuthenticated || !!session?.access_token) && !hasValidUser;
+
   useEffect(() => {
     if (!isInitialised) return;
+    if (isCorrupted) {
+      // Clear the corrupted persisted state so the login page — and any
+      // future mount of this guard — doesn't see it again.
+      logout();
+      router.replace(`/login?from=${encodeURIComponent(pathname)}`);
+      return;
+    }
     if (!isAuthenticated) {
       router.replace(`/login?from=${encodeURIComponent(pathname)}`);
       return;
@@ -157,12 +175,14 @@ export function ProtectedGuard({ children }: { children: React.ReactNode }) {
     if (isWrongRole && user) {
       router.replace(ROLE_DASHBOARD[user.role] ?? '/dashboard');
     }
-  }, [isInitialised, isAuthenticated, isWrongRole, user, pathname, router]);
+  }, [isInitialised, isAuthenticated, isCorrupted, isWrongRole, user, pathname, router, logout]);
 
   // If a persisted session exists, render the app immediately instead of
   // blocking behind the /me round-trip. The background auth check still runs;
   // an expired token will hit onUnauthorized and redirect to /login.
-  const hasCachedSession = !!session?.access_token;
+  // A corrupted session (see above) never counts as "cached" — it must fall
+  // through to the redirect path below instead of rendering the shell.
+  const hasCachedSession = !!session?.access_token && hasValidUser;
 
   if (!isInitialised && !hasCachedSession) {
     return (
@@ -172,6 +192,7 @@ export function ProtectedGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
+  if (isCorrupted) return null;
   if (isInitialised && !isAuthenticated) return null;
   // Don't flash the wrong-role page shell while the redirect above is firing.
   if (isWrongRole) return null;
