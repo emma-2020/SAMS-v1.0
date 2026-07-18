@@ -581,6 +581,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <div style={{ position: 'relative' }} ref={notifRef}>
             <button
               onClick={() => setShowNotifPanel(p => !p)}
+              aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
               style={{
                 width: 38, height: 38, borderRadius: 10,
                 background: showNotifPanel ? '#F3EFFF' : 'var(--bg-elevated)',
@@ -620,6 +621,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           {/* Theme toggle */}
           <button
             onClick={toggleTheme}
+            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
             style={{ width: 38, height: 38, borderRadius: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-secondary)' }}
           >
             {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}

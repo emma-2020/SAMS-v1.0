@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { teamsApi, adminApi } from '@sams/api';
 import type { Team, TeamMember, UserProfile } from '@sams/api';
 
@@ -13,6 +13,12 @@ const IcoPlus = () => (
 const IcoTrash = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
     <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M9 6V4h6v2"/>
+  </svg>
+);
+const IcoEdit = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
   </svg>
 );
 const IcoChevronDown = () => (
@@ -96,9 +102,11 @@ function InputField({ placeholder, value, onChange, error }: { placeholder: stri
 }
 
 // ── Team card ──────────────────────────────────────────────────────
-function TeamCard({ team, members, onDeactivate, onAddPlayer, allPlayers }: {
+function TeamCard({ team, members, editing, onDeactivate, onEdit, onAddPlayer, allPlayers }: {
   team: Team; members: TeamMember[] | undefined;
+  editing?: boolean;
   onDeactivate: (t: Team) => void;
+  onEdit: (t: Team) => void;
   onAddPlayer: () => void;
   allPlayers: UserProfile[];
 }) {
@@ -109,6 +117,7 @@ function TeamCard({ team, members, onDeactivate, onAddPlayer, allPlayers }: {
   const [adding,   setAdding]   = useState(false);
   const [hovered,  setHovered]  = useState(false);
   const [delHov,   setDelHov]   = useState(false);
+  const [editHov,  setEditHov]  = useState(false);
 
   const coach = (team as Team & { users?: { first_name: string; last_name: string } }).users ?? team.coach;
   const coachName = coach ? `${coach.first_name} ${coach.last_name}` : 'Unassigned';
@@ -128,7 +137,7 @@ function TeamCard({ team, members, onDeactivate, onAddPlayer, allPlayers }: {
   }
 
   return (
-    <div className="card" style={{ padding: 0, overflow: 'hidden', border: hovered ? '1.5px solid #C7D2FE' : '1.5px solid #F1F5F9', transform: hovered ? 'translateY(-2px)' : 'translateY(0)', boxShadow: hovered ? '0 12px 32px rgba(99,102,241,0.12)' : '0 2px 12px rgba(15,23,42,0.06)', transition: 'all 0.2s cubic-bezier(0.4,0,0.2,1)' }}
+    <div className="card" style={{ padding: 0, overflow: 'hidden', border: editing ? '1.5px solid var(--accent)' : hovered ? '1.5px solid #C7D2FE' : '1.5px solid #F1F5F9', transform: hovered ? 'translateY(-2px)' : 'translateY(0)', boxShadow: editing ? '0 0 0 3px rgba(99,102,241,0.14)' : hovered ? '0 12px 32px rgba(99,102,241,0.12)' : '0 2px 12px rgba(15,23,42,0.06)', transition: 'all 0.2s cubic-bezier(0.4,0,0.2,1)' }}
       onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
       {/* Card header */}
       <div style={{ padding: '20px 20px 16px' }}>
@@ -168,11 +177,19 @@ function TeamCard({ team, members, onDeactivate, onAddPlayer, allPlayers }: {
 
         {/* Footer actions */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14, paddingTop: 12, borderTop: '1px solid #F1F5F9' }}>
-          <button onClick={e => { e.stopPropagation(); onDeactivate(team); }}
-            onMouseEnter={() => setDelHov(true)} onMouseLeave={() => setDelHov(false)}
-            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 10px', borderRadius: 8, border: `1px solid ${delHov ? '#FECACA' : '#E2E8F0'}`, background: delHov ? '#FEF2F2' : 'transparent', color: delHov ? '#EF4444' : 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s' }}>
-            <IcoTrash /> Deactivate
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button onClick={e => { e.stopPropagation(); onEdit(team); }}
+              onMouseEnter={() => setEditHov(true)} onMouseLeave={() => setEditHov(false)}
+              aria-label={`Edit ${team.name}`}
+              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 10px', borderRadius: 8, border: `1px solid ${editing ? 'var(--accent-light)' : editHov ? '#C7D2FE' : '#E2E8F0'}`, background: editing ? 'var(--accent-subtle)' : editHov ? '#EEF2FF' : 'transparent', color: editing || editHov ? 'var(--accent)' : 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s' }}>
+              <IcoEdit /> Edit
+            </button>
+            <button onClick={e => { e.stopPropagation(); onDeactivate(team); }}
+              onMouseEnter={() => setDelHov(true)} onMouseLeave={() => setDelHov(false)}
+              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 10px', borderRadius: 8, border: `1px solid ${delHov ? '#FECACA' : '#E2E8F0'}`, background: delHov ? '#FEF2F2' : 'transparent', color: delHov ? '#EF4444' : 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s' }}>
+              <IcoTrash /> Deactivate
+            </button>
+          </div>
           <button onClick={() => setOpen(o => !o)}
             style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 8, border: '1px solid #E2E8F0', background: open ? '#EEF2FF' : 'transparent', color: open ? 'var(--accent)' : 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s' }}>
             {open ? <><IcoChevronUp /> Hide Roster</> : <><IcoChevronDown /> View Roster</>}
@@ -244,6 +261,8 @@ export default function TeamsPage() {
   const [createErr,  setCreateErr]   = useState('');
   const [allMembers, setAllMembers]  = useState<UserProfile[]>([]);
   const [teamMembers, setTeamMembers] = useState<Record<string, TeamMember[]>>({});
+  const [editingTeam, setEditingTeam] = useState<Team | null>(null);
+  const formCardRef = useRef<HTMLDivElement>(null);
 
   async function loadTeams() {
     setTeamsLoading(true); setTeamsError('');
@@ -280,17 +299,47 @@ export default function TeamsPage() {
     return e;
   }
 
-  async function handleCreate(ev: React.FormEvent) {
+  function startEdit(team: Team) {
+    setEditingTeam(team);
+    setForm({
+      name:     team.name ?? '',
+      sport:    team.sport ?? '',
+      division: team.division ?? '',
+      coach_id: team.coach_id ?? '',
+    });
+    setFormErrors({}); setCreateErr('');
+    formCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function cancelEdit() {
+    setEditingTeam(null);
+    setForm(EMPTY_FORM); setFormErrors({}); setCreateErr('');
+  }
+
+  async function handleSubmit(ev: React.FormEvent) {
     ev.preventDefault();
     const e = validate();
     if (Object.keys(e).length) { setFormErrors(e); return; }
     setCreating(true); setCreateErr('');
     try {
-      await teamsApi.createTeam({ name: form.name.trim(), sport: form.sport.trim() || undefined, division: form.division.trim() || undefined, coach_id: form.coach_id || undefined });
+      if (editingTeam) {
+        // Send trimmed values (not collapsed to undefined) so clearing a
+        // field to blank actually clears it server-side instead of being
+        // dropped from the PATCH payload.
+        await teamsApi.updateTeam(editingTeam.id, {
+          name:     form.name.trim(),
+          sport:    form.sport.trim(),
+          division: form.division.trim(),
+          coach_id: form.coach_id,
+        });
+        setEditingTeam(null);
+      } else {
+        await teamsApi.createTeam({ name: form.name.trim(), sport: form.sport.trim() || undefined, division: form.division.trim() || undefined, coach_id: form.coach_id || undefined });
+      }
       setForm(EMPTY_FORM); setFormErrors({});
       loadTeams();
     } catch (err: unknown) {
-      setCreateErr(err instanceof Error ? err.message : 'Failed to create team');
+      setCreateErr(err instanceof Error ? err.message : `Failed to ${editingTeam ? 'update' : 'create'} team`);
     } finally { setCreating(false); }
   }
 
@@ -298,6 +347,7 @@ export default function TeamsPage() {
     if (!window.confirm(`Deactivate "${team.name}"? Members will lose access to this channel.`)) return;
     try {
       await teamsApi.deactivateTeam(team.id);
+      if (editingTeam?.id === team.id) cancelEdit();
       loadTeams();
     } catch (err: unknown) {
       setTeamsError(err instanceof Error ? err.message : 'Failed to deactivate team.');
@@ -325,22 +375,26 @@ export default function TeamsPage() {
 
       <div className="sidebar-content-grid">
 
-        {/* Create Team card */}
-        <div className="card" style={{ padding: 0, overflow: 'hidden', border: '1.5px solid #F1F5F9' }}>
+        {/* Create / Edit Team card */}
+        <div ref={formCardRef} className="card" style={{ padding: 0, overflow: 'hidden', border: editingTeam ? '1.5px solid var(--accent-light)' : '1.5px solid #F1F5F9', scrollMarginTop: 20 }}>
           <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid #F1F5F9', background: 'linear-gradient(135deg, #FAFBFF 0%, #F5F3FF 100%)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, var(--accent), #8B5CF6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', boxShadow: '0 4px 12px rgba(99,102,241,0.3)' }}>
-                <IcoPlus />
+                {editingTeam ? <IcoEdit /> : <IcoPlus />}
               </div>
               <div>
-                <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#0F172A', letterSpacing: '-0.01em' }}>Create Team</div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 1 }}>Fill in the details below</div>
+                <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#0F172A', letterSpacing: '-0.01em' }}>
+                  {editingTeam ? `Edit "${editingTeam.name}"` : 'Create Team'}
+                </div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 1 }}>
+                  {editingTeam ? 'Update the details below' : 'Fill in the details below'}
+                </div>
               </div>
             </div>
           </div>
 
           <div style={{ padding: '20px 24px 24px' }}>
-            <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: 6, letterSpacing: '0.03em', textTransform: 'uppercase' as const }}>
                   Team Name <span style={{ color: 'var(--danger)' }}>*</span>
@@ -377,13 +431,22 @@ export default function TeamsPage() {
                 <div className="alert alert-error"><span>{createErr}</span></div>
               )}
 
-              <button type="submit" disabled={creating} style={{ width: '100%', height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: creating ? 'var(--accent)' : 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)', color: '#fff', border: 'none', borderRadius: 12, fontSize: '0.875rem', fontWeight: 700, cursor: creating ? 'not-allowed' : 'pointer', opacity: creating ? 0.75 : 1, boxShadow: '0 4px 14px rgba(99,102,241,0.35)', transition: 'all 0.2s' }}
-                onMouseEnter={e => { if (!creating) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(99,102,241,0.45)'; } }}
-                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(99,102,241,0.35)'; }}>
-                {creating
-                  ? <><span className="spinner" style={{ width: 15, height: 15, borderColor: 'rgba(255,255,255,0.3)', borderTopColor: '#fff' }} /> Creating…</>
-                  : <><IcoPlus /> Create Team</>}
-              </button>
+              <div style={{ display: 'flex', gap: 10 }}>
+                {editingTeam && (
+                  <button type="button" onClick={cancelEdit} disabled={creating} className="btn btn-secondary" style={{ height: 44, flexShrink: 0 }}>
+                    Cancel
+                  </button>
+                )}
+                <button type="submit" disabled={creating} style={{ flex: 1, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: creating ? 'var(--accent)' : 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)', color: '#fff', border: 'none', borderRadius: 12, fontSize: '0.875rem', fontWeight: 700, cursor: creating ? 'not-allowed' : 'pointer', opacity: creating ? 0.75 : 1, boxShadow: '0 4px 14px rgba(99,102,241,0.35)', transition: 'all 0.2s' }}
+                  onMouseEnter={e => { if (!creating) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(99,102,241,0.45)'; } }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(99,102,241,0.35)'; }}>
+                  {creating
+                    ? <><span className="spinner" style={{ width: 15, height: 15, borderColor: 'rgba(255,255,255,0.3)', borderTopColor: '#fff' }} /> {editingTeam ? 'Saving…' : 'Creating…'}</>
+                    : editingTeam
+                      ? <><IcoEdit /> Save Changes</>
+                      : <><IcoPlus /> Create Team</>}
+                </button>
+              </div>
             </form>
           </div>
         </div>
@@ -417,6 +480,8 @@ export default function TeamsPage() {
                   team={team}
                   members={teamMembers[team.id]}
                   allPlayers={players}
+                  editing={editingTeam?.id === team.id}
+                  onEdit={startEdit}
                   onDeactivate={handleDeactivate}
                   onAddPlayer={() => teamsApi.getTeamMembers(team.id).then(m => setTeamMembers(p => ({ ...p, [team.id]: m }))).catch(() => {})}
                 />

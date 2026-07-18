@@ -214,6 +214,7 @@ function AttendanceInner() {
   const [rosterError,  setRosterError] = useState('');
   const [saving,       setSaving]      = useState(false);
   const [saveError,    setSaveError]   = useState('');
+  const [exportError,  setExportError] = useState('');
 
   useEffect(() => {
     scheduleApi.getEvents()
@@ -284,22 +285,25 @@ function AttendanceInner() {
 
   async function handleExportCsv() {
     if (!selectedEventId) return;
-    setExporting(true);
+    setExporting(true); setExportError('');
     try {
-      const token = (await import('@sams/store')).useAuthStore.getState().session?.access_token;
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api'}/attendance/export?event_id=${selectedEventId}`, {
-        headers: { Authorization: `Bearer ${token}` },
+      // Use the shared apiClient (same as every other call on this page) so the
+      // request goes to `${baseURL}/api/attendance/export`, carries the auth
+      // header via the standard interceptor, and picks up the 401-refresh
+      // handling for free — a hand-rolled fetch() here previously duplicated
+      // (and got wrong) the base-URL + `/api` prefix construction.
+      const blob = await (apiClient as any).get(`/attendance/export?event_id=${selectedEventId}`, {
+        responseType: 'blob',
       });
-      if (!res.ok) throw new Error('Export failed');
-      const blob = await res.blob();
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement('a');
       a.href     = url;
       a.download = `attendance-${selectedEvent?.title?.replace(/\s+/g, '-') ?? selectedEventId}.csv`;
       a.click();
       URL.revokeObjectURL(url);
-    } catch { /* silent */ }
-    finally { setExporting(false); }
+    } catch (e: unknown) {
+      setExportError(e instanceof Error ? e.message : 'Failed to export CSV');
+    } finally { setExporting(false); }
   }
 
   async function handleSave() {
@@ -456,6 +460,7 @@ function AttendanceInner() {
                   )}
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                     {saveError && <span style={{ fontSize: '0.75rem', color: '#DC2626' }}>{saveError}</span>}
+                    {exportError && <span style={{ fontSize: '0.75rem', color: '#DC2626' }}>{exportError}</span>}
                     <button onClick={handleExportCsv} disabled={exporting || !savedSuccess}
                       title={savedSuccess ? 'Download CSV' : 'Save attendance first to export'}
                       style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '9px 14px', borderRadius: 10, cursor: (exporting || !savedSuccess) ? 'not-allowed' : 'pointer', background: '#F8FAFC', border: '1.5px solid #E2E8F0', color: savedSuccess ? '#059669' : '#94A3B8', fontSize: '0.8rem', fontWeight: 700 }}>

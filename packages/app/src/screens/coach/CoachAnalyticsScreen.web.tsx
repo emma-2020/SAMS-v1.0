@@ -62,8 +62,8 @@ export function CoachAnalyticsScreen() {
 
   function exportAttendance() {
     if (!attendance) return;
-    const headers = ['Player', 'Present', 'Late', 'Absent', 'Total', 'Rate %', 'GFA Eligible'];
-    const rows = attendance.playerRates.map(p => [p.name, p.present, p.late, p.absent, p.total, p.rate, p.gfaEligible === true ? 'Yes' : p.gfaEligible === false ? 'No' : '']);
+    const headers = ['Player', 'Present', 'Injured', 'Absent', 'Total', 'Rate %', 'GFA Eligible'];
+    const rows = attendance.playerRates.map(p => [p.name, p.present, p.injured, p.absent, p.total, p.rate, p.gfaEligible === true ? 'Yes' : p.gfaEligible === false ? 'No' : '']);
     downloadCsv(headers, rows, 'attendance-report.csv');
   }
 
@@ -180,14 +180,14 @@ export function CoachAnalyticsScreen() {
             <div className="analytics-3col">
               <SectionCard
                 title="Monthly Attendance Trend"
-                subtitle="Present / late / absent breakdown per month"
+                subtitle="Present / injured / absent breakdown per month"
                 accent={`linear-gradient(90deg,${SUCCESS},${BRAND})`}
               >
                 <AnimatedBarChart
                   data={attendance.monthlyTrend}
                   dataKeys={[
                     { key: 'present', color: SUCCESS, label: 'Present' },
-                    { key: 'late',    color: WARNING, label: 'Late'    },
+                    { key: 'injured', color: WARNING, label: 'Injured' },
                     { key: 'absent',  color: DANGER,  label: 'Absent'  },
                   ]}
                   xAxisKey="month"

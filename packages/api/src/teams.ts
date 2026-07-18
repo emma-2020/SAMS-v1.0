@@ -24,6 +24,23 @@ export async function createTeam(payload: {
   return res.data.team;
 }
 
+// Backend shape: { success, data: { team: Team } }
+export async function updateTeam(
+  id: string,
+  payload: {
+    name?: string;
+    sport?: string;
+    division?: string;
+    coach_id?: string;
+  }
+): Promise<Team> {
+  const res = (await apiClient.patch(`/teams/${id}`, payload)) as {
+    success: boolean;
+    data: { team: Team };
+  };
+  return res.data.team;
+}
+
 export async function deactivateTeam(id: string): Promise<void> {
   await apiClient.delete(`/teams/${id}`);
 }

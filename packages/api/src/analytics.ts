@@ -30,8 +30,8 @@ export interface AttendanceKpis {
 
 export interface AttendanceAnalytics {
   kpis:              AttendanceKpis;
-  monthlyTrend:      { month: string; present: number; absent: number; late: number; rate: number }[];
-  playerRates:       { id: string; name: string; present: number; absent: number; late: number; total: number; rate: number; gfaEligible: boolean | null }[];
+  monthlyTrend:      { month: string; present: number; absent: number; injured: number; rate: number }[];
+  playerRates:       { id: string; name: string; present: number; absent: number; injured: number; total: number; rate: number; gfaEligible: boolean | null }[];
   squadAvailability: { name: string; value: number; color: string }[];
 }
 
