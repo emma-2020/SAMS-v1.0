@@ -177,7 +177,7 @@ function WorkoutCard({ workout }: { workout: PlayerWorkout }) {
       {/* Card header */}
       <div style={{ padding: '18px 20px 14px', background: `linear-gradient(140deg, ${accent}08, ${accent}02)`, borderBottom: `1px solid ${accent}10` }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
             <div style={{
               width: 42, height: 42, borderRadius: 12, flexShrink: 0,
               background: `linear-gradient(135deg, ${accent}, ${accent}cc)`,
@@ -186,8 +186,8 @@ function WorkoutCard({ workout }: { workout: PlayerWorkout }) {
             }}>
               🏋️
             </div>
-            <div>
-              <div style={{ fontWeight: 800, fontSize: '0.97rem', color: 'var(--text-primary)', letterSpacing: '-0.01em', marginBottom: 2 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 800, fontSize: '0.97rem', color: 'var(--text-primary)', letterSpacing: '-0.01em', marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
                 {workout.title}
               </div>
               <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', gap: 8 }}>
