@@ -298,7 +298,7 @@ export default function LoginPage() {
                 <input id="password" name="password"
                   type={showPassword ? 'text' : 'password'}
                   value={form.password} onChange={handleChange}
-                  placeholder="••••••••"
+                  placeholder="Enter your password"
                   className={`login-input login-input-pw${errors.password ? ' error' : ''}`}
                   disabled={loading} autoComplete="current-password" />
                 <button
