@@ -2,7 +2,7 @@ import type { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axio
 import { getCachedResponse, setCachedResponse, cacheKeyFor } from './cache';
 import { isQueueableMutation, isCacheableGet } from './config';
 import { enqueueMutation, flushOfflineQueue, listQueuedMutations, PermanentQueueError, type QueuedMutation } from './queue';
-import { reportNetworkOutcome, recheckConnectivity } from './network';
+import { reportNetworkOutcome, recheckConnectivity, isKnownOffline } from './network';
 import { OfflineQueuedError } from './errors';
 import { clearAllOfflineStores } from './storage';
 
@@ -49,6 +49,31 @@ function isNetworkError(err: AxiosError): boolean {
 async function tryHandleOffline(err: AxiosError): Promise<OfflineOutcome> {
   if (!isNetworkError(err)) return { type: 'none' };
 
+  // Classify BEFORE reportNetworkOutcome(false) below updates this module's
+  // own tracked state because of *this* failure — checking after would make
+  // every network error, including a genuine CORS block (equally
+  // response-less), look "offline" in hindsight.
+  //
+  // Firefox's fetch/XHR error text for a genuinely offline request is often
+  // just a generic "NetworkError when attempting to fetch resource" — the
+  // same wording Firefox also uses to describe a request blocked by CORS,
+  // unlike Chromium which is more specific (e.g. net::ERR_INTERNET_DISCONNECTED
+  // vs a distinct CORS console entry). Trust our own connectivity signal
+  // (navigator.onLine + this module's own tracking) over that ambiguous
+  // browser text, so a developer debugging only in Firefox isn't misled into
+  // chasing a nonexistent CORS misconfiguration when the real cause is that
+  // the device simply has no network connection. This is the one place every
+  // network failure passes through regardless of what (if anything) can be
+  // offered offline, so it's logged here rather than left to surface as
+  // whatever ambiguous text the browser attached to the rejected promise.
+  const config = err.config as OfflineAwareConfig | undefined;
+  const requestLabel = `${(config?.method ?? 'get').toUpperCase()} ${config?.url ?? '(unknown url)'}`;
+  if (isKnownOffline()) {
+    console.warn(`[offline] Request failed: offline — ${requestLabel}`);
+  } else {
+    console.error(`[offline] Request failed: ${err.message || 'network error'} — ${requestLabel}`);
+  }
+
   // A real network error is a real network error regardless of whether this
   // request happens to be a queue replay — report it before the
   // skipOfflineQueue short-circuit below, otherwise the network module never
@@ -56,7 +81,6 @@ async function tryHandleOffline(err: AxiosError): Promise<OfflineOutcome> {
   // plain-network-failure distinction, which depends on this).
   reportNetworkOutcome(false);
 
-  const config = err.config as OfflineAwareConfig | undefined;
   if (config?.skipOfflineQueue) return { type: 'none' };
 
   const method = (config?.method ?? 'get').toLowerCase();
