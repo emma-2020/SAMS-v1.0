@@ -553,7 +553,7 @@ export default function PlayerDashboardPage() {
             {latestLog ? (
               <>
                 {[
-                  { label: 'Fatigue',  value: latestLog.stress,          max: 5, color: '#EF4444' },
+                  { label: 'Stress',   value: latestLog.stress,          max: 5, color: '#EF4444' },
                   { label: 'Soreness', value: latestLog.muscle_soreness, max: 5, color: '#F59E0B' },
                   { label: 'Sleep',    value: latestLog.sleep,           max: 5, color: '#6366F1' },
                 ].map(({ label, value, max, color }) => (
