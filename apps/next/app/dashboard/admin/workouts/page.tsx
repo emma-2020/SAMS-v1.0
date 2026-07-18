@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { ClipboardList, Users, Dumbbell, AlertTriangle } from 'lucide-react';
-import { workoutApi, teamsApi, adminApi } from '@sams/api';
-import type { UserProfile } from '@sams/api';
+import { workoutApi, teamsApi, adminApi, coachApi } from '@sams/api';
+import type { UserProfile, Team } from '@sams/api';
+import { CreateWorkoutModal } from '@/components/workouts/CreateWorkoutModal';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface WorkoutExercise {
@@ -178,19 +179,23 @@ function WorkoutCard({
 export default function AdminWorkoutsPage() {
   const [workouts, setWorkouts] = useState<AdminWorkout[]>([]);
   const [members,  setMembers]  = useState<UserProfile[]>([]);
-  const [teams,    setTeams]    = useState<Array<{ id: string; name: string }>>([]);
+  const [teams,    setTeams]    = useState<Array<{ id: string; name: string; sport?: string }>>([]);
+  const [players,  setPlayers]  = useState<Array<{ id: string; first_name: string; last_name: string }>>([]);
   const [loading,  setLoading]  = useState(true);
   const [filter,   setFilter]   = useState<'all' | string>('all'); // 'all' | team_id
+  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     Promise.all([
       workoutApi.getWorkouts().catch(() => []),
       adminApi.getMembers().catch(() => []),
       teamsApi.getTeams().catch(() => []),
-    ]).then(([w, m, t]) => {
+      coachApi.getPlayers().catch(() => []),
+    ]).then(([w, m, t, p]) => {
       setWorkouts(w as unknown as AdminWorkout[]);
       setMembers(m);
-      setTeams(t as unknown as Array<{ id: string; name: string }>);
+      setTeams(t as unknown as Array<{ id: string; name: string; sport?: string }>);
+      setPlayers(p as unknown as Array<{ id: string; first_name: string; last_name: string }>);
     }).finally(() => setLoading(false));
   }, []);
 
@@ -199,6 +204,10 @@ export default function AdminWorkoutsPage() {
       await workoutApi.deleteWorkout(id);
       setWorkouts(prev => prev.filter(w => w.id !== id));
     } catch (_) {}
+  }
+
+  function handleCreated(a: unknown) {
+    setWorkouts(prev => [a as AdminWorkout, ...prev]);
   }
 
   // Build lookup maps
@@ -224,10 +233,18 @@ export default function AdminWorkoutsPage() {
       <div style={{ background: 'linear-gradient(135deg,#4F46E5,#7C3AED)', borderRadius: 20, padding: '28px 32px', marginBottom: 28, position: 'relative', overflow: 'hidden', boxShadow: '0 8px 32px rgba(79,70,229,0.28)' }}>
         <div style={{ position: 'absolute', right: -40, top: -40, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.07)', pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', right: 100, bottom: -60, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>Admin</div>
-          <h1 style={{ fontSize: 'clamp(1.4rem,4vw,1.8rem)', fontWeight: 900, color: '#fff', margin: '0 0 6px', letterSpacing: '-0.03em', lineHeight: 1.1 }}>Training Overview</h1>
-          <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', margin: 0 }}>All workout plans assigned across the academy</p>
+        <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>Admin</div>
+            <h1 style={{ fontSize: 'clamp(1.4rem,4vw,1.8rem)', fontWeight: 900, color: '#fff', margin: '0 0 6px', letterSpacing: '-0.03em', lineHeight: 1.1 }}>Training Overview</h1>
+            <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', margin: 0 }}>All workout plans assigned across the academy</p>
+          </div>
+          <button onClick={() => setShowModal(true)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 20px', borderRadius: 12, cursor: 'pointer', background: 'rgba(255,255,255,0.14)', border: '1.5px solid rgba(255,255,255,0.3)', color: '#fff', fontSize: '0.875rem', fontWeight: 700, backdropFilter: 'blur(6px)', flexShrink: 0 }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.22)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.14)'; }}>
+            + Create Plan
+          </button>
         </div>
       </div>
 
@@ -282,9 +299,10 @@ export default function AdminWorkoutsPage() {
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '72px 32px', textAlign: 'center', background: 'linear-gradient(135deg, #F8FAFC, #EEF2FF)', borderRadius: 20, border: '1px solid #E2E8F0' }}>
           <div style={{ fontSize: '2.5rem', marginBottom: 16 }}>🏋️</div>
           <div style={{ fontWeight: 800, fontSize: '1.1rem', color: '#0F172A', marginBottom: 8 }}>No training plans yet</div>
-          <p style={{ color: '#64748B', fontSize: '0.875rem', maxWidth: 320, margin: 0 }}>
-            Your coaches haven't assigned any workout plans yet. They create and assign plans from their own dashboard.
+          <p style={{ color: '#64748B', fontSize: '0.875rem', maxWidth: 320, margin: '0 0 20px' }}>
+            No workout plans have been assigned yet. Coaches can create plans from their dashboard, or you can create one directly.
           </p>
+          <button onClick={() => setShowModal(true)} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>+ Create First Plan</button>
         </div>
       )}
 
@@ -311,6 +329,15 @@ export default function AdminWorkoutsPage() {
             />
           ))}
         </div>
+      )}
+
+      {showModal && (
+        <CreateWorkoutModal
+          teams={teams as unknown as Team[]}
+          players={players}
+          onClose={() => setShowModal(false)}
+          onCreated={handleCreated}
+        />
       )}
     </div>
   );
