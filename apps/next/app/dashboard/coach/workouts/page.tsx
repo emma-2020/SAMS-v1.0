@@ -253,7 +253,7 @@ function AssignmentCard({ assignment, onDelete }: { assignment: Assignment; onDe
             🏋️
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 800, fontSize: '0.97rem', color: '#0F172A', lineHeight: 1.3, marginBottom: 5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <div style={{ fontWeight: 800, fontSize: '0.97rem', color: '#0F172A', lineHeight: 1.3, marginBottom: 5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
               {assignment.title}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -383,7 +383,11 @@ export default function WorkoutsPage() {
         <div>
           <h1 style={{ fontSize: 'clamp(1.2rem,4vw,1.55rem)', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.025em', lineHeight: 1.2, margin: 0 }}>Training Plans</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: 6 }}>
-            {assignments.length} plan{assignments.length !== 1 ? 's' : ''} · {totalExercises} total exercises
+            {loading ? (
+              <span className="skeleton" style={{ display: 'inline-block', width: 170, height: 14, borderRadius: 6, verticalAlign: 'middle' }} />
+            ) : (
+              `${assignments.length} plan${assignments.length !== 1 ? 's' : ''} · ${totalExercises} total exercises`
+            )}
           </p>
         </div>
         <button onClick={() => setShowModal(true)} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>

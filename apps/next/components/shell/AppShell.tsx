@@ -27,6 +27,19 @@ function NavIcon({ name, size = 16, ...rest }: { name: string; size?: number; [k
   return <Icon size={size} {...(rest as object)} />;
 }
 
+// ── Active-route matching ────────────────────────────────────────────────────────
+// Role-root items (e.g. '/dashboard/admin') sit at the same depth as every other
+// item's parent and would otherwise prefix-match every nested route under that
+// role (e.g. '/dashboard/admin/roster'). Root-depth items must match exactly;
+// deeper items may still prefix-match their own sub-routes.
+function isNavItemActive(pathname: string, item: NavItem): boolean {
+  const depth   = item.path.split('/').length;
+  const isExact = depth <= 3;
+  return isExact
+    ? pathname === item.path
+    : pathname === item.path || pathname.startsWith(item.path + '/');
+}
+
 // ── Colours ────────────────────────────────────────────────────────────────────
 const ROLE_COLOR: Record<string, string> = {
   Admin: '#7C3AED', Coach: '#7C3AED', Player: '#7C3AED', Parent: '#7C3AED',
@@ -227,11 +240,7 @@ function MenuItem({ icon, label, onClick, danger, badge }: {
 function SidebarNavItem({ item, onClick }: { item: NavItem; onClick?: () => void }) {
   const pathname = usePathname();
   const router   = useRouter();
-  const depth    = item.path.split('/').length;
-  const isExact  = depth <= 3;
-  const activeCheck = isExact
-    ? pathname === item.path
-    : pathname === item.path || pathname.startsWith(item.path + '/');
+  const activeCheck = isNavItemActive(pathname, item);
 
   return (
     <button
@@ -370,7 +379,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       ? items.filter(i => i.path !== '/dashboard/player/registration')
       : items;
   const allItems      = [...filterReg(config.main), ...config.other];
-  const active        = allItems.find(i => pathname === i.path || pathname.startsWith(i.path + '/'));
+  const active        = allItems.find(i => isNavItemActive(pathname, i));
   const pageTitle     = active?.label ?? 'Dashboard';
 
   const BOTTOM_NAV_ICONS = ['LayoutDashboard', 'CalendarDays', 'MessageSquare', 'Settings'];
@@ -442,7 +451,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
           {/* Main nav */}
           <div style={{ padding: '6px 10px 0', flex: 1 }}>
-            <div style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-muted)', padding: '8px 4px 6px' }}>Menu</div>
+            <div style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-secondary)', padding: '8px 4px 6px' }}>Menu</div>
             <nav style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {filterReg(config.main).map(item => (
                 <SidebarNavItem key={item.path} item={item} onClick={() => setSidebarOpen(false)} />
@@ -452,7 +461,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
           {/* General nav */}
           <div style={{ padding: '0 10px 6px' }}>
-            <div style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-muted)', padding: '8px 4px 6px' }}>General</div>
+            <div style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-secondary)', padding: '8px 4px 6px' }}>General</div>
             <nav style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {config.other.map(item => (
                 <SidebarNavItem key={item.path} item={item} onClick={() => setSidebarOpen(false)} />
@@ -552,6 +561,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <div className="sams-main-content" style={{ marginLeft: 'var(--sidebar-width)', flex: 1, display: 'flex', flexDirection: 'column', minHeight: '100vh', minWidth: 0 }}>
 
         {/* Topbar */}
+        {/* Note: padding-top for the Android/iOS status bar safe area is applied via the
+            `.sams-topbar-header` CSS rule below (not inline) so it survives the mobile
+            `padding` override with !important — see <style> block at the end of this component. */}
         <header className="sams-topbar-header" style={{ height: 62, background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', padding: '0 28px', position: 'sticky', top: 0, zIndex: 50, gap: 14 }}>
           <button
             onClick={() => setSidebarOpen(true)}
@@ -714,12 +726,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         zIndex: 50, padding: '0 4px',
       }}>
         {bottomNavItems.map(item => {
-          // Same depth-based exact-match logic as SidebarNavItem
-          const depth    = item.path.split('/').length;
-          const isExact  = depth <= 3;
-          const isActive = isExact
-            ? pathname === item.path
-            : pathname === item.path || pathname.startsWith(item.path + '/');
+          const isActive = isNavItemActive(pathname, item);
           return (
             <button
               key={item.path}
@@ -764,6 +771,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </nav>
 
       <style>{`
+        /* Push the topbar below the native status bar on Capacitor Android/iOS.
+           The Android WebView (edge-to-edge on API 35+/targetSdk 36 here) draws
+           behind the system status bar with no automatic inset padding, unlike a
+           native view — env(safe-area-inset-top) reports 0px on plain web/desktop
+           so this is a no-op there. !important is required because it must win
+           over both the inline \`padding\` shorthand above and the mobile
+           \`padding\` override below (a shorthand reset always wins over a
+           non-important longhand set earlier, regardless of source order). */
+        .sams-topbar-header {
+          padding-top: env(safe-area-inset-top, 0px) !important;
+        }
         @media (max-width: 767px) {
           .sams-sidebar {
             transform: translateX(-100%);
@@ -793,6 +811,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           /* Tighter topbar padding on mobile */
           .sams-topbar-header {
             padding: 0 16px !important;
+            padding-top: env(safe-area-inset-top, 0px) !important;
           }
         }
       `}</style>

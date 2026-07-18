@@ -640,14 +640,17 @@ export function CoachDashboardScreen() {
               <div style={{ fontSize: '0.72rem', color: '#EF4444', marginBottom: 16 }}>{alerts.length} player{alerts.length !== 1 ? 's' : ''} needing attention</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {alerts.slice(0, 5).map(a => {
-                  const score = a.overall_score;
-                  const col   = score >= 70 ? '#10B981' : score >= 40 ? '#F59E0B' : '#EF4444';
-                  const lbl   = score >= 70 ? 'Good' : score >= 40 ? 'Moderate' : 'Low';
+                  const score     = a.overall_score;
+                  const col       = score >= 70 ? '#10B981' : score >= 40 ? '#F59E0B' : '#EF4444';
+                  const lbl       = score >= 70 ? 'Good' : score >= 40 ? 'Moderate' : 'Low';
+                  const firstName = a.users?.first_name ?? '';
+                  const lastName  = a.users?.last_name ?? '';
+                  const name      = `${firstName} ${lastName}`.trim() || `Player #${(a.player_id ?? a.id ?? '------').slice(0, 6)}`;
                   return (
                     <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', borderRadius: 12, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderLeft: `3px solid ${col}` }}>
                       <div style={{ width: 36, height: 36, borderRadius: '50%', background: `${col}15`, border: `1px solid ${col}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 900, color: col, flexShrink: 0 }}>{score}</div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>Player #{(a.player_id ?? a.id ?? '------').slice(0, 6)}</div>
+                        <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>{name}</div>
                         <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: 1 }}>{new Date(a.submitted_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</div>
                       </div>
                       <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '3px 8px', borderRadius: 99, background: `${col}15`, color: col, flexShrink: 0 }}>{lbl}</span>

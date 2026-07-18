@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { coachApi } from '@sams/api';
 
 // ─── Icons ─────────────────────────────────────────────────────────
@@ -388,7 +388,6 @@ export default function PlayersPage() {
   const [activeTeam, setActiveTeam] = useState('all');
   const [selected, setSelected]   = useState<CRAPlayer | null>(null);
   const [players, setPlayers]     = useState<CRAPlayer[]>([]);
-  const [teams, setTeams]         = useState<Array<{ id: string; name: string }>>([]);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState('');
 
@@ -396,12 +395,24 @@ export default function PlayersPage() {
     coachApi.getPlayers()
       .then((data: any) => {
         const ps: CRAPlayer[] = Array.isArray(data) ? data : (data?.players ?? []);
-        const ts = Array.isArray(data) ? [] : (data?.teams ?? []);
-        setPlayers(ps); setTeams(ts);
+        setPlayers(ps);
       })
       .catch((e: unknown) => setError(e instanceof Error ? e.message : 'Failed to load players'))
       .finally(() => setLoading(false));
   }, []);
+
+  // Derived from the players themselves — the same data source that
+  // populates each card's team badges — so the header count and the
+  // filter chips can never drift out of sync with what's actually shown.
+  const teams = useMemo(() => {
+    const byId = new Map<string, { id: string; name: string }>();
+    for (const p of players) {
+      for (const t of p.teams ?? []) {
+        if (!byId.has(t.id)) byId.set(t.id, { id: t.id, name: t.name });
+      }
+    }
+    return Array.from(byId.values());
+  }, [players]);
 
   const filtered = players.filter(p => {
     const nm = `${p.first_name} ${p.last_name} ${p.email}`.toLowerCase().includes(search.toLowerCase());

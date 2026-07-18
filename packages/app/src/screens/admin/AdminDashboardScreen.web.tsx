@@ -214,18 +214,24 @@ function RegistrationDonut({ accepted, pending, expired, size = 130 }: {
   const inner = Math.round(size * 0.30);
   const outer = Math.round(size * 0.44);
 
+  const donutAriaLabel = `Registration analytics: ${rate}% acceptance rate. ${accepted} accepted, ${pending} pending, ${expired} expired.`;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-      <div style={{ position: 'relative', width: size, height: size }}>
-        <PieChart width={size} height={size}>
+      <div
+        role="img"
+        aria-label={donutAriaLabel}
+        style={{ position: 'relative', width: size, height: size }}
+      >
+        <PieChart width={size} height={size} accessibilityLayer={false}>
           <Pie data={chartData} cx={cx - 1} cy={cx - 1}
             innerRadius={inner} outerRadius={outer}
             startAngle={90} endAngle={-270} dataKey="value"
-            strokeWidth={2} stroke="#fff">
+            strokeWidth={2} stroke="#fff" rootTabIndex={-1}>
             {chartData.map((d, i) => <Cell key={i} fill={d.color} />)}
           </Pie>
         </PieChart>
-        <div style={{
+        <div aria-hidden="true" style={{
           position: 'absolute', inset: 0,
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
           pointerEvents: 'none',
@@ -264,32 +270,35 @@ const OCEAN_PALETTE = [
 
 function OceanBarChart({ data, height = '100%' }: { data: { label: string; v: number }[]; height?: number | string }) {
   if (!data || data.length === 0) return null;
+  const barAriaLabel = `Member distribution by role: ${data.map(d => `${d.label} ${d.v}`).join(', ')}.`;
   return (
-    <ResponsiveContainer width="100%" height={height as number}>
-      <BarChart data={data} margin={{ top: 8, right: 4, bottom: 0, left: 0 }} barCategoryGap="35%">
-        <defs>
-          {data.map((_, i) => {
-            const p = OCEAN_PALETTE[i % OCEAN_PALETTE.length];
-            return (
-              <linearGradient key={i} id={`ocean-bar-${i}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%"   stopColor={p.from} stopOpacity={1} />
-                <stop offset="100%" stopColor={p.to}   stopOpacity={0.65} />
-              </linearGradient>
-            );
-          })}
-        </defs>
-        <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#94A3B8', fontWeight: 500 }} axisLine={false} tickLine={false} />
-        <YAxis hide />
-        <Tooltip
-          contentStyle={{ background: '#fff', border: '1px solid #F1F5F9', borderRadius: 10, boxShadow: '0 4px 16px rgba(15,23,42,0.08)', fontSize: '0.8rem' }}
-          cursor={{ fill: 'rgba(14,165,233,0.05)', borderRadius: 6 } as any}
-          formatter={(v: any, n: any) => [`${v} member${v !== 1 ? 's' : ''}`, n]}
-        />
-        <Bar dataKey="v" radius={[7, 7, 0, 0]} maxBarSize={48}>
-          {data.map((_, i) => <Cell key={i} fill={`url(#ocean-bar-${i})`} />)}
-        </Bar>
-      </BarChart>
-    </ResponsiveContainer>
+    <div role="img" aria-label={barAriaLabel} style={{ width: '100%', height: '100%' }}>
+      <ResponsiveContainer width="100%" height={height as number}>
+        <BarChart data={data} margin={{ top: 8, right: 4, bottom: 0, left: 0 }} barCategoryGap="35%" accessibilityLayer={false}>
+          <defs>
+            {data.map((_, i) => {
+              const p = OCEAN_PALETTE[i % OCEAN_PALETTE.length];
+              return (
+                <linearGradient key={i} id={`ocean-bar-${i}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%"   stopColor={p.from} stopOpacity={1} />
+                  <stop offset="100%" stopColor={p.to}   stopOpacity={0.65} />
+                </linearGradient>
+              );
+            })}
+          </defs>
+          <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#94A3B8', fontWeight: 500 }} axisLine={false} tickLine={false} />
+          <YAxis hide />
+          <Tooltip
+            contentStyle={{ background: '#fff', border: '1px solid #F1F5F9', borderRadius: 10, boxShadow: '0 4px 16px rgba(15,23,42,0.08)', fontSize: '0.8rem' }}
+            cursor={{ fill: 'rgba(14,165,233,0.05)', borderRadius: 6 } as any}
+            formatter={(v: any, n: any) => [`${v} member${v !== 1 ? 's' : ''}`, n]}
+          />
+          <Bar dataKey="v" radius={[7, 7, 0, 0]} maxBarSize={48}>
+            {data.map((_, i) => <Cell key={i} fill={`url(#ocean-bar-${i})`} />)}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
 

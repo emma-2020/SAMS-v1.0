@@ -322,7 +322,10 @@ export default function SettingsPage() {
   const [profileSuccess, setProfileSuccess] = useState(false);
 
   async function handleProfileSave(e: React.FormEvent) {
-    e.preventDefault(); setProfileError(''); setProfileSuccess(false); setSavingProfile(true);
+    e.preventDefault(); setProfileError(''); setProfileSuccess(false);
+    if (!profileForm.first_name.trim()) { setProfileError('First name is required.'); return; }
+    if (!profileForm.last_name.trim())  { setProfileError('Last name is required.'); return; }
+    setSavingProfile(true);
     try {
       const res = (await apiClient.patch('/auth/me', profileForm)) as { data?: { profile?: typeof user } };
       const profile = res?.data?.profile;
