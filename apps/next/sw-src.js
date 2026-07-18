@@ -74,7 +74,28 @@ self.addEventListener('fetch', (event) => {
   // and let its own client-side router figure out what to render.
   if (req.mode === 'navigate') {
     event.respondWith(
-      fetch(req).catch(() => caches.match(req).then((r) => r || caches.match('/')))
+      fetch(req)
+        .catch(() => caches.match(req).then((r) => r || caches.match('/')))
+        // Last-resort net: everything above returns `undefined` only if the
+        // precache itself is unavailable (e.g. never installed, or evicted
+        // by the browser) — normally unreachable since every real route is
+        // precached at build time. Without this, respondWith() would settle
+        // on `undefined`, which some engines (observed on WebKit) handle by
+        // silently abandoning the navigation — URL and content stay on the
+        // previous page with no visible error — instead of surfacing a
+        // network-error page the way Chromium does. Returning a real
+        // Response here makes that failure visible on every engine.
+        .then(
+          (res) =>
+            res ||
+            new Response(
+              '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
+                '<title>Offline</title><body style="font:16px system-ui,sans-serif;padding:3rem 1.5rem;text-align:center;color:#333">' +
+                "<p>You're offline, and this page hasn't finished loading its offline data yet.</p>" +
+                '<p>Reconnect and try again.</p></body>',
+              { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+            )
+        )
     );
     return;
   }
