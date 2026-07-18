@@ -121,7 +121,7 @@ function PlayerRow({ player, status, note, onSet, onNoteChange }: {
           {Object.entries(STATUS_CFG).map(([key, cfg]) => {
             const active = status === key;
             return (
-              <button key={key} onClick={() => onSet(player.player_id, active ? null : key)} title={cfg.label}
+              <button key={key} onClick={() => onSet(player.player_id, active ? null : key)} title={cfg.label} aria-pressed={active}
                 style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 11px', borderRadius: 8, cursor: 'pointer', border: active ? `1.5px solid ${cfg.color}` : '1.5px solid transparent', background: active ? cfg.bg : 'transparent', color: active ? cfg.color : '#94A3B8', fontSize: '0.72rem', fontWeight: active ? 800 : 500, transition: 'all 0.12s' }}
                 onMouseEnter={e => { if (!active) { e.currentTarget.style.background = cfg.bg; e.currentTarget.style.color = cfg.color; e.currentTarget.style.border = `1.5px solid ${cfg.border}`; } }}
                 onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#94A3B8'; e.currentTarget.style.border = '1.5px solid transparent'; } }}>
