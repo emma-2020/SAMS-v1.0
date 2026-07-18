@@ -552,6 +552,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <div className="sams-main-content" style={{ marginLeft: 'var(--sidebar-width)', flex: 1, display: 'flex', flexDirection: 'column', minHeight: '100vh', minWidth: 0 }}>
 
         {/* Topbar */}
+        {/* Note: padding-top for the Android/iOS status bar safe area is applied via the
+            `.sams-topbar-header` CSS rule below (not inline) so it survives the mobile
+            `padding` override with !important — see <style> block at the end of this component. */}
         <header className="sams-topbar-header" style={{ height: 62, background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', padding: '0 28px', position: 'sticky', top: 0, zIndex: 50, gap: 14 }}>
           <button
             onClick={() => setSidebarOpen(true)}
@@ -762,6 +765,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </nav>
 
       <style>{`
+        /* Push the topbar below the native status bar on Capacitor Android/iOS.
+           The Android WebView (edge-to-edge on API 35+/targetSdk 36 here) draws
+           behind the system status bar with no automatic inset padding, unlike a
+           native view — env(safe-area-inset-top) reports 0px on plain web/desktop
+           so this is a no-op there. !important is required because it must win
+           over both the inline \`padding\` shorthand above and the mobile
+           \`padding\` override below (a shorthand reset always wins over a
+           non-important longhand set earlier, regardless of source order). */
+        .sams-topbar-header {
+          padding-top: env(safe-area-inset-top, 0px) !important;
+        }
         @media (max-width: 767px) {
           .sams-sidebar {
             transform: translateX(-100%);
@@ -791,6 +805,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           /* Tighter topbar padding on mobile */
           .sams-topbar-header {
             padding: 0 16px !important;
+            padding-top: env(safe-area-inset-top, 0px) !important;
           }
         }
       `}</style>
