@@ -74,11 +74,11 @@ export interface MyAttendanceAnalytics {
     rate:         number;
     present:      number;
     absent:       number;
-    late:         number;
+    injured:      number;
     total:        number;
     gfaEligible: boolean | null;
   };
-  monthlyTrend: { month: string; present: number; absent: number; late: number; rate: number }[];
+  monthlyTrend: { month: string; present: number; absent: number; injured: number; rate: number }[];
   breakdown:    { name: string; value: number; color: string }[];
 }
 

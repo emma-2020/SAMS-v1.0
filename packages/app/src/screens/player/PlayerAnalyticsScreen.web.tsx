@@ -105,7 +105,7 @@ function PerformanceTab({
         {/* Attendance donut */}
         <SectionCard
           title="Attendance"
-          subtitle="Sessions present, late, absent"
+          subtitle="Sessions present, injured, absent"
           accent={`linear-gradient(90deg,${SUCCESS},${INFO})`}
         >
           {attLoading ? (
@@ -123,7 +123,7 @@ function PerformanceTab({
                     {attendance.kpis.rate}%
                   </div>
                   <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 2 }}>
-                    {attendance.kpis.present + attendance.kpis.late} / {attendance.kpis.total} sessions
+                    {attendance.kpis.present + attendance.kpis.injured} / {attendance.kpis.total} sessions
                   </div>
                 </div>
                 <span style={{
@@ -184,7 +184,7 @@ function PerformanceTab({
       )}
 
       {/* ── Monthly attendance bar ── */}
-      {!attLoading && attendance && attendance.monthlyTrend.some(m => m.present + m.absent + m.late > 0) && (
+      {!attLoading && attendance && attendance.monthlyTrend.some(m => m.present + m.absent + m.injured > 0) && (
         <SectionCard
           title="Monthly Attendance"
           subtitle="Sessions present vs absent by month"
@@ -194,7 +194,7 @@ function PerformanceTab({
             data={attendance.monthlyTrend}
             dataKeys={[
               { key: 'present', color: SUCCESS, label: 'Present' },
-              { key: 'late',    color: WARNING, label: 'Late'    },
+              { key: 'injured', color: WARNING, label: 'Injured' },
               { key: 'absent',  color: DANGER,  label: 'Absent'  },
             ]}
             xAxisKey="month"

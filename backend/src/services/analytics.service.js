@@ -440,11 +440,14 @@ async function getParentAnalytics({ academyId, userId }) {
       .eq('player_id', childId)
       .in('event_id', eventIds);
 
+    // status is 'Present' | 'Absent' | 'Injured' (case-sensitive, no 'Late' —
+    // see getAttendanceAnalytics above).
     const rows = attRows || [];
     attTotal   = rows.length;
-    attPresent = rows.filter(r => r.status === 'present' || r.status === 'late').length;
-    attRate    = attTotal > 0 ? Math.round((attPresent / attTotal) * 100) : 0;
-    gfaEligible = attTotal > 0 ? attRate >= 70 : null;
+    attPresent = rows.filter(r => r.status === 'Present').length;
+    const attInjured = rows.filter(r => r.status === 'Injured').length;
+    attRate    = attTotal > 0 ? Math.round(((attPresent + attInjured * 0.5) / attTotal) * 100) : 0;
+    gfaEligible = attTotal > 0 ? ((attPresent + attInjured) / attTotal) >= 0.7 : null;
   }
 
   // ── Wellness (last 60 days) ──
@@ -694,9 +697,11 @@ async function getTeamComparison({ academyId }) {
     (attRows || []).forEach(r => {
       const tid = eventTeam[r.event_id];
       if (!tid) return;
-      if (!attMap[tid]) attMap[tid] = { present: 0, total: 0 };
+      if (!attMap[tid]) attMap[tid] = { present: 0, injured: 0, total: 0 };
       attMap[tid].total++;
-      if (r.status === 'present' || r.status === 'late') attMap[tid].present++;
+      // status is 'Present' | 'Absent' | 'Injured' (case-sensitive, no 'Late').
+      if (r.status === 'Present') attMap[tid].present++;
+      else if (r.status === 'Injured') attMap[tid].injured++;
     });
   }
 
@@ -746,7 +751,7 @@ async function getTeamComparison({ academyId }) {
   const result = teams.map(t => {
     const squad    = rosterMap[t.id]?.size ?? 0;
     const att      = attMap[t.id];
-    const attRate  = att ? Math.round((att.present / att.total) * 100) : 0;
+    const attRate  = att && att.total > 0 ? Math.round(((att.present + att.injured * 0.5) / att.total) * 100) : 0;
     const wScores  = wellnessMap[t.id] || [];
     const wellness = wScores.length > 0
       ? Math.round(wScores.reduce((s, x) => s + x, 0) / wScores.length) : 0;
@@ -794,10 +799,11 @@ async function getPlayerDetail({ academyId, playerId }) {
       .eq('academy_id', academyId).eq('player_id', playerId).in('event_id', eventIds);
     const rows   = attRows || [];
     const total   = rows.length;
-    const present = rows.filter(r => r.status === 'present').length;
-    const late    = rows.filter(r => r.status === 'late').length;
-    const rate    = total > 0 ? Math.round(((present + late * 0.5) / total) * 100) : 0;
-    attendance = { rate, present, total, gfaEligible: total > 0 ? ((present + late) / total) >= 0.7 : null };
+    // status is 'Present' | 'Absent' | 'Injured' (case-sensitive, no 'Late').
+    const present = rows.filter(r => r.status === 'Present').length;
+    const injured = rows.filter(r => r.status === 'Injured').length;
+    const rate    = total > 0 ? Math.round(((present + injured * 0.5) / total) * 100) : 0;
+    attendance = { rate, present, total, gfaEligible: total > 0 ? ((present + injured) / total) >= 0.7 : null };
   }
 
   // Wellness
@@ -871,7 +877,7 @@ async function getMyAttendanceAnalytics({ academyId, userId }) {
   const eventIds = (events || []).map(e => e.id);
   if (!eventIds.length) {
     return {
-      kpis: { rate: 0, present: 0, absent: 0, late: 0, total: 0, gfaEligible: null },
+      kpis: { rate: 0, present: 0, absent: 0, injured: 0, total: 0, gfaEligible: null },
       monthlyTrend: [],
       breakdown: [],
     };
@@ -886,19 +892,21 @@ async function getMyAttendanceAnalytics({ academyId, userId }) {
 
   if (attErr) throw new InternalError('Failed to fetch player attendance records.');
 
+  // status is 'Present' | 'Absent' | 'Injured' (case-sensitive, no 'Late' —
+  // see getAttendanceAnalytics above).
   const rows    = attRows || [];
   const total   = rows.length;
-  const present = rows.filter(r => r.status === 'present').length;
-  const absent  = rows.filter(r => r.status === 'absent').length;
-  const late    = rows.filter(r => r.status === 'late').length;
-  const rate    = total > 0 ? Math.round(((present + late * 0.5) / total) * 100) : 0;
-  const gfaEligible = total > 0 ? ((present + late) / total) >= 0.7 : null;
+  const present = rows.filter(r => r.status === 'Present').length;
+  const absent  = rows.filter(r => r.status === 'Absent').length;
+  const injured = rows.filter(r => r.status === 'Injured').length;
+  const rate    = total > 0 ? Math.round(((present + injured * 0.5) / total) * 100) : 0;
+  const gfaEligible = total > 0 ? ((present + injured) / total) >= 0.7 : null;
 
   // Monthly trend (last 6 months)
   const eventMap = Object.fromEntries((events || []).map(e => [e.id, e]));
   const monthlyMap = {};
   last6MonthKeys().forEach(k => {
-    monthlyMap[k] = { month: monthLabel(k), present: 0, absent: 0, late: 0, total: 0 };
+    monthlyMap[k] = { month: monthLabel(k), present: 0, absent: 0, injured: 0, total: 0 };
   });
   rows.forEach(r => {
     const ev = eventMap[r.event_id];
@@ -907,27 +915,27 @@ async function getMyAttendanceAnalytics({ academyId, userId }) {
     const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
     if (monthlyMap[k]) {
       monthlyMap[k].total++;
-      if (r.status === 'present')     monthlyMap[k].present++;
-      else if (r.status === 'absent') monthlyMap[k].absent++;
-      else if (r.status === 'late')   monthlyMap[k].late++;
+      if (r.status === 'Present')      monthlyMap[k].present++;
+      else if (r.status === 'Absent')  monthlyMap[k].absent++;
+      else if (r.status === 'Injured') monthlyMap[k].injured++;
     }
   });
   const monthlyTrend = Object.values(monthlyMap).map(m => ({
     month:   m.month,
     present: m.present,
     absent:  m.absent,
-    late:    m.late,
-    rate:    m.total > 0 ? Math.round(((m.present + m.late * 0.5) / m.total) * 100) : 0,
+    injured: m.injured,
+    rate:    m.total > 0 ? Math.round(((m.present + m.injured * 0.5) / m.total) * 100) : 0,
   }));
 
   const breakdown = [
     { name: 'Present', value: present, color: '#10B981' },
-    { name: 'Late',    value: late,    color: '#F59E0B' },
+    { name: 'Injured', value: injured, color: '#F59E0B' },
     { name: 'Absent',  value: absent,  color: '#EF4444' },
   ].filter(d => d.value > 0);
 
   return {
-    kpis: { rate, present, absent, late, total, gfaEligible },
+    kpis: { rate, present, absent, injured, total, gfaEligible },
     monthlyTrend,
     breakdown,
   };
