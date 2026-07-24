@@ -9,6 +9,7 @@ export {
   listQueuedMutations,
   isOffline,
   onNetworkChange,
+  reportNetworkOutcome,
   recheckOfflineStateOnResume,
 } from './interceptors';
 export type { QueuedMutation, QueueEvent } from './interceptors';

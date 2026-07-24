@@ -1,5 +1,5 @@
 import axios, { type InternalAxiosRequestConfig } from 'axios';
-import { stashRawRequestData, cacheGetResponseIfApplicable, handleOfflineOnError, installOfflineSupport } from './offline';
+import { stashRawRequestData, cacheGetResponseIfApplicable, handleOfflineOnError, installOfflineSupport, reportNetworkOutcome } from './offline';
 
 // Resolved at runtime so it works in Next.js (server + client) and Expo
 function resolveBaseUrl(): string {
@@ -78,6 +78,14 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 // the login page and silently wipes the error state before the user can see it.
 apiClient.interceptors.response.use(
   (res) => {
+    // A completed response — of any status — proves the network is up, and
+    // is the only signal (besides a native browser online/offline event or
+    // Capacitor resume, see offline/network.ts) that ever flips `online`
+    // back to true. Without this, a single network-classified failure (a
+    // CORS blip, a timeout, one aborted request — not necessarily a real
+    // outage) latches the offline indicator on forever, since ordinary
+    // successful traffic was never reported back.
+    reportNetworkOutcome(true);
     // Best-effort cache write for offline fallback later — never blocks or
     // fails the response itself.
     cacheGetResponseIfApplicable(res).catch(() => {});
