@@ -190,5 +190,5 @@ export async function clearOfflineData(): Promise<void> {
 
 export { OfflineQueuedError } from './errors';
 export { subscribeOfflineQueue, listQueuedMutations } from './queue';
-export { isOffline, onNetworkChange } from './network';
+export { isOffline, onNetworkChange, reportNetworkOutcome } from './network';
 export type { QueuedMutation, QueueEvent } from './queue';
