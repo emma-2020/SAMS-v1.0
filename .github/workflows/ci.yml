@@ -13,6 +13,16 @@ jobs:
     defaults:
       run:
         working-directory: backend
+    env:
+      # Dummy values: config/env.js validates these are *present* at module
+      # load time (before jest.mock() takes effect), but every backend unit
+      # test fully mocks the Supabase client — no real network call is ever
+      # made, so no real credentials are needed here.
+      SUPABASE_URL: https://ci-placeholder.supabase.co
+      SUPABASE_SERVICE_KEY: ci-placeholder-service-key
+      SUPABASE_ANON_KEY: ci-placeholder-anon-key
+      SUPABASE_JWT_SECRET: ci-placeholder-jwt-secret
+      PORT: '4000'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -29,8 +39,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
