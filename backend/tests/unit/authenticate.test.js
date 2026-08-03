@@ -6,10 +6,10 @@
  * Supabase is fully mocked — no live network calls.
  */
 
-jest.mock('../../../src/config/supabase');
+jest.mock('../../src/config/supabase');
 
-const { supabaseAdmin }  = require('../../../src/config/supabase');
-const { authenticate }   = require('../../../src/middleware/auth.middleware');
+const { supabaseAdmin }  = require('../../src/config/supabase');
+const { authenticate }   = require('../../src/middleware/auth.middleware');
 
 // ─── Helpers ──────────────────────────────────────────────────────
 
@@ -32,13 +32,24 @@ function stubGetUser(user = null, error = null) {
   };
 }
 
-/** Stubs supabaseAdmin.from().select().eq().single() chain */
+/**
+ * Stubs supabaseAdmin.from('users') to support both chains authenticate()
+ * issues against it:
+ *   - select('...').eq('id', ...).single()                — profile lookup
+ *   - update({...}).eq('id', ...).then().catch()           — fire-and-forget
+ *     last_seen_at presence write (see "online presence" feature)
+ * Both must live on the same returned object since authenticate() calls
+ * supabaseAdmin.from('users') twice against the same mock.
+ */
 function stubProfileQuery(profile = null, error = null) {
   const single = jest.fn().mockResolvedValue({ data: profile, error });
-  const eq2    = jest.fn().mockReturnValue({ single });
-  const eq1    = jest.fn().mockReturnValue({ eq: eq2 });
-  const select = jest.fn().mockReturnValue({ eq: eq1 });
-  supabaseAdmin.from = jest.fn().mockReturnValue({ select });
+  const eq     = jest.fn().mockReturnValue({ single });
+  const select = jest.fn().mockReturnValue({ eq });
+
+  const updateEq = jest.fn().mockResolvedValue({ data: null, error: null });
+  const update   = jest.fn().mockReturnValue({ eq: updateEq });
+
+  supabaseAdmin.from = jest.fn().mockReturnValue({ select, update });
 }
 
 // ─── Tests ────────────────────────────────────────────────────────

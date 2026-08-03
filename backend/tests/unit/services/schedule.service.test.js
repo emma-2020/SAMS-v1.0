@@ -8,33 +8,21 @@ const { ForbiddenError }  = require('../../../src/utils/errors');
 
 // ─── Mock builder ─────────────────────────────────────────────────
 function mockFrom(rows, error = null) {
-  const terminal = jest.fn().mockResolvedValue({ data: rows, error });
-  const builder  = {
-    select:  jest.fn().mockReturnThis(),
-    eq:      jest.fn().mockReturnThis(),
-    in:      jest.fn().mockReturnThis(),
-    gte:     jest.fn().mockReturnThis(),
-    lte:     jest.fn().mockReturnThis(),
-    order:   jest.fn().mockReturnThis(),
-    single:  terminal,
-    // allow chaining to terminal
-  };
-  builder.select.mockReturnValue(builder);
-  builder.eq.mockReturnValue(builder);
-  builder.in.mockReturnValue(builder);
-  builder.gte.mockReturnValue(builder);
-  builder.lte.mockReturnValue(builder);
-  builder.order.mockReturnValue({ ...builder, then: undefined, data: rows, error });
-  // Make the query itself await-able (returns { data, error })
-  const awaitableBuilder = { ...builder };
-  // Override order to return a thenable
-  awaitableBuilder.order = jest.fn().mockResolvedValue({ data: rows, error });
-  awaitableBuilder.in    = jest.fn().mockReturnValue(awaitableBuilder);
-  awaitableBuilder.eq    = jest.fn().mockReturnValue(awaitableBuilder);
-  awaitableBuilder.gte   = jest.fn().mockReturnValue(awaitableBuilder);
-  awaitableBuilder.lte   = jest.fn().mockReturnValue(awaitableBuilder);
-  awaitableBuilder.select = jest.fn().mockReturnValue(awaitableBuilder);
-  return awaitableBuilder;
+  // Mirrors real supabase-js PostgrestFilterBuilder semantics:
+  //   - every filter method (.select/.eq/.in/.gte/.lte/.order) returns the
+  //     SAME chainable builder instance, and
+  //   - the builder itself is a thenable, so `await query` resolves to
+  //     { data, error } even when no terminal method (.single()) was called.
+  //   - .single() is the one terminal method that short-circuits to a
+  //     resolved { data, error } promise.
+  const builder = {};
+  ['select', 'eq', 'in', 'gte', 'lte', 'order'].forEach((method) => {
+    builder[method] = jest.fn().mockReturnValue(builder);
+  });
+  builder.single = jest.fn().mockResolvedValue({ data: rows, error });
+  builder.then = (resolve, reject) =>
+    Promise.resolve({ data: rows, error }).then(resolve, reject);
+  return builder;
 }
 
 describe('scheduleService.getEvents', () => {

@@ -3,7 +3,7 @@
 
 jest.mock('../../src/config/supabase');
 
-const { supabaseAdmin }  = require('../../src/config/supabase');
+const { supabaseAdmin, supabaseAnon } = require('../../src/config/supabase');
 const authService        = require('../../src/services/auth.service');
 const { ConflictError, UnauthorizedError, NotFoundError, BadRequestError } =
   require('../../src/utils/errors');
@@ -55,7 +55,7 @@ describe('authService.login', () => {
   // ── Auth failure ───────────────────────────────────────────────
 
   test('throws UnauthorizedError on wrong credentials', async () => {
-    supabaseAdmin.auth = {
+    supabaseAnon.auth = {
       signInWithPassword: jest.fn().mockResolvedValue({
         data: { session: null }, error: { message: 'Invalid login credentials' },
       }),
@@ -66,7 +66,7 @@ describe('authService.login', () => {
   });
 
   test('error message is deliberately vague — does not reveal email vs password', async () => {
-    supabaseAdmin.auth = {
+    supabaseAnon.auth = {
       signInWithPassword: jest.fn().mockResolvedValue({
         data: { session: null }, error: { message: 'Invalid login credentials' },
       }),
@@ -74,9 +74,12 @@ describe('authService.login', () => {
 
     try {
       await authService.login(credentials);
+      throw new Error('expected authService.login to reject');
     } catch (err) {
-      expect(err.message).not.toMatch(/email/i);
-      expect(err.message).not.toMatch(/password/i);
+      // Deliberately vague: the same generic message is used whether the email
+      // or the password was wrong, so a caller can't enumerate valid emails by
+      // comparing error text. (A message that says "email or password" together
+      // necessarily contains both words — that's the point, not a leak.)
       expect(err.message).toMatch(/invalid email or password/i);
     }
   });
@@ -84,7 +87,7 @@ describe('authService.login', () => {
   // ── Tenant guard ───────────────────────────────────────────────
 
   test('throws UnauthorizedError when user does not belong to the requested academy', async () => {
-    supabaseAdmin.auth = {
+    supabaseAnon.auth = {
       signInWithPassword: jest.fn().mockResolvedValue({
         data: {
           user:    { id: 'u1' },
@@ -106,7 +109,7 @@ describe('authService.login', () => {
   // ── Happy path ─────────────────────────────────────────────────
 
   test('returns session tokens and safe profile on success', async () => {
-    supabaseAdmin.auth = {
+    supabaseAnon.auth = {
       signInWithPassword: jest.fn().mockResolvedValue({
         data: {
           user:    { id: 'u1' },
@@ -139,7 +142,7 @@ describe('authService.login', () => {
   // ── Deactivated account ────────────────────────────────────────
 
   test('throws UnauthorizedError when account is_active = false', async () => {
-    supabaseAdmin.auth = {
+    supabaseAnon.auth = {
       signInWithPassword: jest.fn().mockResolvedValue({
         data: {
           user:    { id: 'u1' },

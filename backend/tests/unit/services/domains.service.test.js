@@ -14,6 +14,11 @@ function chainMock(data, error = null) {
     eq:          jest.fn().mockReturnThis(),
     in:          jest.fn().mockReturnThis(),
     upsert:      jest.fn().mockReturnThis(),
+    insert:      jest.fn().mockReturnThis(),
+    is:          jest.fn().mockReturnThis(),
+    gt:          jest.fn().mockReturnThis(),
+    gte:         jest.fn().mockReturnThis(),
+    lte:         jest.fn().mockReturnThis(),
     maybeSingle: jest.fn().mockResolvedValue(result),
     single:      jest.fn().mockResolvedValue(result),
   };
@@ -21,6 +26,11 @@ function chainMock(data, error = null) {
   m.eq.mockReturnValue(m);
   m.in.mockReturnValue(m);
   m.upsert.mockReturnValue(m);
+  m.insert.mockReturnValue(m);
+  m.is.mockReturnValue(m);
+  m.gt.mockReturnValue(m);
+  m.gte.mockReturnValue(m);
+  m.lte.mockReturnValue(m);
   return m;
 }
 
@@ -122,7 +132,10 @@ describe('healthService.submitHealthLog', () => {
       { id: 'l1', player_id: 'p1', fatigue: 3, soreness: 2, sleep_quality: 5 },
     ];
 
-    // The query should be scoped to player's own ID
+    // The query should be scoped to player's own ID.
+    // Mirrors the real Supabase query builder: every chain method returns
+    // the same thenable builder, so `await` resolves correctly regardless
+    // of whether `.in()` is chained on afterwards (it is, for role='Player').
     let capturedIn;
     const m = {
       select:  jest.fn().mockReturnThis(),
@@ -130,8 +143,8 @@ describe('healthService.submitHealthLog', () => {
       gte:     jest.fn().mockReturnThis(),
       order:   jest.fn().mockReturnThis(),
       in:      jest.fn().mockImplementation((col, ids) => { capturedIn = ids; return m; }),
+      then:    (resolve) => resolve({ data: mockLogs, error: null }),
     };
-    m.order = jest.fn().mockResolvedValue({ data: mockLogs, error: null });
     supabaseAdmin.from = jest.fn().mockReturnValue(m);
 
     await healthService.getHealthLogs({
@@ -182,11 +195,13 @@ describe('chatService', () => {
   });
 
   test('getMessages: Admin always passes team membership check', async () => {
-    let teamCheckCalled = false;
+    let channelLookupCalled = false;
     supabaseAdmin.from = jest.fn().mockImplementation((table) => {
-      if (table === 'teams') {
-        teamCheckCalled = true;
-        return chainMock({ id: 'T1', name: 'U16', academy_id: 'a1' });
+      if (table === 'chat_channels') {
+        // Resolves the legacy teamId -> channel_id lookup, and later the
+        // channel-name lookup for the response payload.
+        channelLookupCalled = true;
+        return chainMock({ id: 'chan1', name: 'U16', team_id: 'T1', academy_id: 'a1' });
       }
       if (table === 'messages') {
         const m = {
@@ -214,6 +229,9 @@ describe('chatService', () => {
 // ADMIN SERVICE TESTS
 // ═══════════════════════════════════════════════════════════════════
 
+// Auto-mocked so createInvitation's real send path never fires a live
+// Resend API call from a unit test (RESEND_API_KEY is a real key in .env).
+jest.mock('../../../src/services/email.service');
 const adminService  = require('../../../src/services/admin.service');
 
 describe('adminService.createInvitation', () => {

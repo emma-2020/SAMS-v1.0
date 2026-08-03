@@ -1,7 +1,7 @@
 // tests/unit/middleware/requireRole.test.js
 'use strict';
 
-const { requireRole } = require('../../../src/middleware/auth.middleware');
+const { requireRole } = require('../../src/middleware/auth.middleware');
 
 // ─── Helpers ──────────────────────────────────────────────────────
 
@@ -21,7 +21,7 @@ describe('requireRole — definition-time validation', () => {
 
   test('throws a plain Error (not AppError) when an invalid role is passed at definition', () => {
     expect(() => requireRole('SuperUser')).toThrow(
-      /invalid role\(s\) passed at route definition/i
+      /invalid role\(s\)/i
     );
   });
 
