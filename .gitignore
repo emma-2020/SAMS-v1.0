@@ -55,3 +55,6 @@ coverage/
 
 # Misc
 *.pem
+
+# Local scratch / one-off debug & QA scripts — never intended for the repo
+scratch/
