@@ -24,7 +24,7 @@
     "@sentry/react": "^10.69.0",
     "axios": "^1.7.2",
     "framer-motion": "^12.40.0",
-    "lucide-react": "^1.17.0",
+    "lucide-react": "^1.22.0",
     "nativewind": "^4.0.36",
     "next": "14.2.35",
     "react": "^18.3.1",
