@@ -1,8 +1,9 @@
 // src/services/chat_channels.service.js
 'use strict';
 
-const { supabaseAdmin } = require('../config/supabase');
-const notif             = require('./notifications.service');
+const { supabaseAdmin }      = require('../config/supabase');
+const notif                  = require('./notifications.service');
+const { resolveAttachmentUrl } = require('./chat.service');
 const {
   ForbiddenError,
   NotFoundError,
@@ -660,7 +661,12 @@ async function getReports({ academyId }) {
     .order('created_at', { ascending: false });
 
   if (error) throw new InternalError('Failed to fetch reports.');
-  return data || [];
+
+  return Promise.all((data || []).map(async (report) => (
+    report.messages?.attachment_url
+      ? { ...report, messages: { ...report.messages, attachment_url: await resolveAttachmentUrl(report.messages.attachment_url) } }
+      : report
+  )));
 }
 
 // ─────────────────────────────────────────────────────────────────

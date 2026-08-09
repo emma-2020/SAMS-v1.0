@@ -14,6 +14,48 @@ const {
 const ATTACHMENT_BUCKET = 'chat-attachments';
 const DEFAULT_LIMIT     = 50;
 const MAX_LIMIT         = 100;
+const SIGNED_URL_TTL    = 60 * 60; // 1 hour — re-signed on every fetch, so this only bounds staleness while offline/cached
+
+// ─────────────────────────────────────────────────────────────────
+// ATTACHMENT URL RESOLUTION
+// The bucket is private; messages.attachment_url stores whatever URL
+// uploadAttachment() returned at send time (a signed URL, or — for rows
+// written before this bucket was made private — an old-style public
+// URL). Neither stays valid forever, so every read re-signs a fresh
+// URL from the storage path embedded in whatever was stored, instead
+// of trusting the stored string directly.
+// ─────────────────────────────────────────────────────────────────
+
+function extractStoragePath(urlOrPath) {
+  if (!urlOrPath) return null;
+  const marker = `/${ATTACHMENT_BUCKET}/`;
+  const idx = urlOrPath.indexOf(marker);
+  const path = idx === -1 ? urlOrPath : urlOrPath.slice(idx + marker.length);
+  return path.split('?')[0];
+}
+
+async function resolveAttachmentUrl(storedValue) {
+  if (!storedValue) return storedValue;
+  const path = extractStoragePath(storedValue);
+  const { data, error } = await supabaseAdmin
+    .storage
+    .from(ATTACHMENT_BUCKET)
+    .createSignedUrl(path, SIGNED_URL_TTL);
+
+  if (error) {
+    console.error('[ChatService.resolveAttachmentUrl] sign error:', error.message);
+    return null;
+  }
+  return data.signedUrl;
+}
+
+async function resolveAttachmentUrls(rows) {
+  return Promise.all(rows.map(async (row) => (
+    row.attachment_url
+      ? { ...row, attachment_url: await resolveAttachmentUrl(row.attachment_url) }
+      : row
+  )));
+}
 
 // ─────────────────────────────────────────────────────────────────
 // GET MESSAGES
@@ -55,7 +97,7 @@ async function getMessages({ channelId, teamId, userId, academyId, role, limit, 
     throw new InternalError('Failed to fetch messages. Please try again.');
   }
 
-  const messages = (data || []).reverse();
+  const messages = await resolveAttachmentUrls((data || []).reverse());
 
   // Fetch channel name for response
   const { data: ch } = await supabaseAdmin
@@ -97,12 +139,17 @@ async function uploadAttachment({ channelId, teamId, userId, academyId, role, fi
     throw new InternalError('File upload failed. Please try again.');
   }
 
-  const { data: { publicUrl } } = supabaseAdmin
+  const { data, error: signError } = await supabaseAdmin
     .storage
     .from(ATTACHMENT_BUCKET)
-    .getPublicUrl(storagePath);
+    .createSignedUrl(storagePath, SIGNED_URL_TTL);
 
-  return { url: publicUrl, file_name: originalname, mime_type: mimetype, file_size: fileSize };
+  if (signError) {
+    console.error('[ChatService.uploadAttachment] sign error:', signError.message);
+    throw new InternalError('File upload failed. Please try again.');
+  }
+
+  return { url: data.signedUrl, file_name: originalname, mime_type: mimetype, file_size: fileSize };
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -187,7 +234,7 @@ async function sendMessage({ channelId, teamId, senderId, academyId, role, messa
         .eq('sender_id', senderId)
         .eq('client_message_id', clientMessageId)
         .single();
-      if (winner) return winner;
+      if (winner) return { ...winner, attachment_url: await resolveAttachmentUrl(winner.attachment_url) };
     }
     console.error('[ChatService.sendMessage]', error.message);
     throw new InternalError('Failed to send message. Please try again.');
@@ -247,7 +294,7 @@ async function sendMessage({ channelId, teamId, senderId, academyId, role, messa
     } catch (e) { console.error('[ChatService] notify error:', e.message); }
   })();
 
-  return data;
+  return { ...data, attachment_url: await resolveAttachmentUrl(data.attachment_url) };
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -317,4 +364,4 @@ async function assertChannelMembership({ channelId, userId, academyId, role }) {
   if (!data) throw new ForbiddenError('You are not a member of this channel.');
 }
 
-module.exports = { getMessages, sendMessage, uploadAttachment, deleteMessage };
+module.exports = { getMessages, sendMessage, uploadAttachment, deleteMessage, resolveAttachmentUrl };

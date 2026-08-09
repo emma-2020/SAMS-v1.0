@@ -222,6 +222,64 @@ describe('chatService', () => {
 
     expect(result).toHaveProperty('messages');
   });
+
+  test('getMessages: resolves attachment_url to a freshly-signed URL, not the stored value', async () => {
+    const storedUrl = 'https://ffbzjkvenamompeaxhpe.supabase.co/storage/v1/object/public/chat-attachments/a1/chan1/123_abc_photo.png';
+    const signedUrl  = 'https://ffbzjkvenamompeaxhpe.supabase.co/storage/v1/object/sign/chat-attachments/a1/chan1/123_abc_photo.png?token=fresh';
+    const createSignedUrl = jest.fn().mockResolvedValue({ data: { signedUrl }, error: null });
+    supabaseAdmin.storage = { from: jest.fn().mockReturnValue({ createSignedUrl }) };
+
+    supabaseAdmin.from = jest.fn().mockImplementation((table) => {
+      if (table === 'chat_channels') return chainMock({ id: 'chan1', name: 'U16', team_id: 'T1', academy_id: 'a1' });
+      if (table === 'messages') {
+        const m = {
+          select: jest.fn().mockReturnThis(),
+          eq:     jest.fn().mockReturnThis(),
+          order:  jest.fn().mockReturnThis(),
+          limit:  jest.fn().mockResolvedValue({
+            data: [{
+              id: 'm1', team_id: 'T1', channel_id: 'chan1', sender_id: 'u1',
+              message_text: null, attachment_url: storedUrl,
+              file_name: 'photo.png', mime_type: 'image/png', file_size: 111,
+              created_at: '2026-01-01T00:00:00Z', users: null,
+            }],
+            error: null,
+          }),
+        };
+        return m;
+      }
+      return chainMock([]);
+    });
+
+    const result = await chatService.getMessages({
+      teamId: 'T1', userId: 'admin1', academyId: 'a1', role: 'Admin',
+    });
+
+    expect(result.messages[0].attachment_url).toBe(signedUrl);
+    // The extracted path (everything after the bucket segment), not the full stored URL, is what gets signed
+    expect(createSignedUrl).toHaveBeenCalledWith('a1/chan1/123_abc_photo.png', expect.any(Number));
+  });
+
+  test('uploadAttachment: returns a signed URL, not a permanent public one', async () => {
+    const signedUrl = 'https://ffbzjkvenamompeaxhpe.supabase.co/storage/v1/object/sign/chat-attachments/a1/chan1/new-file.png?token=fresh';
+    const upload         = jest.fn().mockResolvedValue({ error: null });
+    const createSignedUrl = jest.fn().mockResolvedValue({ data: { signedUrl }, error: null });
+    supabaseAdmin.storage = { from: jest.fn().mockReturnValue({ upload, createSignedUrl }) };
+    supabaseAdmin.from = jest.fn().mockImplementation((table) => {
+      if (table === 'chat_channels') return chainMock({ id: 'chan1', name: 'U16', team_id: 'T1', academy_id: 'a1' });
+      return chainMock({ user_id: 'admin1' }); // channel membership row
+    });
+
+    const result = await chatService.uploadAttachment({
+      teamId: 'T1', userId: 'admin1', academyId: 'a1', role: 'Admin',
+      fileBuffer: Buffer.from('x'), mimetype: 'image/png',
+      originalname: 'new-file.png', fileSize: 1,
+    });
+
+    expect(result.url).toBe(signedUrl);
+    expect(upload).toHaveBeenCalled();
+    expect(createSignedUrl).toHaveBeenCalled();
+  });
 });
 
 
