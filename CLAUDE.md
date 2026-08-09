@@ -148,5 +148,7 @@ SAMS-v1.0/
 - Capacitor is still in live-server mode (unaffected by any of the above) — see the Capacitor section above.
 
 ## V1.0 Scope Constraint
-Stripe, PDF generation, video tools, Apple Health sync, and AI scheduling are explicitly out of scope. Do not introduce these.
+Stripe, PDF generation (beyond chat attachments), Apple Health sync, and AI scheduling are explicitly out of scope. Do not introduce these.
 Chat file attachments (images and PDF, max 10 MB) are in scope — see `POST /api/chat/upload` and `database/migrations/004_chat_attachments.sql`.
+
+**Video calling and payments are live, despite earlier plans to exclude them (corrected Aug 2026 — the constraint above was stale).** Video/audio calling (meetings and ad-hoc 1:1/team calls) is fully implemented via Daily.co — `backend/src/services/meetings.service.js`, DB tables `meetings`/`meeting_attendees`/`call_sessions`, routes in `backend/src/routes/meetings.routes.js`, client-side `DailyIframe` usage in both `apps/next` and `frontend`. Payments are live via **Paystack, not Stripe** — `backend/src/services/paystack.service.js` and `fee.service.js` handle fee invoicing, checkout redirect, and webhook-verified confirmation; the secret key is stored per-academy in `academies.paystack_secret_key` (migration `018_academy_paystack_key.sql`). Stripe remains genuinely unused — don't introduce it without discussion, since Paystack is the actual payment processor in production.
