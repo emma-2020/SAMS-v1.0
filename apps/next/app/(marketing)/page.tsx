@@ -1200,6 +1200,22 @@ export default function HomePage() {
             hello@playsams.com
           </a>
           <Link
+            href="/terms"
+            style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.22)', textDecoration: 'none', transition: 'color 0.15s', letterSpacing: '0.03em' }}
+            onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.55)'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.22)'; }}
+          >
+            Terms
+          </Link>
+          <Link
+            href="/privacy"
+            style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.22)', textDecoration: 'none', transition: 'color 0.15s', letterSpacing: '0.03em' }}
+            onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.55)'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.22)'; }}
+          >
+            Privacy
+          </Link>
+          <Link
             href="/platform/login"
             style={{
               display: 'flex', alignItems: 'center', gap: 6,

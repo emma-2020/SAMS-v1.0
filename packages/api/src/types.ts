@@ -18,6 +18,9 @@ export interface UserProfile {
   is_active?: boolean;
   created_at?: string;
   availability_status?: 'Available' | 'Injured' | 'Suspended' | 'Resting';
+  date_of_birth?: string | null;
+  terms_accepted_at?: string | null;
+  terms_version?: string | null;
 }
 
 export interface FeeLedgerEntry {

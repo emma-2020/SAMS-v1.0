@@ -49,7 +49,13 @@ export async function validateInvite(token: string): Promise<{ invite: InviteDet
   return res.data;
 }
 
-export async function register(payload: { token: string; password: string }): Promise<LoginResponse> {
+export async function register(payload: {
+  token: string;
+  password: string;
+  date_of_birth?: string;
+  terms_accepted: boolean;
+  terms_version: string;
+}): Promise<LoginResponse> {
   const res = (await apiClient.post('/auth/register', payload)) as { success: boolean; data: LoginResponse };
   return res.data;
 }

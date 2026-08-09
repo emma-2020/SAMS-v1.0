@@ -12,8 +12,14 @@ const {
   validateLoginPayload,
   validatePasswordChange,
   sanitizeString,
+  validateDateOfBirth,
+  validateTermsAccepted,
 } = require('../utils/validators');
 const audit = require('./audit.service');
+
+// Placeholder legal text version accepted at signup. Bump this when real
+// legal copy replaces the /terms and /privacy placeholder pages.
+const TERMS_VERSION = 'v1-draft';
 
 // ─── Per-account login lockout ────────────────────────────────────────────────
 // In-memory store: email → { count, lockedUntil }
@@ -263,10 +269,15 @@ async function verifyInviteToken(token) {
 // then signs them in and returns a live session.
 // ─────────────────────────────────────────────────────────────────
 
-async function registerByInvitation({ token, password }) {
+async function registerByInvitation({ token, password, date_of_birth, terms_accepted }) {
   if (!password || password.length < 8) {
     throw new BadRequestError('Password must be at least 8 characters.');
   }
+
+  // Terms of Service / Privacy Policy consent — the one required piece of
+  // this feature. date_of_birth stays optional (never throws when omitted).
+  validateTermsAccepted(terms_accepted);
+  const dob = validateDateOfBirth(date_of_birth);
 
   // Re-validate the token (guards against race conditions)
   const inviteDetails = await verifyInviteToken(token);
@@ -318,8 +329,11 @@ async function registerByInvitation({ token, password }) {
       role,
       first_name:    sanitizeString(first_name),
       last_name:     sanitizeString(last_name),
+      date_of_birth: dob,
+      terms_accepted_at: new Date().toISOString(),
+      terms_version: TERMS_VERSION,
     })
-    .select('id, academy_id, email, role, first_name, last_name, avatar_url, created_at')
+    .select('id, academy_id, email, role, first_name, last_name, avatar_url, created_at, date_of_birth, terms_accepted_at, terms_version')
     .single();
 
   if (profileError) {
@@ -575,4 +589,4 @@ async function updatePreferences({ userId, academyId, preferences }) {
   return data.preferences;
 }
 
-module.exports = { login, logout, getMe, refreshSession, updateProfile, changePassword, verifyInviteToken, registerByInvitation, uploadAvatar, setupAccount, forgotPassword, resetPassword, getPreferences, updatePreferences };
+module.exports = { login, logout, getMe, refreshSession, updateProfile, changePassword, verifyInviteToken, registerByInvitation, uploadAvatar, setupAccount, forgotPassword, resetPassword, getPreferences, updatePreferences, TERMS_VERSION };

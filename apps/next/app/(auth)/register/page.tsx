@@ -15,6 +15,9 @@ const ROLE_DASHBOARD: Record<string, string> = {
 
 const ROLE_COLORS: Record<string, string> = { Admin: '#7C3AED', Coach: '#2563EB', Player: '#059669', Parent: '#D97706' };
 
+// Bump this whenever the placeholder Terms/Privacy copy materially changes.
+const TERMS_VERSION = '2026-08-03';
+
 const IconLock    = () => <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>;
 const IconEyeOn   = () => <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>;
 const IconEyeOff  = () => <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>;
@@ -33,13 +36,15 @@ export default function RegisterPage() {
   const [invite,      setInvite]      = useState<InviteDetails | null>(null);
   const [invalidMsg,  setInvalidMsg]  = useState('');
 
-  const [password,    setPassword]    = useState('');
-  const [confirm,     setConfirm]     = useState('');
-  const [showPw,      setShowPw]      = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [loading,     setLoading]     = useState(false);
-  const [apiError,    setApiError]    = useState('');
-  const [errors,      setErrors]      = useState<{ password?: string; confirm?: string }>({});
+  const [password,     setPassword]     = useState('');
+  const [confirm,      setConfirm]      = useState('');
+  const [dateOfBirth,  setDateOfBirth]  = useState('');
+  const [agreedTerms,  setAgreedTerms]  = useState(false);
+  const [showPw,       setShowPw]       = useState(false);
+  const [showConfirm,  setShowConfirm]  = useState(false);
+  const [loading,      setLoading]      = useState(false);
+  const [apiError,     setApiError]     = useState('');
+  const [errors,       setErrors]       = useState<{ password?: string; confirm?: string; terms?: string }>({});
 
   // Read ?token= from the URL and validate the invitation
   useEffect(() => {
@@ -63,6 +68,7 @@ export default function RegisterPage() {
     const e: typeof errors = {};
     if (password.length < 8) e.password = 'Password must be at least 8 characters.';
     if (password !== confirm) e.confirm = 'Passwords do not match.';
+    if (!agreedTerms) e.terms = 'You must agree to the Terms of Service and Privacy Policy to continue.';
     setErrors(e);
     return Object.keys(e).length === 0;
   }
@@ -73,7 +79,13 @@ export default function RegisterPage() {
     setLoading(true);
     setApiError('');
     try {
-      const { session, profile } = await authApi.register({ token, password });
+      const { session, profile } = await authApi.register({
+        token,
+        password,
+        date_of_birth: dateOfBirth || undefined,
+        terms_accepted: agreedTerms,
+        terms_version: TERMS_VERSION,
+      });
       loginStore(session, profile);
       setPhase('success');
       setTimeout(() => {
@@ -86,7 +98,7 @@ export default function RegisterPage() {
       setLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, password, confirm]);
+  }, [token, password, confirm, dateOfBirth, agreedTerms]);
 
   const inputStyle = (hasError: boolean): React.CSSProperties => ({
     width: '100%', height: 48,
@@ -225,17 +237,64 @@ export default function RegisterPage() {
                   {errors.confirm && <span style={{ fontSize: '0.75rem', color: '#EF4444', fontWeight: 500 }}>{errors.confirm}</span>}
                 </div>
 
+                {/* Date of birth (optional) */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569' }}>
+                    Date of Birth <span style={{ fontWeight: 500, color: '#94A3B8' }}>(optional)</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={dateOfBirth}
+                    onChange={e => setDateOfBirth(e.target.value)}
+                    max={new Date().toISOString().slice(0, 10)}
+                    style={{
+                      width: '100%', height: 48,
+                      padding: '0 14px',
+                      background: '#FFFFFF',
+                      border: '1.5px solid #E2E8F0',
+                      borderRadius: 10,
+                      color: '#0F172A', fontFamily: 'inherit', fontSize: '0.9rem',
+                      outline: 'none', appearance: 'none' as const,
+                    }}
+                    disabled={loading}
+                  />
+                </div>
+
+                {/* Terms of Service / Privacy Policy consent */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: loading ? 'default' : 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={agreedTerms}
+                      onChange={e => { setAgreedTerms(e.target.checked); setErrors(p => ({ ...p, terms: '' })); }}
+                      disabled={loading}
+                      style={{ width: 17, height: 17, marginTop: 1, flexShrink: 0, accentColor: '#6366F1', cursor: loading ? 'default' : 'pointer' }}
+                    />
+                    <span style={{ fontSize: '0.83rem', color: '#475569', lineHeight: 1.5 }}>
+                      I agree to the{' '}
+                      <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: '#6366F1', fontWeight: 600, textDecoration: 'none' }}>
+                        Terms of Service
+                      </a>{' '}
+                      and{' '}
+                      <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: '#6366F1', fontWeight: 600, textDecoration: 'none' }}>
+                        Privacy Policy
+                      </a>
+                    </span>
+                  </label>
+                  {errors.terms && <span style={{ fontSize: '0.75rem', color: '#EF4444', fontWeight: 500 }}>{errors.terms}</span>}
+                </div>
+
                 <button
                   type="submit"
-                  disabled={loading || !password || !confirm}
+                  disabled={loading || !password || !confirm || !agreedTerms}
                   style={{
                     marginTop: 4, width: '100%', height: 52,
                     borderRadius: 12, border: 'none',
-                    background: loading || !password || !confirm
+                    background: loading || !password || !confirm || !agreedTerms
                       ? '#E2E8F0'
                       : 'linear-gradient(135deg,#6366F1,#4F46E5)',
-                    color: loading || !password || !confirm ? '#94A3B8' : '#fff',
-                    fontSize: '0.96rem', fontWeight: 700, cursor: loading || !password || !confirm ? 'not-allowed' : 'pointer',
+                    color: loading || !password || !confirm || !agreedTerms ? '#94A3B8' : '#fff',
+                    fontSize: '0.96rem', fontWeight: 700, cursor: loading || !password || !confirm || !agreedTerms ? 'not-allowed' : 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                     transition: 'background 0.18s',
                   }}

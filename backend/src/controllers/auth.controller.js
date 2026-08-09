@@ -162,16 +162,23 @@ async function verifyInviteToken(req, res, next) {
 
 // ─────────────────────────────────────────────────────────────────
 // POST /api/auth/register
-// Public — body: { token, password }
+// Public — body: { token, password, date_of_birth?, terms_accepted }
+// date_of_birth is optional. terms_accepted must be boolean `true` —
+// enforced in authService.registerByInvitation.
 // ─────────────────────────────────────────────────────────────────
 
 async function register(req, res, next) {
   try {
-    const { token, password } = req.body;
+    const { token, password, date_of_birth, terms_accepted } = req.body;
     if (!token)    throw new BadRequestError('Invitation token is required.');
     if (!password) throw new BadRequestError('Password is required.');
 
-    const result = await authService.registerByInvitation({ token, password });
+    const result = await authService.registerByInvitation({
+      token,
+      password,
+      date_of_birth,
+      terms_accepted,
+    });
     return res.status(201).json({ success: true, data: result });
   } catch (err) {
     next(err);
