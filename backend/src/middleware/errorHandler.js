@@ -2,6 +2,7 @@
 'use strict';
 
 const { AppError } = require('../utils/errors');
+const { captureException } = require('../config/sentry');
 
 /**
  * Global Express error handler.
@@ -32,6 +33,7 @@ function errorHandler(err, req, res, next) {  // eslint-disable-line no-unused-v
 
   // Unknown / programming error — log fully, expose minimally
   console.error('[Unhandled Error]', err);
+  captureException(err, { method: req.method, path: req.originalUrl });
 
   return res.status(500).json({
     success: false,

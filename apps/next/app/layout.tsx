@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import './global.css';
 import { AuthProvider } from '@/lib/auth/provider';
 import { ThemeProvider } from '@/lib/theme/provider';
+import { SentryInit } from '@/lib/monitoring/SentryInit';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
@@ -142,6 +143,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             `,
           }}
         />
+        <SentryInit />
         <ThemeProvider>
           <AuthProvider>
             {children}

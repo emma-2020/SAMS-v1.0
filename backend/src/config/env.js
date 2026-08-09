@@ -32,4 +32,6 @@ module.exports = {
   EMAIL_FROM:     process.env.EMAIL_FROM     || 'SAMS Platform <onboarding@resend.dev>',
   // Video/Audio calls — Daily.co
   DAILY_API_KEY:  process.env.DAILY_API_KEY  || '',
+  // Error monitoring — Sentry. Optional: unset means monitoring is a no-op (see config/sentry.js).
+  SENTRY_DSN: process.env.SENTRY_DSN || '',
 };

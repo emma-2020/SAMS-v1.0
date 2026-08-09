@@ -1,6 +1,8 @@
 // src/index.js
 'use strict';
 
+require('./config/sentry'); // must run before anything else to catch startup-time errors
+
 const app = require('./app');
 const env = require('./config/env');
 const { supabaseAdmin } = require('./config/supabase');
