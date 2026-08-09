@@ -16,6 +16,7 @@ const IcoArrow   = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="n
 // ─── Types ──────────────────────────────────────────────────────────
 interface CRAPlayer {
   id: string; first_name: string; last_name: string; email: string;
+  avatar_url?: string | null;
   teams: Array<{ id: string; name: string; sport?: string }>;
   latest_health?: {
     energy?: number; sleep?: number; muscle_soreness?: number; stress?: number;
@@ -27,11 +28,8 @@ interface CRAPlayer {
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────
-function getPhotoSeed(player: CRAPlayer): number {
-  const s = `${player.id}${player.email}`;
-  let h = 0;
-  for (let i = 0; i < s.length; i++) { h = ((h << 5) - h) + s.charCodeAt(i); h |= 0; }
-  return Math.abs(h) % 90 + 10;
+function getInitials(player: Pick<CRAPlayer, 'first_name' | 'last_name'>): string {
+  return `${player.first_name?.[0] ?? ''}${player.last_name?.[0] ?? ''}`.toUpperCase() || '?';
 }
 function fmtDate(iso?: string) {
   if (!iso) return '—';
@@ -94,19 +92,29 @@ function HealthRing({ label, value, max = 5, low = false }: { label: string; val
 
 // ─── Player Card ────────────────────────────────────────────────────
 function PlayerCard({ player, onSelect }: { player: CRAPlayer; onSelect: (p: CRAPlayer) => void }) {
+  const [imgError, setImgError] = useState(false);
   const hs   = healthStatus(player.latest_health);
-  const seed = getPhotoSeed(player);
   const teams = player.teams ?? [];
   const checkinDate = player.latest_health?.logged_at ?? player.latest_health?.submitted_at;
   const badgeColor = hs.label === 'Flagged' ? 'rgba(239,68,68,0.9)' : hs.label === 'Good' ? 'rgba(5,150,105,0.85)' : hs.label === 'Needs Rest' ? 'rgba(217,119,6,0.85)' : 'rgba(100,116,139,0.75)';
+  const hasPhoto = !!player.avatar_url && !imgError;
 
   return (
     <div onClick={() => onSelect(player)}
-      style={{ position: 'relative', borderRadius: 20, overflow: 'hidden', cursor: 'pointer', height: 300, background: '#0F172A', boxShadow: '0 4px 20px rgba(15,23,42,0.12)', transition: 'transform 0.28s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.28s ease' }}
+      style={{ position: 'relative', borderRadius: 20, overflow: 'hidden', cursor: 'pointer', height: 300, background: 'linear-gradient(160deg, #2E1F6B 0%, #171335 55%, #0B0E1F 100%)', boxShadow: '0 4px 20px rgba(15,23,42,0.12)', transition: 'transform 0.28s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.28s ease' }}
       onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-7px) scale(1.013)'; e.currentTarget.style.boxShadow = '0 22px 56px rgba(15,23,42,0.22)'; }}
       onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(15,23,42,0.12)'; }}>
-      <img src={`https://picsum.photos/seed/${seed}/400/560`} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.currentTarget.style.display = 'none'; }} />
-      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.06) 0%, rgba(0,0,0,0.28) 38%, rgba(0,0,0,0.80) 68%, rgba(0,0,0,0.97) 100%)' }} />
+      {/* spotlight glow behind the cutout — gives the card its PS5/FUT-style depth */}
+      <div style={{ position: 'absolute', top: '14%', left: '50%', width: 260, height: 260, transform: 'translateX(-50%)', borderRadius: '50%', background: 'radial-gradient(circle, rgba(124,58,237,0.4) 0%, rgba(124,58,237,0) 70%)', pointerEvents: 'none' }} />
+      {hasPhoto ? (
+        <img src={player.avatar_url!} alt="" onError={() => setImgError(true)}
+          style={{ position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)', height: '94%', width: 'auto', maxWidth: '90%', objectFit: 'contain', filter: 'drop-shadow(0 16px 20px rgba(0,0,0,0.5))' }} />
+      ) : (
+        <div style={{ position: 'absolute', top: '32%', left: '50%', transform: 'translate(-50%, -50%)', width: 108, height: 108, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(124,58,237,0.18)', border: '2px solid rgba(124,58,237,0.4)', fontSize: '2rem', fontWeight: 800, color: '#C4B5FD' }}>
+          {getInitials(player)}
+        </div>
+      )}
+      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 40%, rgba(11,14,31,0.58) 66%, rgba(11,14,31,0.97) 100%)' }} />
       <div style={{ position: 'absolute', top: 12, right: 12, padding: '4px 10px', borderRadius: 99, background: badgeColor, backdropFilter: 'blur(10px)', fontSize: '0.6rem', fontWeight: 800, color: '#fff', border: '1px solid rgba(255,255,255,0.2)', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 4 }}>
         {hs.label === 'Flagged' && <IcoFlag />}
         {hs.label.toUpperCase()}
@@ -141,7 +149,8 @@ function ProfileDrawer({ player, onClose }: { player: CRAPlayer; onClose: () => 
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]   = useState('');
-  const seed = getPhotoSeed(player);
+  const [imgError, setImgError] = useState(false);
+  const hasPhoto = !!player.avatar_url && !imgError;
   const hs   = healthStatus(player.latest_health);
   const checkinDate = player.latest_health?.logged_at ?? player.latest_health?.submitted_at;
 
@@ -170,9 +179,17 @@ function ProfileDrawer({ player, onClose }: { player: CRAPlayer; onClose: () => 
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.48)', backdropFilter: 'blur(5px)' }} />
       <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 201, width: 500, maxWidth: '100vw', background: 'var(--bg-surface)', borderLeft: '1px solid var(--border-default)', boxShadow: '0 0 80px rgba(15,23,42,0.2)', display: 'flex', flexDirection: 'column', animation: 'slideInRight 0.28s cubic-bezier(0.34,1.56,0.64,1)' }}>
         {/* Hero */}
-        <div style={{ position: 'relative', height: 220, background: '#0F172A', overflow: 'hidden', flexShrink: 0 }}>
-          <img src={`https://picsum.photos/seed/${seed}/960/440`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 20%' }} onError={e => { e.currentTarget.style.display = 'none'; }} />
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.12) 0%, rgba(0,0,0,0.72) 100%)' }} />
+        <div style={{ position: 'relative', height: 220, background: 'linear-gradient(160deg, #2E1F6B 0%, #171335 55%, #0B0E1F 100%)', overflow: 'hidden', flexShrink: 0 }}>
+          <div style={{ position: 'absolute', top: '4%', right: '14%', width: 240, height: 240, borderRadius: '50%', background: 'radial-gradient(circle, rgba(124,58,237,0.4) 0%, rgba(124,58,237,0) 70%)', pointerEvents: 'none' }} />
+          {hasPhoto ? (
+            <img src={player.avatar_url!} alt="" onError={() => setImgError(true)}
+              style={{ position: 'absolute', bottom: 0, right: 28, height: '100%', width: 'auto', maxWidth: '48%', objectFit: 'contain', filter: 'drop-shadow(0 12px 18px rgba(0,0,0,0.5))' }} />
+          ) : (
+            <div style={{ position: 'absolute', top: '38%', right: '18%', transform: 'translateY(-50%)', width: 84, height: 84, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(124,58,237,0.18)', border: '2px solid rgba(124,58,237,0.4)', fontSize: '1.5rem', fontWeight: 800, color: '#C4B5FD' }}>
+              {getInitials(player)}
+            </div>
+          )}
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.04) 0%, rgba(11,14,31,0.78) 100%)' }} />
           <button onClick={onClose} style={{ position: 'absolute', top: 14, right: 14, background: 'rgba(255,255,255,0.14)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.22)', borderRadius: 99, width: 34, height: 34, cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><IcoClose /></button>
           <div style={{ position: 'absolute', bottom: 18, left: 22, right: 22 }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 7 }}>
