@@ -111,3 +111,16 @@ export async function updatePreferences(
   };
   return res.data?.preferences ?? {};
 }
+
+// GET /auth/export — self-service data export. Shape varies by role (see
+// backend/src/services/auth.service.js's exportOwnData), so this is left
+// loosely typed on the caller side rather than modeling every branch.
+export async function exportMyData(): Promise<Record<string, unknown>> {
+  const res = (await apiClient.get('/auth/export')) as { success: boolean; data: Record<string, unknown> };
+  return res.data;
+}
+
+// DELETE /auth/me — self-service account deletion. Irreversible.
+export async function deleteMyAccount(): Promise<void> {
+  await apiClient.delete('/auth/me');
+}

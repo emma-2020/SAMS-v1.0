@@ -5,6 +5,7 @@ const {
   BadRequestError,
   ConflictError,
   UnauthorizedError,
+  ForbiddenError,
   InternalError,
   NotFoundError,
 } = require('../utils/errors');
@@ -589,4 +590,114 @@ async function updatePreferences({ userId, academyId, preferences }) {
   return data.preferences;
 }
 
-module.exports = { login, logout, getMe, refreshSession, updateProfile, changePassword, verifyInviteToken, registerByInvitation, uploadAvatar, setupAccount, forgotPassword, resetPassword, getPreferences, updatePreferences, TERMS_VERSION };
+// ─────────────────────────────────────────────────────────────────
+// EXPORT OWN DATA
+// Self-service data export — a reasonably complete personal-data
+// dump, not literally every row in every table. Role-aware: Player
+// gets their wellness/attendance/training/registration/fee records,
+// everyone gets their own profile and sent messages.
+// ─────────────────────────────────────────────────────────────────
+
+async function exportOwnData({ userId, academyId, role }) {
+  const { data: profile, error: profileError } = await supabaseAdmin
+    .from('users')
+    .select('id, email, role, first_name, last_name, date_of_birth, avatar_url, terms_accepted_at, terms_version, created_at')
+    .eq('id', userId)
+    .eq('academy_id', academyId)
+    .single();
+
+  if (profileError || !profile) throw new NotFoundError('Account not found.');
+
+  const { data: sentMessages } = await supabaseAdmin
+    .from('messages')
+    .select('id, message_text, attachment_url, file_name, created_at')
+    .eq('academy_id', academyId)
+    .eq('sender_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(500);
+
+  const exportData = {
+    exported_at: new Date().toISOString(),
+    profile,
+    sent_messages: sentMessages || [],
+  };
+
+  if (role === 'Player') {
+    const [healthLogs, attendance, workoutCompletions, registration, documents, fees] = await Promise.all([
+      supabaseAdmin.from('health_logs').select('id, fatigue, soreness, sleep_quality, notes, log_date, logged_at').eq('academy_id', academyId).eq('player_id', userId).order('log_date', { ascending: false }),
+      supabaseAdmin.from('attendance').select('id, event_id, status, notes, updated_at').eq('academy_id', academyId).eq('player_id', userId).order('updated_at', { ascending: false }),
+      supabaseAdmin.from('workout_completions').select('id, exercise_id, is_completed, completed_at').eq('academy_id', academyId).eq('player_id', userId).order('completed_at', { ascending: false }),
+      supabaseAdmin.from('player_registrations').select('*').eq('academy_id', academyId).eq('player_id', userId).maybeSingle(),
+      supabaseAdmin.from('player_documents').select('id, doc_type, file_name, created_at').eq('academy_id', academyId).eq('player_id', userId),
+      supabaseAdmin.from('fee_ledger').select('id, description, amount_owed, amount_paid, created_at').eq('academy_id', academyId).eq('player_id', userId).order('created_at', { ascending: false }),
+    ]);
+
+    exportData.health_logs = healthLogs.data || [];
+    exportData.attendance = attendance.data || [];
+    exportData.workout_completions = workoutCompletions.data || [];
+    exportData.registration = registration.data || null;
+    exportData.documents = (documents.data || []).map((d) => ({ ...d, note: 'File contents are not included in this export — contact your Academy Administrator for a copy of the original file.' }));
+    exportData.fees = fees.data || [];
+  }
+
+  if (role === 'Parent') {
+    const { data: children } = await supabaseAdmin
+      .from('rosters')
+      .select('player_id, team_id, users!rosters_player_id_fkey(first_name, last_name)')
+      .eq('academy_id', academyId)
+      .eq('parent_id', userId);
+
+    exportData.linked_children = (children || []).map((c) => ({
+      player_id: c.player_id,
+      team_id: c.team_id,
+      player_name: c.users ? `${c.users.first_name} ${c.users.last_name}` : null,
+    }));
+  }
+
+  return exportData;
+}
+
+// ─────────────────────────────────────────────────────────────────
+// DELETE OWN ACCOUNT
+// Self-service account deletion. Reuses the same hard-delete pattern
+// as admin.controller.js's deleteMember (users row delete cascades
+// via FK ON DELETE CASCADE across health_logs, attendance, messages,
+// workouts, registrations, documents, etc.; Supabase Auth record
+// deleted separately). Unlike deleteMember, this is scoped to the
+// caller's own id, and Admin IS allowed to self-delete — guarded
+// instead against deleting the last active Admin in an academy, which
+// would orphan it, matching the guard already used by
+// admin.service.js's setMemberStatus for deactivation.
+// ─────────────────────────────────────────────────────────────────
+
+async function deleteOwnAccount({ userId, academyId, role }) {
+  if (role === 'Admin') {
+    const { count, error: countErr } = await supabaseAdmin
+      .from('users')
+      .select('id', { count: 'exact', head: true })
+      .eq('academy_id', academyId)
+      .eq('role', 'Admin')
+      .eq('is_active', true);
+
+    if (countErr) throw new InternalError('Failed to verify admin count.');
+    if ((count ?? 0) <= 1) {
+      throw new ForbiddenError('You are the only active Admin in this academy. Promote another Admin before deleting your account.');
+    }
+  }
+
+  const { error: deleteError } = await supabaseAdmin.from('users').delete().eq('id', userId).eq('academy_id', academyId);
+  if (deleteError) {
+    console.error('[AuthService.deleteOwnAccount] users delete error:', deleteError.message);
+    throw new InternalError('Failed to delete account. Please try again.');
+  }
+
+  const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId);
+  if (authError) {
+    console.error('[AuthService.deleteOwnAccount] auth delete error:', authError.message);
+    throw new InternalError('Account data was deleted but the login record could not be removed. Contact support.');
+  }
+
+  return { deleted: true };
+}
+
+module.exports = { login, logout, getMe, refreshSession, updateProfile, changePassword, verifyInviteToken, registerByInvitation, uploadAvatar, setupAccount, forgotPassword, resetPassword, getPreferences, updatePreferences, exportOwnData, deleteOwnAccount, TERMS_VERSION };

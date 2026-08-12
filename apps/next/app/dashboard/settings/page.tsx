@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { UploadCloud } from 'lucide-react';
 import { useAuthStore } from '@sams/store';
 import { apiClient, authApi, chatApi, adminApi, registrationApi } from '@sams/api';
@@ -15,6 +16,8 @@ const IcoLock    = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="n
 const IcoPalette = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"><circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>;
 const IcoBldg    = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>;
 const IcoShield  = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>;
+const IcoDownload = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>;
+const IcoTrash   = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>;
 const IcoBell    = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>;
 const IcoSliders = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>;
 const IcoMonitor = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>;
@@ -246,11 +249,53 @@ function defaultPrefs(role: string): UserPreferences {
 
 // ─── Main Settings Page ───────────────────────────────────────────────────────
 export default function SettingsPage() {
-  const { user, setUser } = useAuthStore();
+  const { user, setUser, logout } = useAuthStore();
   const { theme, toggleTheme, density, setDensity } = useTheme();
+  const router = useRouter();
   const meta  = ROLE_META[user?.role ?? ''] ?? { color: 'var(--accent)', hex: '#6366F1', label: user?.role ?? '' };
   const role  = user?.role ?? '';
   const TABS  = buildTabs(role);
+
+  // ── Your Data (Privacy tab) ────────────────────────────────────────────────
+  const [exportingData, setExportingData] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+
+  async function handleExportData() {
+    setExportingData(true);
+    try {
+      const data = await authApi.exportMyData();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `playsams-my-data-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      // Export failures aren't destructive — surface via the same inline
+      // error slot the delete flow uses rather than a separate one.
+      setDeleteError(err instanceof Error ? err.message : 'Failed to export your data. Please try again.');
+    } finally {
+      setExportingData(false);
+    }
+  }
+
+  async function handleDeleteAccount() {
+    setDeletingAccount(true);
+    setDeleteError('');
+    try {
+      await authApi.deleteMyAccount();
+      logout();
+      router.replace('/login');
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Failed to delete your account. Please try again.');
+      setDeletingAccount(false);
+    }
+  }
 
   const [activeTab, setActiveTab] = useState('profile');
 
@@ -1199,6 +1244,63 @@ export default function SettingsPage() {
                 ))}
               </div>
             )}
+          </SettingsCard>
+
+          <SettingsCard icon={<IcoDownload />} title="Your Data" subtitle="Download a copy of your information, or permanently delete your account">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                <div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>Download my data</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 2 }}>A JSON file with your profile and the information stored about you on PlaySAMS.</div>
+                </div>
+                <button onClick={handleExportData} disabled={exportingData}
+                  style={{ padding: '8px 16px', borderRadius: 10, border: '1.5px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-secondary)', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', opacity: exportingData ? 0.6 : 1, flexShrink: 0 }}
+                >
+                  {exportingData ? 'Preparing…' : 'Download'}
+                </button>
+              </div>
+
+              <div style={{ height: 1, background: 'var(--border-subtle)' }} />
+
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                  <div>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#DC2626' }}>Delete my account</div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 2 }}>Permanently removes your account and associated data. This cannot be undone.</div>
+                  </div>
+                  {!showDeleteConfirm && (
+                    <button onClick={() => { setShowDeleteConfirm(true); setDeleteError(''); }}
+                      style={{ padding: '8px 16px', borderRadius: 10, border: '1.5px solid rgba(220,38,38,0.3)', background: 'rgba(220,38,38,0.06)', color: '#DC2626', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6 }}
+                    >
+                      <IcoTrash /> Delete account
+                    </button>
+                  )}
+                </div>
+
+                {showDeleteConfirm && (
+                  <div style={{ marginTop: 14, padding: 16, borderRadius: 12, background: 'rgba(220,38,38,0.05)', border: '1.5px solid rgba(220,38,38,0.25)' }}>
+                    <p style={{ fontSize: '0.82rem', color: 'var(--text-primary)', margin: '0 0 12px', lineHeight: 1.6 }}>
+                      This will permanently delete your PlaySAMS account and the data associated with it — this cannot be undone. Are you sure?
+                    </p>
+                    {deleteError && (
+                      <p style={{ fontSize: '0.78rem', color: '#DC2626', margin: '0 0 12px', fontWeight: 600 }}>{deleteError}</p>
+                    )}
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      <button onClick={handleDeleteAccount} disabled={deletingAccount}
+                        style={{ padding: '8px 16px', borderRadius: 10, border: 'none', background: '#DC2626', color: '#fff', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', opacity: deletingAccount ? 0.7 : 1 }}
+                      >
+                        {deletingAccount ? 'Deleting…' : 'Yes, permanently delete my account'}
+                      </button>
+                      <button onClick={() => { setShowDeleteConfirm(false); setDeleteError(''); }} disabled={deletingAccount}
+                        style={{ padding: '8px 16px', borderRadius: 10, border: '1.5px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-secondary)', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer' }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </SettingsCard>
 
           <SettingsCard icon={<IcoLock />} title="Who Can Message You" subtitle="Based on your role and academy policy">

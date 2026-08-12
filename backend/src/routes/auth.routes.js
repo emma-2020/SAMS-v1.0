@@ -52,5 +52,7 @@ router.post(  '/change-password', authenticate,              controller.changePa
 router.post(  '/avatar',          authenticate, upload.single('avatar'), controller.uploadAvatar);
 router.get(   '/preferences',     authenticate, extractTenant,          controller.getPreferences);
 router.patch( '/preferences',     authenticate, extractTenant,          controller.updatePreferences);
+router.get(   '/export',          authenticate, extractTenant,          controller.exportData);
+router.delete('/me',              authenticate, extractTenant,          controller.deleteAccount);
 
 module.exports = router;

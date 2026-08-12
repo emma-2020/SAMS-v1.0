@@ -8,7 +8,7 @@ jest.mock('../../src/services/notifications.service');
 
 const { supabaseAdmin, supabaseAnon } = require('../../src/config/supabase');
 const authService        = require('../../src/services/auth.service');
-const { ConflictError, UnauthorizedError, NotFoundError, BadRequestError } =
+const { ConflictError, UnauthorizedError, NotFoundError, BadRequestError, ForbiddenError } =
   require('../../src/utils/errors');
 
 // ─── Supabase chain mock builder ──────────────────────────────────
@@ -19,17 +19,24 @@ function mockChain(returnValue) {
     select:      jest.fn(),
     insert:      jest.fn(),
     update:      jest.fn(),
+    delete:      jest.fn(),
     eq:          jest.fn(),
     in:          jest.fn(),
+    order:       jest.fn(),
+    limit:       jest.fn(),
     single:      terminal,
     maybeSingle: terminal,
   };
-  // Each builder method returns the same handler (chainable)
+  // Each builder method returns the same handler (chainable), and the
+  // handler itself is awaitable (thenable) so a chain that never calls a
+  // terminal method — e.g. .select().eq().order() with no .single() —
+  // still resolves to returnValue, matching real supabase-js semantics.
   Object.keys(handler).forEach((k) => {
     if (k !== 'single' && k !== 'maybeSingle') {
       handler[k].mockReturnValue(handler);
     }
   });
+  handler.then = (resolve, reject) => Promise.resolve(returnValue).then(resolve, reject);
   return handler;
 }
 
@@ -383,5 +390,116 @@ describe('authService.registerByInvitation', () => {
       token: validToken, password: validPassword, terms_accepted: true,
       date_of_birth: futureDate,
     })).rejects.toBeInstanceOf(BadRequestError);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────
+// EXPORT OWN DATA TESTS
+// ─────────────────────────────────────────────────────────────────
+
+describe('authService.exportOwnData', () => {
+
+  test('throws NotFoundError when the profile row is missing', async () => {
+    supabaseAdmin.from = jest.fn().mockReturnValue(mockChain({ data: null, error: { message: 'no rows' } }));
+
+    await expect(authService.exportOwnData({ userId: 'u1', academyId: 'a1', role: 'Coach' }))
+      .rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  test('Coach export includes profile and sent messages, but no Player-only sections', async () => {
+    supabaseAdmin.from = jest.fn().mockImplementation((table) => {
+      if (table === 'users') return mockChain({ data: { id: 'u1', email: 'coach@x.com', role: 'Coach' }, error: null });
+      if (table === 'messages') return mockChain({ data: [{ id: 'm1', message_text: 'hi' }], error: null });
+      return mockChain({ data: [], error: null });
+    });
+
+    const result = await authService.exportOwnData({ userId: 'u1', academyId: 'a1', role: 'Coach' });
+
+    expect(result.profile.id).toBe('u1');
+    expect(result.sent_messages).toEqual([{ id: 'm1', message_text: 'hi' }]);
+    expect(result.health_logs).toBeUndefined();
+    expect(result.registration).toBeUndefined();
+  });
+
+  test('Player export includes health logs, attendance, registration, fees, and redacted document metadata', async () => {
+    supabaseAdmin.from = jest.fn().mockImplementation((table) => {
+      if (table === 'users') return mockChain({ data: { id: 'p1', email: 'player@x.com', role: 'Player' }, error: null });
+      if (table === 'health_logs') return mockChain({ data: [{ id: 'h1', fatigue: 3 }], error: null });
+      if (table === 'player_registrations') return mockChain({ data: { id: 'r1', medical_conditions: 'none' }, error: null });
+      if (table === 'player_documents') return mockChain({ data: [{ id: 'd1', doc_type: 'Birth Certificate', file_name: 'bc.pdf' }], error: null });
+      if (table === 'fee_ledger') return mockChain({ data: [{ id: 'f1', amount_owed: 100 }], error: null });
+      return mockChain({ data: [], error: null });
+    });
+
+    const result = await authService.exportOwnData({ userId: 'p1', academyId: 'a1', role: 'Player' });
+
+    expect(result.health_logs).toEqual([{ id: 'h1', fatigue: 3 }]);
+    expect(result.registration).toEqual({ id: 'r1', medical_conditions: 'none' });
+    expect(result.fees).toEqual([{ id: 'f1', amount_owed: 100 }]);
+    // Document file contents are never included — only metadata plus an explanatory note
+    expect(result.documents[0]).toMatchObject({ id: 'd1', doc_type: 'Birth Certificate' });
+    expect(result.documents[0].note).toMatch(/not included/i);
+    expect(result.documents[0].file_url).toBeUndefined();
+  });
+
+  test('Parent export includes linked children by name, not their full records', async () => {
+    supabaseAdmin.from = jest.fn().mockImplementation((table) => {
+      if (table === 'users') return mockChain({ data: { id: 'par1', email: 'parent@x.com', role: 'Parent' }, error: null });
+      if (table === 'rosters') {
+        return mockChain({
+          data: [{ player_id: 'p1', team_id: 't1', users: { first_name: 'Kofi', last_name: 'Mensah' } }],
+          error: null,
+        });
+      }
+      return mockChain({ data: [], error: null });
+    });
+
+    const result = await authService.exportOwnData({ userId: 'par1', academyId: 'a1', role: 'Parent' });
+
+    expect(result.linked_children).toEqual([{ player_id: 'p1', team_id: 't1', player_name: 'Kofi Mensah' }]);
+    expect(result.health_logs).toBeUndefined();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────
+// DELETE OWN ACCOUNT TESTS
+// ─────────────────────────────────────────────────────────────────
+
+describe('authService.deleteOwnAccount', () => {
+
+  test('throws ForbiddenError when caller is the only active Admin in the academy', async () => {
+    supabaseAdmin.from = jest.fn().mockReturnValue(mockChain({ count: 1, error: null }));
+
+    await expect(authService.deleteOwnAccount({ userId: 'admin1', academyId: 'a1', role: 'Admin' }))
+      .rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  test('Admin can self-delete when another active Admin exists', async () => {
+    supabaseAdmin.from = jest.fn().mockImplementation((table) => {
+      if (table === 'users') return mockChain({ count: 2, error: null, data: null });
+      return mockChain({ data: null, error: null });
+    });
+    supabaseAdmin.auth = { admin: { deleteUser: jest.fn().mockResolvedValue({ error: null }) } };
+
+    const result = await authService.deleteOwnAccount({ userId: 'admin1', academyId: 'a1', role: 'Admin' });
+
+    expect(result).toEqual({ deleted: true });
+    expect(supabaseAdmin.auth.admin.deleteUser).toHaveBeenCalledWith('admin1');
+  });
+
+  test('Player/Coach/Parent can self-delete without any admin-count check', async () => {
+    supabaseAdmin.from = jest.fn().mockReturnValue(mockChain({ data: null, error: null }));
+    supabaseAdmin.auth = { admin: { deleteUser: jest.fn().mockResolvedValue({ error: null }) } };
+
+    const result = await authService.deleteOwnAccount({ userId: 'p1', academyId: 'a1', role: 'Player' });
+
+    expect(result).toEqual({ deleted: true });
+  });
+
+  test('throws InternalError when the users row delete fails', async () => {
+    supabaseAdmin.from = jest.fn().mockReturnValue(mockChain({ data: null, error: { message: 'db error' } }));
+
+    await expect(authService.deleteOwnAccount({ userId: 'p1', academyId: 'a1', role: 'Player' }))
+      .rejects.toThrow('Failed to delete account. Please try again.');
   });
 });

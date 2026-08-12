@@ -285,4 +285,40 @@ async function updatePreferences(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { login, logout, refresh, me, updateProfile, changePassword, verifyInviteToken, register, uploadAvatar, setupAccount, forgotPassword, resetPassword, getPreferences, updatePreferences };
+// ─────────────────────────────────────────────────────────────────
+// GET /api/auth/export
+// Self-service data export.
+// ─────────────────────────────────────────────────────────────────
+
+async function exportData(req, res, next) {
+  try {
+    const data = await authService.exportOwnData({
+      userId:    req.user.id,
+      academyId: req.user.academy_id,
+      role:      req.user.role,
+    });
+    return res.status(200).json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// DELETE /api/auth/me
+// Self-service account deletion.
+// ─────────────────────────────────────────────────────────────────
+
+async function deleteAccount(req, res, next) {
+  try {
+    const result = await authService.deleteOwnAccount({
+      userId:    req.user.id,
+      academyId: req.user.academy_id,
+      role:      req.user.role,
+    });
+    return res.status(200).json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { login, logout, refresh, me, updateProfile, changePassword, verifyInviteToken, register, uploadAvatar, setupAccount, forgotPassword, resetPassword, getPreferences, updatePreferences, exportData, deleteAccount };
