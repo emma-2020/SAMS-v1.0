@@ -3,27 +3,112 @@ import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy · PlaySAMS',
-  description: 'Placeholder Privacy Policy for PlaySAMS — draft pending legal review.',
+  description: 'Privacy Policy for PlaySAMS — draft pending legal review.',
 };
 
-const LAST_UPDATED = 'August 3, 2026';
+const LAST_UPDATED = 'August 11, 2026';
 
-const SECTIONS = [
+const SECTIONS: { title: string; body: string[] }[] = [
   {
-    title: 'Information We Collect',
-    body: 'This section will describe the categories of personal information PlaySAMS collects, including account and profile details, roster and attendance data, health check-ins, and messages, once finalized by legal review.',
+    title: '1. Who This Policy Covers',
+    body: [
+      'This Privacy Policy explains how PlaySAMS handles personal information for everyone who uses the platform: Academy Admins, Coaches, Players, and Parents/Guardians.',
+    ],
   },
   {
-    title: 'How We Use It',
-    body: 'This section will describe how personal information is used to provide and improve the platform — such as enabling scheduling, communication, and health monitoring within an academy — once finalized by legal review.',
+    title: '2. How PlaySAMS and Your Academy Share Responsibility',
+    body: [
+      'PlaySAMS operates the underlying platform. Each Academy that uses PlaySAMS is generally the party responsible for its own members’ information (in data-protection terms, the "data controller"), and PlaySAMS acts on the Academy’s behalf to store and process that information (a "data processor" or "service provider").',
+      'In practice, this means your Academy decides what information it collects from you and why, and PlaySAMS is the technology that stores and moves that information securely. This split of responsibility should be formalized (for example, through a written agreement between PlaySAMS and each Academy) as part of legal review — it is described here in plain terms, not as a final legal determination.',
+    ],
   },
   {
-    title: 'Your Rights',
-    body: 'This section will describe the privacy rights available to users, including the ability to access, correct, export, or request deletion of their personal information, once finalized by legal review.',
+    title: '3. Information We Collect',
+    body: [
+      'Account information: name, email address, role (Admin, Coach, Player, or Parent/Guardian), and — optionally — date of birth.',
+      'Wellness and health information: self-reported check-ins (fatigue, soreness, sleep quality) logged by Players or Coaches, and — where a Player completes registration with their Academy — medical conditions, allergies, blood group, and emergency contact details.',
+      'Identity and eligibility documents: where requested by an Academy as part of registration, documents such as a birth certificate, national ID, passport photo, and parental/guardian consent form.',
+      'Activity information: attendance records, training and workout plans, schedules, and academy announcements.',
+      'Communications: messages and file attachments (images, PDFs) sent within an Academy’s chat channels.',
+      'Payment information: when a fee is paid through PlaySAMS, payment is processed by our payment partner, Paystack. PlaySAMS does not receive or store your full card number or bank account details — only confirmation that a payment succeeded, and the amount and date.',
+    ],
   },
   {
-    title: 'Contact',
-    body: 'This section will describe how to reach PlaySAMS with privacy questions or requests, once finalized by legal review. In the meantime, reach us at hello@playsams.com.',
+    title: '4. How We Use This Information',
+    body: [
+      'To operate the platform: scheduling, attendance tracking, wellness monitoring, team messaging, document storage, and fee collection.',
+      'To communicate with you: for example, sending an invitation to join an Academy, a password reset, or a notification about a new message or fee due.',
+      'To keep the platform secure and working correctly, including detecting misuse and maintaining the separation between different Academies’ data.',
+    ],
+  },
+  {
+    title: '5. Legal Basis for Processing',
+    body: [
+      'Where Ghana’s Data Protection Act, 2012 (Act 843) applies, PlaySAMS and Academies rely on one or more of the following grounds to process personal information: your consent (for example, when you agree to these policies at signup, or when a Player or Parent/Guardian chooses to submit a wellness check-in or registration document); the necessity of processing to provide the service an Academy has signed up for; and the legitimate interest of the Academy in managing its teams, safety, and operations.',
+    ],
+  },
+  {
+    title: '6. Children’s Information',
+    body: [
+      'Many Players on PlaySAMS are minors. Where an account is being created for a minor, we expect the account to be created or approved by a parent or guardian, who is responsible for the accuracy of the information provided. Parent/Guardian contact details are collected specifically to support this relationship.',
+      'We do not knowingly allow a minor to create an account without a parent or guardian’s involvement. If you believe this has happened, please contact us using the details below.',
+    ],
+  },
+  {
+    title: '7. Who We Share Information With',
+    body: [
+      'We do not sell personal information to third parties, and we do not use it for third-party advertising.',
+      'We share information with the service providers that make PlaySAMS work: Supabase (database hosting and file storage), Resend (sending account and notification emails), Daily.co (video and audio calls for meetings), and Paystack (processing fee payments). Each of these providers only receives the information needed to perform their specific function.',
+      'Within an Academy, information is visible to the roles that need it to do their job — for example, a Coach can see the roster and wellness data for their own team; a Parent/Guardian can see information related to their own linked child.',
+    ],
+  },
+  {
+    title: '8. Where Information Is Stored',
+    body: [
+      'PlaySAMS’ database and file storage (via Supabase) are hosted in the European Union. This means personal information about users in Ghana and elsewhere in Africa is transferred to and stored outside the country. Whether this requires additional safeguards under Ghana’s Data Protection Act, 2012 — such as a specific transfer mechanism or notice to the Data Protection Commission — is one of the items flagged for legal review below.',
+    ],
+  },
+  {
+    title: '9. How We Protect Information',
+    body: [
+      'Access to information on PlaySAMS is restricted by role and by Academy — for example, one Academy cannot see another Academy’s data, and within an Academy, access is scoped to what each role needs. Data is encrypted in transit. We also apply database-level access rules as a second layer of protection, in addition to the controls built into the application itself.',
+    ],
+  },
+  {
+    title: '10. How Long We Keep Information',
+    body: [
+      'We retain information for as long as your account and your Academy remain active on PlaySAMS. If an Academy removes a member, that member’s core records are generally deleted from our primary systems; routine backups may retain a copy for a limited period afterward before they, too, are cycled out.',
+    ],
+  },
+  {
+    title: '11. Your Rights',
+    body: [
+      'Depending on applicable law, you may have the right to access, correct, or request deletion of your personal information. To exercise these rights, contact your Academy Administrator, or reach us directly using the details below and we will coordinate with your Academy.',
+    ],
+  },
+  {
+    title: '12. Cookies and Tracking',
+    body: [
+      'PlaySAMS does not currently use third-party advertising or analytics trackers. We use only what is necessary for you to stay signed in and for the platform to function, including offline support on the web and mobile app.',
+    ],
+  },
+  {
+    title: '13. Changes to This Policy',
+    body: [
+      'We may update this Privacy Policy from time to time. If we make a material change, we will update the "Last updated" date above and, where appropriate, notify Academy Admins.',
+    ],
+  },
+  {
+    title: '14. Contact',
+    body: [
+      'Questions or requests about this Privacy Policy can be sent to hello@playsams.com.',
+    ],
+  },
+  {
+    title: 'What Still Needs Formal Legal Review',
+    body: [
+      'This document was drafted with general awareness of Ghana’s Data Protection Act, 2012 (Act 843) and common international practice for platforms serving minors, but it has not been reviewed by a licensed lawyer or data-protection specialist. Before this is treated as binding, a qualified professional should specifically confirm: whether PlaySAMS or any Academy using it needs to register with Ghana’s Data Protection Commission; the correct data-controller/data-processor allocation between PlaySAMS and each Academy, and whether a formal data processing agreement is needed (Section 2); whether the EU hosting arrangement (Section 8) requires a specific cross-border transfer safeguard under Ghanaian law; and whether any sport-specific child-safeguarding data-handling requirements apply on top of general data-protection law.',
+    ],
   },
 ];
 
@@ -68,7 +153,7 @@ export default function PrivacyPage() {
             <line x1="12" y1="16" x2="12.01" y2="16" />
           </svg>
           <p style={{ fontSize: '0.85rem', lineHeight: 1.65, color: '#FDE68A', margin: 0 }}>
-            <strong>DRAFT</strong> — this page is a placeholder pending legal review. Do not treat this as binding legal text yet.
+            <strong>DRAFT</strong> — this is a substantive working draft, not final legal text. It has not been reviewed by a licensed lawyer or data-protection specialist. See "What Still Needs Formal Legal Review" below.
           </p>
         </div>
 
@@ -79,9 +164,11 @@ export default function PrivacyPage() {
               <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#F1F5F9', margin: '0 0 8px', letterSpacing: '-0.01em' }}>
                 {s.title}
               </h2>
-              <p style={{ fontSize: '0.9rem', lineHeight: 1.75, color: 'rgba(255,255,255,0.5)', margin: 0 }}>
-                {s.body}
-              </p>
+              {s.body.map((p, i) => (
+                <p key={i} style={{ fontSize: '0.9rem', lineHeight: 1.75, color: 'rgba(255,255,255,0.5)', margin: i === 0 ? 0 : '10px 0 0' }}>
+                  {p}
+                </p>
+              ))}
             </div>
           ))}
         </div>
