@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   description: 'Terms of Service for PlaySAMS — draft pending legal review.',
 };
 
-const LAST_UPDATED = 'August 11, 2026';
+const LAST_UPDATED = 'August 20, 2026';
 
 const SECTIONS: { title: string; body: string[] }[] = [
   {
@@ -44,59 +44,66 @@ const SECTIONS: { title: string; body: string[] }[] = [
     ],
   },
   {
-    title: '6. Acceptable Use',
+    title: '6. Use Across African Jurisdictions',
+    body: [
+      'PlaySAMS is currently used primarily by academies in Ghana, and these Terms are written with that primary context in mind. If your Academy is located in another African country, mandatory local law in that country — including consumer-protection or data-protection law — may also apply to your use of PlaySAMS, in addition to these Terms, and may give you rights these Terms do not separately list.',
+      'PlaySAMS aims to operate consistently with data protection principles shared across African data protection frameworks, including Ghana’s Data Protection Act, 2012 (Act 843), Nigeria’s Data Protection Act 2023, Kenya’s Data Protection Act 2019, South Africa’s Protection of Personal Information Act (POPIA), and the African Union’s Malabo Convention on Cyber Security and Personal Data Protection. This is a good-faith statement of intent, not a confirmation of compliance with any specific country’s law — see "What Still Needs Formal Legal Review" below.',
+    ],
+  },
+  {
+    title: '7. Acceptable Use',
     body: [
       'You agree not to use PlaySAMS to harass, threaten, or abuse another user; to upload content you do not have the right to share; to impersonate another person; to attempt to access another Academy’s data; or to use the platform for any unlawful purpose.',
       'Academy Admins and Coaches are expected to use the messaging, health-tracking, and roster features appropriately and in the best interests of the Players in their care.',
     ],
   },
   {
-    title: '7. Health and Wellness Information — Important Disclaimer',
+    title: '8. Health and Wellness Information — Important Disclaimer',
     body: [
       'PlaySAMS lets Coaches and Players log wellness check-ins (fatigue, soreness, sleep quality) and lets Academies store administrative health-related information (such as medical conditions, allergies, and blood group) as part of a Player’s registration.',
       'This information is self-reported or coach-reported and is provided for coaching and administrative awareness only. PlaySAMS is not a medical device, a diagnostic tool, or a substitute for professional medical advice, diagnosis, or treatment. In a medical emergency, contact emergency services or a qualified medical professional directly — do not rely on PlaySAMS.',
     ],
   },
   {
-    title: '8. Fees and Payments',
+    title: '9. Fees and Payments',
     body: [
       'Where an Academy uses PlaySAMS to collect fees, payments are processed through our payment partner, Paystack. PlaySAMS does not store your full card or payment account details.',
       'The Academy you belong to sets its own fees, due dates, and refund or cancellation terms. Questions about a specific charge, refund, or fee amount should go to your Academy Administrator in the first instance.',
     ],
   },
   {
-    title: '9. Content You Provide',
+    title: '10. Content You Provide',
     body: [
       'You keep ownership of documents, photos, and messages you upload to PlaySAMS. By uploading them, you give PlaySAMS and your Academy permission to store, display, and share that content as needed to operate the platform for your Academy — for example, showing a chat attachment to other members of the same conversation, or a Coach viewing a Player’s uploaded medical clearance document.',
     ],
   },
   {
-    title: '10. Suspension and Termination',
+    title: '11. Suspension and Termination',
     body: [
       'An Academy Admin may deactivate or remove accounts within their own Academy. PlaySAMS may suspend or terminate access to the platform for violations of these Terms, unlawful use, or to protect the security or integrity of the service.',
     ],
   },
   {
-    title: '11. Disclaimers and Limitation of Liability',
+    title: '12. Disclaimers and Limitation of Liability',
     body: [
       'PlaySAMS is provided "as is" and "as available." We work to keep the platform reliable and secure, but we do not guarantee it will be uninterrupted or error-free.',
       'To the fullest extent permitted by applicable law, PlaySAMS and its operators are not liable for indirect, incidental, or consequential damages arising from use of the platform. Nothing in these Terms is intended to limit liability in ways not permitted under the laws of Ghana.',
     ],
   },
   {
-    title: '12. Governing Law',
+    title: '13. Governing Law',
     body: [
-      'These Terms are governed by the laws of the Republic of Ghana. Any dispute arising from these Terms or your use of PlaySAMS will be subject to the jurisdiction of the courts of Ghana, unless otherwise required by law where you or your Academy are located.',
+      'These Terms are governed by the laws of the Republic of Ghana, PlaySAMS’s primary place of operation. Any dispute arising from these Terms or your use of PlaySAMS will be subject to the jurisdiction of the courts of Ghana, except where mandatory local law where you or your Academy are located requires otherwise (see Section 6, "Use Across African Jurisdictions") — mandatory consumer-protection or data-protection rights under your own country’s law are not overridden by this clause.',
     ],
   },
   {
-    title: '13. Changes to These Terms',
+    title: '14. Changes to These Terms',
     body: [
       'We may update these Terms from time to time. If we make a material change, we will update the "Last updated" date above and, where appropriate, notify Academy Admins.',
     ],
   },
   {
-    title: '14. Contact',
+    title: '15. Contact',
     body: [
       'Questions about these Terms can be sent to hello@playsams.com.',
     ],
@@ -104,7 +111,8 @@ const SECTIONS: { title: string; body: string[] }[] = [
   {
     title: 'What Still Needs Formal Legal Review',
     body: [
-      'This document was drafted with general awareness of Ghana’s Data Protection Act, 2012 (Act 843) and common international practice for platforms serving minors, but it has not been reviewed by a licensed lawyer. Before this is treated as binding, a qualified professional should specifically confirm: the liability allocation between PlaySAMS and each Academy (Section 5); whether any Academy-specific or sport-specific safeguarding/child-protection certifications should be referenced or required; a formal refund and cancellation policy for Paystack-processed fees (Section 8); and whether the limitation-of-liability language (Section 11) is enforceable as written under Ghanaian contract law.',
+      'This document was drafted with general awareness of Ghana’s Data Protection Act, 2012 (Act 843), other African data protection frameworks named in Section 6, and common international practice for platforms serving minors — but it has not been reviewed by a licensed lawyer in any jurisdiction. Expanding the stated scope to cover use across Africa (Section 6) makes this review more urgent, not less: multi-country legal claims are harder to get right than single-country ones, and nothing in Section 6 should be read as confirmed compliance with any specific country’s law outside Ghana.',
+      'Before this is treated as binding, a qualified professional should specifically confirm: the liability allocation between PlaySAMS and each Academy (Section 5); whether the Section 6 multi-jurisdiction language is accurate and sufficient, or whether country-specific terms are needed for Academies outside Ghana; whether any Academy-specific or sport-specific safeguarding/child-protection certifications should be referenced or required; a formal refund and cancellation policy for Paystack-processed fees (Section 9); and whether the limitation-of-liability language (Section 12) is enforceable as written under Ghanaian contract law and under the law of any other country where an Academy operates.',
     ],
   },
 ];
