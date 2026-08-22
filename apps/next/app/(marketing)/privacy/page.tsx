@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   description: 'Privacy Policy for PlaySAMS — draft pending legal review.',
 };
 
-const LAST_UPDATED = 'August 11, 2026';
+const LAST_UPDATED = 'August 20, 2026';
 
 const SECTIONS: { title: string; body: string[] }[] = [
   {
@@ -44,7 +44,8 @@ const SECTIONS: { title: string; body: string[] }[] = [
   {
     title: '5. Legal Basis for Processing',
     body: [
-      'Where Ghana’s Data Protection Act, 2012 (Act 843) applies, PlaySAMS and Academies rely on one or more of the following grounds to process personal information: your consent (for example, when you agree to these policies at signup, or when a Player or Parent/Guardian chooses to submit a wellness check-in or registration document); the necessity of processing to provide the service an Academy has signed up for; and the legitimate interest of the Academy in managing its teams, safety, and operations.',
+      'PlaySAMS operates primarily in Ghana, and under Ghana’s Data Protection Act, 2012 (Act 843), PlaySAMS and Academies rely on one or more of the following grounds to process personal information: your consent (for example, when you agree to these policies at signup, or when a Player or Parent/Guardian chooses to submit a wellness check-in or registration document); the necessity of processing to provide the service an Academy has signed up for; and the legitimate interest of the Academy in managing its teams, safety, and operations.',
+      'Where an Academy or its members are located in another African country, other data protection laws may also apply — for example Nigeria’s Data Protection Act 2023, Kenya’s Data Protection Act 2019, South Africa’s Protection of Personal Information Act (POPIA), or a country’s law implementing the African Union’s Malabo Convention on Cyber Security and Personal Data Protection. These frameworks share broadly similar core principles to Act 843 (a lawful basis for processing, purpose limitation, data minimization, and rights of access, correction, and deletion), and PlaySAMS aims to operate consistently with them. This is a statement of intent, not confirmation that any specific country’s registration, notification, or other local compliance requirement has been independently met — see "What Still Needs Formal Legal Review" below.',
     ],
   },
   {
@@ -65,7 +66,7 @@ const SECTIONS: { title: string; body: string[] }[] = [
   {
     title: '8. Where Information Is Stored',
     body: [
-      'PlaySAMS’ database and file storage (via Supabase) are hosted in the European Union. This means personal information about users in Ghana and elsewhere in Africa is transferred to and stored outside the country. Whether this requires additional safeguards under Ghana’s Data Protection Act, 2012 — such as a specific transfer mechanism or notice to the Data Protection Commission — is one of the items flagged for legal review below.',
+      'PlaySAMS’ database and file storage (via Supabase) are hosted in the European Union. This means personal information about users in Ghana and elsewhere in Africa is transferred to and stored outside the country, and outside the continent. Whether this requires additional safeguards — such as a specific cross-border transfer mechanism, an adequacy determination, or notice to a national Data Protection Authority — depends on which country’s law applies to a given Academy, and is one of the items flagged for legal review below. This applies under Ghana’s Data Protection Act, 2012 and would similarly need checking under the law of any other African country an Academy operates from.',
     ],
   },
   {
@@ -107,7 +108,8 @@ const SECTIONS: { title: string; body: string[] }[] = [
   {
     title: 'What Still Needs Formal Legal Review',
     body: [
-      'This document was drafted with general awareness of Ghana’s Data Protection Act, 2012 (Act 843) and common international practice for platforms serving minors, but it has not been reviewed by a licensed lawyer or data-protection specialist. Before this is treated as binding, a qualified professional should specifically confirm: whether PlaySAMS or any Academy using it needs to register with Ghana’s Data Protection Commission; the correct data-controller/data-processor allocation between PlaySAMS and each Academy, and whether a formal data processing agreement is needed (Section 2); whether the EU hosting arrangement (Section 8) requires a specific cross-border transfer safeguard under Ghanaian law; and whether any sport-specific child-safeguarding data-handling requirements apply on top of general data-protection law.',
+      'This document was drafted with general awareness of Ghana’s Data Protection Act, 2012 (Act 843), the other African data protection frameworks named in Section 5, and common international practice for platforms serving minors — but it has not been reviewed by a licensed lawyer or data-protection specialist in any jurisdiction. Stating an intent to align with multiple African frameworks (Section 5) makes real legal review more urgent, not less: it is a broader, harder claim to get right than a single-country one, and nothing here should be read as confirmed compliance outside Ghana.',
+      'Before this is treated as binding, a qualified professional should specifically confirm: whether PlaySAMS or any Academy using it needs to register with Ghana’s Data Protection Commission, or with the equivalent authority in any other country an Academy operates from; the correct data-controller/data-processor allocation between PlaySAMS and each Academy, and whether a formal data processing agreement is needed (Section 2); whether the EU hosting arrangement (Section 8) requires a specific cross-border transfer safeguard under Ghanaian law and under the law of other applicable African countries; whether the Section 5 multi-country claim is accurate as written, or should be narrowed until each named framework is individually confirmed; and whether any sport-specific child-safeguarding data-handling requirements apply on top of general data-protection law.',
     ],
   },
 ];

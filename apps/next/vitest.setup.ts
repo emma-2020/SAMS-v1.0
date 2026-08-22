@@ -35,6 +35,12 @@ if (typeof window !== 'undefined') {
   }
 }
 
+// jsdom doesn't implement scrollIntoView either — chat's message list and
+// similar auto-scroll-to-latest views call it after loading/sending.
+if (typeof window !== 'undefined' && !window.HTMLElement.prototype.scrollIntoView) {
+  window.HTMLElement.prototype.scrollIntoView = () => {};
+}
+
 afterEach(() => {
   cleanup();
 });
