@@ -22,7 +22,17 @@ jest.mock('otplib', () => ({
   generateURI:    jest.fn(),
   verifySync:     jest.fn(),
 }));
-jest.mock('../../../src/middleware/platformAuth.middleware');
+// Explicit factory, not bare jest.mock(path) — automock still loads the
+// real module first to introspect its shape, and that module throws at
+// import time when PLATFORM_JWT_SECRET isn't set (true in CI, which only
+// exports placeholder Supabase vars; local .env happens to set it, which
+// is why this passed locally but failed in CI).
+jest.mock('../../../src/middleware/platformAuth.middleware', () => ({
+  platformAuthenticate: jest.fn(),
+  signPlatformToken:    jest.fn(),
+  signMfaToken:         jest.fn(),
+  verifyMfaToken:       jest.fn(),
+}));
 
 const { supabaseAdmin } = require('../../../src/config/supabase');
 const bcrypt = require('bcryptjs');
